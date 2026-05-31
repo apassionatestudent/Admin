@@ -1,0 +1,94 @@
+import express from 'express';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+
+import { sql } from './config/db.js';
+
+import adminAuthRouter from './routes/adminAuthRoute.js';
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// => Middleware
+app.use(cors({
+    origin: 'http://localhost:3173', // => admin frontend URL, update when deployed
+    credentials: true,
+}));
+
+app.use(helmet());
+app.use(morgan('dev'));
+app.use(express.json());
+app.use(cookieParser());
+
+// => Routes
+app.use('/api/admin-auth', adminAuthRouter);
+
+// => Initialize DB tables that the admin backend needs
+async function initDB() {
+    try {
+
+        // => Ensure the admins table exists
+        // => role is restricted to 'admin' or 'super_admin' via CHECK constraint
+        // => status is restricted to 'active' or 'suspended' via CHECK constraint
+        await sql`
+            CREATE TABLE IF NOT EXISTS admins (
+                admin_id        SERIAL PRIMARY KEY,
+                full_name       VARCHAR(150)  NOT NULL,
+                email           VARCHAR(255)  NOT NULL UNIQUE,
+                password_hash   TEXT          NOT NULL,
+                role            VARCHAR(15)   NOT NULL DEFAULT 'admin'
+                                CHECK (role IN ('admin', 'super_admin')),
+                status          VARCHAR(10)   NOT NULL DEFAULT 'active'
+                                CHECK (status IN ('active', 'suspended')),
+                created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+                updated_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+                last_login_at   TIMESTAMPTZ,
+                remarks         TEXT
+            )
+        `;
+
+        // => Reuse the same set_updated_at trigger function if it already exists
+        // => CREATE OR REPLACE is safe here - won't break existing triggers
+        await sql`
+            CREATE OR REPLACE FUNCTION set_updated_at()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                NEW.updated_at = NOW();
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql
+        `;
+
+        // => Attach updated_at trigger to admins table only if it doesn't exist yet
+        await sql`
+            DO $$ BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_trigger WHERE tgname = 'admins_set_updated_at'
+                ) THEN
+                    CREATE TRIGGER admins_set_updated_at
+                    BEFORE UPDATE ON admins
+                    FOR EACH ROW
+                    EXECUTE FUNCTION set_updated_at();
+                END IF;
+            END $$
+        `;
+
+        console.log('Admin database initialized successfully');
+    } catch (error) {
+        console.error('Error initializing admin database:', error);
+        process.exit(1); // => Stop the server if DB init fails; no point running without a DB
+    }
+}
+
+(async () => {
+    await initDB();
+
+    app.listen(PORT, () => {
+        console.log(`Admin server running on port ${PORT}`);
+    });
+})();

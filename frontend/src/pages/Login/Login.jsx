@@ -1,11 +1,56 @@
+import React, { useState } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+
 import './Login.css';
 import logo from './../../assets/logo.jpg';
 
 import emailIcon from './../../assets/email.png';
 import lockIcon from './../../assets/lock.png';
 
-
 export default function Login() {
+  const navigate = useNavigate();
+
+  // => Login form state
+  const [form, setForm] = useState({
+    email: '',
+    password: '',
+  });
+
+  // => Tracks loading state to disable button while request is in flight
+  const [isLoading, setIsLoading] = useState(false);
+
+  // => Holds error message returned from the backend
+  const [error, setError] = useState(null);
+
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null); // => clear previous errors on each attempt
+
+    try {
+      await axios.post(
+        '/api/admin-auth/login', // => proxied to http://localhost:3000 via vite.config.js
+        { email: form.email, password: form.password },
+        { withCredentials: true } // => required so the admin_token cookie is saved in the browser
+      );
+
+      // => No "Remember Me" for admins - session only, cleared when browser closes
+      sessionStorage.setItem('isAdminLoggedIn', 'true');
+
+      // => redirect to admin dashboard on successful login
+      navigate('/dashboard');
+
+    } catch (err) {
+      // => show the error message returned from the backend
+      setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <main className="login">
       <div className="login-glow login-glow-1"></div>
@@ -29,7 +74,7 @@ export default function Login() {
             Sign in to continue to the dashboard
           </p>
         </div>
-        <form className="login-form">
+        <form className="login-form" onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Email Address</label>
             {/* => input-wrap + input-icon adds the mail icon inside the field */}
@@ -37,7 +82,11 @@ export default function Login() {
               <img src={emailIcon} alt="" className="input-icon" />
               <input
                 type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
                 placeholder="Enter your email"
+                required
               />
             </div>
           </div>
@@ -48,7 +97,11 @@ export default function Login() {
               <img src={lockIcon} alt="" className="input-icon" />
               <input
                 type="password"
+                name="password"
+                value={form.password}
+                onChange={handleChange}
                 placeholder="Enter your password"
+                required
               />
             </div>
           </div>
@@ -57,11 +110,16 @@ export default function Login() {
               Forgot password?
             </a>
           </div>
+
+          {/* => shows backend error messages such as invalid credentials or suspended account */}
+          {error && <p className="login-error">{error}</p>}
+
           <button
             type="submit"
             className="login-btn"
+            disabled={isLoading}
           >
-            Sign In
+            {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
         <div className="login-divider">
