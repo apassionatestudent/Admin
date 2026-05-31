@@ -1,0 +1,8 @@
+/* => Outer wrapper: sidebar + content side by side */
+.dashboard {
+    display: flex;
+    min-height: 100vh;
+    background-color: #0f0f0f;
+    color: #fff;
+    font-family: 'Segoe UI', sans-serif;
+}

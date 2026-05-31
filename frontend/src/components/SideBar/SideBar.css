@@ -1,0 +1,237 @@
+/* ============================================================
+   SideBar.css
+   Left-side navigation bar for the Admin Dashboard.
+   Mirrors the Student Dashboard sidebar design.
+   ============================================================ */
+
+/* => Design Tokens */
+:root {
+  --sidebar-bg:           #660911;
+  --sidebar-surface:      #162236;
+  --sidebar-border:       rgba(255, 255, 255, 0.07);
+  --sidebar-accent:       #3b82f6;
+  --sidebar-accent-glow:  rgba(59, 130, 246, 0.25);
+  --sidebar-text-primary: #fff;
+  --sidebar-hover-bg:     #262626;
+  --sidebar-logout-hover: rgba(239, 68, 68, 0.10);
+  --sidebar-logout-color: #f87171;
+
+  --sidebar-width:        240px;
+  --sidebar-icon-size:    20px;
+  --sidebar-avatar-size:  64px;
+  --sidebar-radius:       10px;
+
+  --sidebar-transition:   0.2s ease;
+}
+
+/* => Sidebar Shell */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
+  z-index: 100;
+
+  display: flex;
+  flex-direction: column;
+  padding: 28px 0 20px;
+  overflow-y: auto;
+
+  background-color: var(--sidebar-bg);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.35);
+}
+
+/* => Profile Section */
+.sidebar-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0 20px 24px;
+}
+
+.sidebar-avatar-ring {
+  width: calc(var(--sidebar-avatar-size) + 6px);
+  height: calc(var(--sidebar-avatar-size) + 6px);
+  border-radius: 50%;
+  padding: 3px;
+}
+
+.sidebar-avatar {
+  width: var(--sidebar-avatar-size);
+  height: var(--sidebar-avatar-size);
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  border: 2px solid var(--sidebar-bg);
+}
+
+.sidebar-profile-name {
+  margin: 0;
+  font-family: var(--font-body), sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--sidebar-text-primary);
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* => Role badge below the name */
+.sidebar-profile-role {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+
+/* => Divider */
+.sidebar-divider {
+  height: 1px;
+  margin: 0 20px;
+  background-color: var(--sidebar-border);
+}
+
+/* => Navigation List */
+.sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0;
+}
+
+.sidebar-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-nav-list a {
+  text-decoration: none;
+}
+
+/* => Individual Nav Item */
+.sidebar-nav-item {
+  appearance: none;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  margin: 0 8px;
+  width: calc(100% - 16px);
+  border-radius: var(--sidebar-radius);
+
+  font-family: var(--font-body), sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--sidebar-text-primary);
+
+  transition:
+    background-color var(--sidebar-transition),
+    color var(--sidebar-transition),
+    box-shadow var(--sidebar-transition);
+}
+
+.sidebar-nav-item:hover {
+  background-color: var(--sidebar-hover-bg);
+  color: var(--sidebar-text-primary);
+}
+
+/* => Active state */
+.sidebar-nav-item--active {
+  background-color: var(--sidebar-hover-bg);
+  color: var(--sidebar-text-primary);
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.15);
+}
+
+/* => Nav Icon */
+.sidebar-nav-icon {
+  width: var(--sidebar-icon-size);
+  height: var(--sidebar-icon-size);
+  object-fit: contain;
+  flex-shrink: 0;
+  transition: filter var(--sidebar-transition);
+}
+
+/* => Nav Label */
+.sidebar-nav-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* => Spacer pushes Logout to the bottom */
+.sidebar-spacer {
+  flex: 1;
+}
+
+/* => Logout Section */
+.sidebar-logout-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.sidebar-nav-item--logout {
+  color: var(--sidebar-text-primary);
+}
+
+.sidebar-nav-item--logout:hover {
+  background-color: var(--sidebar-logout-hover);
+  color: var(--sidebar-logout-color);
+}
+
+.sidebar-nav-item--logout:hover .sidebar-nav-icon {
+  filter: brightness(0) saturate(100%) invert(62%) sepia(60%)
+          saturate(500%) hue-rotate(320deg) brightness(110%);
+}
+
+/* => Scrollbar Styling */
+.sidebar::-webkit-scrollbar        { width: 4px; }
+.sidebar::-webkit-scrollbar-track  { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb  { border-radius: 4px; background: rgba(255,255,255,0.15); }
+
+/* => Offset main content so it doesn't sit behind the sidebar */
+.main-content {
+  margin-left: var(--sidebar-width);
+}
+
+/* => Responsive: icon-only mode on small screens */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 64px;
+  }
+
+  .sidebar-profile-name,
+  .sidebar-profile-role,
+  .sidebar-nav-label {
+    display: none;
+  }
+
+  .sidebar-nav-item {
+    justify-content: center;
+    padding: 12px;
+  }
+
+  .main-content {
+    margin-left: 64px;
+  }
+}
