@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
+// pages
 import Login         from './pages/Login/Login.jsx';
 import Dashboard     from './pages/Dashboard/Dashboard.jsx';
 import DashboardHome from './pages/Dashboard/DashboardHome.jsx';
@@ -15,6 +16,9 @@ import Pages         from './pages/Pages/Pages.jsx';
 import Logs          from './pages/Logs/Logs.jsx';
 import Chatbots      from './pages/Chatbots/Chatbots.jsx';
 import Admins        from './pages/Admins/Admins.jsx';
+
+// components 
+import EnrollmentDetail from './components/EnrollmentDetail/EnrollmentDetail.jsx';
 
 import './App.css';
 
@@ -34,17 +38,19 @@ function App() {
                     <Route index element={<DashboardHome />} />
 
                     {/* => Sub-routes render inside the <Outlet /> in Dashboard.jsx */}
-                    <Route path="enrollments"    element={<Enrollments />} />
-                    <Route path="classes"        element={<Classes />} />
-                    <Route path="support-tickets" element={<SupportTickets />} />
-                    <Route path="students"       element={<Students />} />
-                    <Route path="reports"        element={<Reports />} />
-                    <Route path="payments"       element={<Payments />} />
-                    <Route path="courses"        element={<Courses />} />
-                    <Route path="pages"          element={<Pages />} />
-                    <Route path="logs"           element={<Logs />} />
-                    <Route path="chatbots"       element={<Chatbots />} />
-                    <Route path="admins"         element={<Admins />} />
+                    <Route path="enrollments"           element={<Enrollments />} />
+                    <Route path="enrollments/:publicId" element={<EnrollmentDetail />} />
+
+                    <Route path="classes"               element={<Classes />} />
+                    <Route path="support-tickets"       element={<SupportTickets />} />
+                    <Route path="students"              element={<Students />} />
+                    <Route path="reports"               element={<Reports />} />
+                    <Route path="payments"              element={<Payments />} />
+                    <Route path="courses"               element={<Courses />} />
+                    <Route path="pages"                 element={<Pages />} />
+                    <Route path="logs"                  element={<Logs />} />
+                    <Route path="chatbots"              element={<Chatbots />} />
+                    <Route path="admins"                element={<Admins />} />
                 </Route>
             </Routes>
         </BrowserRouter>
