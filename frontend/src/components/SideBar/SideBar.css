@@ -212,6 +212,10 @@
 /* => Offset main content so it doesn't sit behind the sidebar */
 .main-content {
   margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width)); /* => fills the remaining horizontal space */
+  min-height: 100vh;
+  background: #f4f5f8;                      /* => matches adm-enroll-page background */
+  box-sizing: border-box;
 }
 
 /* => Responsive: icon-only mode on small screens */
@@ -233,5 +237,6 @@
 
   .main-content {
     margin-left: 64px;
+    width: calc(100% - 64px); /* => matches the collapsed sidebar width */
   }
 }

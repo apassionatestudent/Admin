@@ -1,0 +1,26 @@
+.enroll-back {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: border-color 0.18s ease, color 0.18s ease;
+  margin-bottom: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.back-arrow-icon {
+  width: 12px;
+  height: 12px;
+  object-fit: contain;
+}
+
+.enroll-back:hover {
+  border-color: var(--accent-hover);
+  color: var(--text-primary);
+}

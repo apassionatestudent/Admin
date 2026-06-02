@@ -1,0 +1,280 @@
+/* =========================================================
+   Enrollments.css — Admin enrollment list page
+   Aesthetic: clean government-dashboard utilitarian with
+   sharp data-ink ratio; deep navy sidebar contrast
+   ========================================================= */
+
+/*  Page shell => Make the page fill the full available width inside the dashboard layout */
+.adm-enroll-page {
+  padding: 36px 40px;
+  min-height: 100vh;
+  background: #f4f5f8;
+  font-family: var(--font-body), sans-serif;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden; /* => prevents any child from bleeding out */
+}
+
+/*  Page header  */
+.adm-enroll-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.adm-enroll-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0f1724;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+}
+
+.adm-enroll-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.adm-enroll-subtitle strong {
+  color: #374151;
+}
+
+/*  Count badge top-right  */
+.adm-enroll-count {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.adm-enroll-count-num {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #1a56db;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.adm-enroll-count-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+}
+
+/*  Loading / Error / Empty states  */
+.adm-enroll-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 0;
+  color: #6b7280;
+  font-size: 0.9375rem;
+}
+
+.adm-enroll-state--error {
+  color: #b91c1c;
+}
+
+.adm-state-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+/*  Spinner  */
+.adm-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #1a56db;
+  border-radius: 50%;
+  animation: adm-spin 0.8s linear infinite;
+}
+
+@keyframes adm-spin {
+  to { transform: rotate(360deg); }
+}
+
+/*  Section grouping  */
+.adm-enroll-section {
+  margin-bottom: 40px;
+  width: 100%; /* => section stretches full width of the page */
+  box-sizing: border-box;
+}
+
+.adm-section-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 12px;
+  padding-left: 4px;
+}
+
+.adm-section-label--pending {
+  color: #b45309;
+}
+
+.adm-section-label--clarification {
+  color: #1d4ed8;
+}
+
+.adm-section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.adm-section-label--pending .adm-section-count {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.adm-section-label--clarification .adm-section-count {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+/*  Table wrapper (horizontal scroll on small screens) => Table wrapper should also stretch full width */
+.adm-table-wrap {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow-x: auto;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  width: 100%;
+  box-sizing: border-box; /* => ensures padding doesn't add to the width */
+}
+
+/*  Table  */
+.adm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  color: #374151;
+  min-width: 760px;
+}
+
+.adm-table thead tr {
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.adm-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+/*  Table row  */
+.adm-table-row {
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  animation: adm-row-in 0.28s ease both;
+}
+
+@keyframes adm-row-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.adm-table-row:last-child {
+  border-bottom: none;
+}
+
+.adm-table-row:hover {
+  background: #f0f4ff;
+}
+
+.adm-table td {
+  padding: 14px 16px;
+  vertical-align: middle;
+}
+
+/*  Student cell  */
+.adm-td-student {
+  min-width: 180px;
+}
+
+.adm-student-name {
+  display: block;
+  font-weight: 600;
+  color: #111827;
+}
+
+.adm-student-email {
+  display: block;
+  font-size: 0.78rem;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+/*  Date cell  */
+.adm-td-date {
+  white-space: nowrap;
+  color: #6b7280;
+}
+
+/*  Arrow cell  */
+.adm-td-arrow {
+  color: #d1d5db;
+  font-size: 1.25rem;
+  text-align: right;
+  padding-right: 20px;
+}
+
+.adm-table-row:hover .adm-td-arrow {
+  color: #1a56db;
+}
+
+/*  Status badge  */
+.adm-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.adm-badge.status--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.adm-badge.status--clarification {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+/*  Responsive  */
+@media (max-width: 640px) {
+  .adm-enroll-page {
+    padding: 20px 16px;
+  }
+
+  .adm-enroll-title {
+    font-size: 1.375rem;
+  }
+}

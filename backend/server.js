@@ -4,10 +4,11 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-
 import { sql } from './config/db.js';
-
+import adminEnrollmentRouter from './routes/adminEnrollmentRoute.js';
 import adminAuthRouter from './routes/adminAuthRoute.js';
+// => Location router for resolving PSGC codes to readable names in EnrollmentDetail
+import locationRouter, { loadLocationCache } from './routes/locationRoutes.js';
 
 dotenv.config();
 
@@ -19,7 +20,6 @@ app.use(cors({
     origin: 'http://localhost:3173', // => admin frontend URL, update when deployed
     credentials: true,
 }));
-
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
@@ -27,6 +27,9 @@ app.use(cookieParser());
 
 // => Routes
 app.use('/api/admin-auth', adminAuthRouter);
+app.use('/api/admin/enrollments', adminEnrollmentRouter);
+// => Location endpoints - used by EnrollmentDetail to resolve PSGC codes to readable names
+app.use('/api/location', locationRouter);
 
 // => Initialize DB tables that the admin backend needs
 async function initDB() {
@@ -87,6 +90,10 @@ async function initDB() {
 
 (async () => {
     await initDB();
+
+    // => Pre-load regions into memory before accepting requests
+    // => Without this, /api/location/regions returns [] and all code-to-name resolution fails
+    await loadLocationCache();
 
     app.listen(PORT, () => {
         console.log(`Admin server running on port ${PORT}`);
