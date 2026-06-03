@@ -11,6 +11,7 @@ import {
   getWorkExperienceByEnrollmentId,
   getTrainingSeminarsByEnrollmentId,
   updateEnrollmentStatus,
+  searchEnrollments
 } from '../models/adminEnrollmentModel.js';
 
 // 
@@ -111,4 +112,12 @@ export const changeEnrollmentStatus = async (publicId, newStatus) => {
     throw new Error(`Invalid status: ${newStatus}`);
   }
   return await updateEnrollmentStatus(pool, publicId, newStatus);
+};
+
+
+// => Search enrollments across all statuses - delegates directly to model
+export const searchEnrollmentsService = async (filters) => {  // ✅ Remove pool parameter
+  const hasFilter = Object.values(filters).some(v => v && v.trim());
+  if (!hasFilter) throw new Error('At least one search field is required.');
+  return searchEnrollments(pool, filters);  // ✅ pool is already imported at top of file
 };

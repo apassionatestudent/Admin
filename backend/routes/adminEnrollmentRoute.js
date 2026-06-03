@@ -6,6 +6,7 @@ import {
   listPendingEnrollments,
   getEnrollmentDetail,
   patchEnrollmentStatus,
+  searchEnrollmentsController
 } from '../controllers/adminEnrollmentController.js';
 import { adminProxyDocument } from '../controllers/adminDocProxyController.js';
 
@@ -18,6 +19,9 @@ const router = express.Router();
 // => GET /api/admin/enrollments
 // => List of Pending + Needs Clarification enrollments
 router.get('/', protectAdmin, listPendingEnrollments);
+
+// => Search across all statuses - must be registered before /:publicId
+router.get('/search', protectAdmin, searchEnrollmentsController);
 
 // => GET /api/admin/enrollments/:publicId
 // => Full detail bundle for one enrollment
@@ -33,5 +37,6 @@ router.patch('/:publicId/status', protectAdmin, patchEnrollmentStatus);
 // => documentKey contains slashes encoded as %2F
 // => Declared AFTER /:publicId so Express doesn't swallow 'docs' as a publicId
 router.get('/docs/:documentKey', protectAdmin, adminProxyDocument);
+
 
 export default router;

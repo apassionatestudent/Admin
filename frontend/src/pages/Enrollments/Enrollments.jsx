@@ -1,7 +1,8 @@
 // => admin/pages/Enrollments/Enrollments.jsx
 // => Displays all Pending and Needs Clarification enrollments for admin review
+// => Also handles cross-status search by email or name fields
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import '../Enrollments/Enrollments.css';
@@ -10,6 +11,11 @@ import '../Enrollments/Enrollments.css';
 const statusClass = {
   'Pending':             'status--pending',
   'Needs Clarification': 'status--clarification',
+  'Approved':            'status--approved',
+  'Rejected':            'status--rejected',
+  'Dropped':             'status--dropped',
+  'Completed':           'status--completed',
+  'Reserved':            'status--reserved',
 };
 
 // => Formats ISO date string to a short readable date
@@ -28,14 +34,34 @@ const fullName = (row) => {
   return parts.length ? parts.join(' ') : row.student_email ?? '—';
 };
 
+// => Empty search filters - used for reset
+const EMPTY_FILTERS = {
+  email:          '',
+  first_name:     '',
+  middle_name:    '',
+  surname:        '',
+  name_extension: '',
+};
+
 export default function Enrollments() {
   const navigate = useNavigate();
 
+  // => Default enrollments (Pending + Needs Clarification)
   const [enrollments, setEnrollments] = useState([]);
   const [loading,     setLoading]     = useState(false);
   const [error,       setError]       = useState(null);
 
-  // => Fetch pending enrollments on mount
+  // => Search state
+  const [filters,        setFilters]        = useState(EMPTY_FILTERS);
+  const [moreOpen,       setMoreOpen]       = useState(false);   // => More Options panel toggle
+  const [searchResults,  setSearchResults]  = useState(null);    // => null = not searched yet; [] = searched but empty
+  const [searchLoading,  setSearchLoading]  = useState(false);
+  const [searchError,    setSearchError]    = useState(null);
+
+  // => Ref to abort stale search requests when a new one fires
+  const abortRef = useRef(null);
+
+  // => Fetch default (Pending + Needs Clarification) enrollments on mount
   useEffect(() => {
     const fetchEnrollments = async () => {
       setLoading(true);
@@ -62,7 +88,64 @@ export default function Enrollments() {
     navigate(`/dashboard/enrollments/${publicId}`);
   };
 
-  // => Split enrollments into two priority buckets for visual grouping
+  // => Build query string from non-empty filters only
+  const buildQuery = (f) => {
+    const params = new URLSearchParams();
+    Object.entries(f).forEach(([k, v]) => {
+      if (v && v.trim()) params.set(k, v.trim());
+    });
+    return params.toString();
+  };
+
+  // => Run search against /api/admin/enrollments/search
+  const handleSearch = async () => {
+    const query = buildQuery(filters);
+    if (!query) return; // => nothing to search
+
+    // => Cancel any in-flight search
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = new AbortController();
+
+    setSearchLoading(true);
+    setSearchError(null);
+    setSearchResults(null);
+
+    try {
+      const res = await fetch(`/api/admin/enrollments/search?${query}`, {
+        credentials: 'include',
+        signal: abortRef.current.signal,
+      });
+      if (!res.ok) {
+        const body = await res.json();
+        throw new Error(body.error || 'Search failed.');
+      }
+      const data = await res.json();
+      setSearchResults(data.enrollments);
+    } catch (err) {
+      if (err.name === 'AbortError') return; // => stale request, ignore
+      setSearchError(err.message);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // => Allow pressing Enter in the email field to trigger search
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSearch();
+  };
+
+  // => Clear search and restore default view
+  const handleClearSearch = () => {
+    setFilters(EMPTY_FILTERS);
+    setSearchResults(null);
+    setSearchError(null);
+    setMoreOpen(false);
+  };
+
+  // => Determine what's currently displayed
+  const isSearchMode = searchResults !== null;
+
+  // => Split default enrollments into two priority buckets for visual grouping
   const needsClarification = enrollments.filter(e => e.status === 'Needs Clarification');
   const pending            = enrollments.filter(e => e.status === 'Pending');
 
@@ -72,13 +155,18 @@ export default function Enrollments() {
       <div className="adm-enroll-header">
         <div>
           <h1 className="adm-enroll-title">Enrollments</h1>
+
+          {/* => Subtitle changes based on whether a search is active */}
           <p className="adm-enroll-subtitle">
-            Showing <strong>Pending</strong> and <strong>Needs Clarification</strong> submissions.
+            {isSearchMode
+              ? <>Showing search results — <strong>{searchResults.length}</strong> enrollment{searchResults.length !== 1 ? 's' : ''} found.</>
+              : <>Showing <strong>Pending</strong> and <strong>Needs Clarification</strong> submissions.</>
+            }
           </p>
         </div>
 
-        {/* => Live count badge */}
-        {!loading && !error && (
+        {/* => Live count badge - only shown in default mode */}
+        {!loading && !error && !isSearchMode && (
           <div className="adm-enroll-count">
             <span className="adm-enroll-count-num">{enrollments.length}</span>
             <span className="adm-enroll-count-label">awaiting review</span>
@@ -86,50 +174,191 @@ export default function Enrollments() {
         )}
       </div>
 
-      {/*  Loading state  */}
-      {loading && (
-        <div className="adm-enroll-state">
-          <div className="adm-spinner" />
-          <p>Loading enrollments…</p>
+      {/* ════════════════════════════════════
+          SEARCH BAR
+          ════════════════════════════════════ */}
+      <div className="adm-search-wrap">
+
+        {/* => Primary search row: email input + Search button + More Options toggle */}
+        <div className="adm-search-row">
+          <input
+            type="text"
+            className="adm-search-input"
+            placeholder="Search by email…"
+            value={filters.email}
+            onChange={e => setFilters(f => ({ ...f, email: e.target.value }))}
+            onKeyDown={handleKeyDown}
+          />
+
+          <button
+            className="adm-search-btn"
+            onClick={handleSearch}
+            disabled={searchLoading || !buildQuery(filters)}
+          >
+            {searchLoading ? 'Searching…' : 'Search'}
+          </button>
+
+          {/* => Toggle More Options panel */}
+          <button
+            className={`adm-more-btn ${moreOpen ? 'adm-more-btn--open' : ''}`}
+            onClick={() => setMoreOpen(o => !o)}
+          >
+            More Options {moreOpen ? '▲' : '▼'}
+          </button>
+
+          {/* => Clear search - only visible when in search mode */}
+          {isSearchMode && (
+            <button className="adm-clear-btn" onClick={handleClearSearch}>
+              ✕ Clear Search
+            </button>
+          )}
         </div>
+
+        {/* => Collapsible More Options panel */}
+        {moreOpen && (
+          <div className="adm-more-panel">
+            <div className="adm-more-grid">
+              <div className="adm-more-field">
+                <label className="adm-more-label">First Name</label>
+                <input
+                  type="text"
+                  className="adm-more-input"
+                  placeholder="e.g. Juan"
+                  value={filters.first_name}
+                  onChange={e => setFilters(f => ({ ...f, first_name: e.target.value }))}
+                  onKeyDown={handleKeyDown}
+                />
+              </div>
+
+              <div className="adm-more-field">
+                <label className="adm-more-label">Middle Name</label>
+                <input
+                  type="text"
+                  className="adm-more-input"
+                  placeholder="e.g. Dela"
+                  value={filters.middle_name}
+                  onChange={e => setFilters(f => ({ ...f, middle_name: e.target.value }))}
+                  onKeyDown={handleKeyDown}
+                />
+              </div>
+
+              <div className="adm-more-field">
+                <label className="adm-more-label">Last Name</label>
+                <input
+                  type="text"
+                  className="adm-more-input"
+                  placeholder="e.g. Cruz"
+                  value={filters.surname}
+                  onChange={e => setFilters(f => ({ ...f, surname: e.target.value }))}
+                  onKeyDown={handleKeyDown}
+                />
+              </div>
+
+              <div className="adm-more-field">
+                <label className="adm-more-label">Name Extension</label>
+                {/* => Dropdown since name extensions are a fixed set */}
+                <select
+                  className="adm-more-input"
+                  value={filters.name_extension}
+                  onChange={e => setFilters(f => ({ ...f, name_extension: e.target.value }))}
+                >
+                  <option value="">— Any —</option>
+                  <option value="Jr.">Jr.</option>
+                  <option value="Sr.">Sr.</option>
+                  <option value="II">II</option>
+                  <option value="III">III</option>
+                  <option value="IV">IV</option>
+                  <option value="V">V</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* => Search error */}
+        {searchError && (
+          <p className="adm-search-error">⚠ {searchError}</p>
+        )}
+      </div>
+
+      {/* ════════════════════════════════════
+          SEARCH RESULTS MODE
+          ════════════════════════════════════ */}
+      {isSearchMode && (
+        <>
+          {searchLoading && (
+            <div className="adm-enroll-state">
+              <div className="adm-spinner" />
+              <p>Searching…</p>
+            </div>
+          )}
+
+          {!searchLoading && searchResults.length === 0 && (
+            <div className="adm-enroll-state">
+              <span className="adm-state-icon">🔍</span>
+              <p>No enrollments matched your search.</p>
+            </div>
+          )}
+
+          {!searchLoading && searchResults.length > 0 && (
+            <section className="adm-enroll-section">
+              <EnrollmentTable rows={searchResults} onRowClick={handleRowClick} />
+            </section>
+          )}
+        </>
       )}
 
-      {/*  Error state  */}
-      {!loading && error && (
-        <div className="adm-enroll-state adm-enroll-state--error">
-          <span className="adm-state-icon">⚠</span>
-          <p>{error}</p>
-        </div>
-      )}
+      {/* ════════════════════════════════════
+          DEFAULT MODE (Pending + Needs Clarification)
+          ════════════════════════════════════ */}
+      {!isSearchMode && (
+        <>
+          {/*  Loading state  */}
+          {loading && (
+            <div className="adm-enroll-state">
+              <div className="adm-spinner" />
+              <p>Loading enrollments…</p>
+            </div>
+          )}
 
-      {/*  Empty state  */}
-      {!loading && !error && enrollments.length === 0 && (
-        <div className="adm-enroll-state">
-          <span className="adm-state-icon">✓</span>
-          <p>All caught up — no pending enrollments.</p>
-        </div>
-      )}
+          {/*  Error state  */}
+          {!loading && error && (
+            <div className="adm-enroll-state adm-enroll-state--error">
+              <span className="adm-state-icon">⚠</span>
+              <p>{error}</p>
+            </div>
+          )}
 
-      {/*  Needs Clarification group (shown first — higher urgency)  */}
-      {!loading && !error && needsClarification.length > 0 && (
-        <section className="adm-enroll-section">
-          <h2 className="adm-section-label adm-section-label--clarification">
-            Needs Clarification
-            <span className="adm-section-count">{needsClarification.length}</span>
-          </h2>
-          <EnrollmentTable rows={needsClarification} onRowClick={handleRowClick} />
-        </section>
-      )}
+          {/*  Empty state  */}
+          {!loading && !error && enrollments.length === 0 && (
+            <div className="adm-enroll-state">
+              <span className="adm-state-icon">✓</span>
+              <p>All caught up — no pending enrollments.</p>
+            </div>
+          )}
 
-      {/*  Pending group  */}
-      {!loading && !error && pending.length > 0 && (
-        <section className="adm-enroll-section">
-          <h2 className="adm-section-label adm-section-label--pending">
-            Pending
-            <span className="adm-section-count">{pending.length}</span>
-          </h2>
-          <EnrollmentTable rows={pending} onRowClick={handleRowClick} />
-        </section>
+          {/*  Needs Clarification group (shown first — higher urgency)  */}
+          {!loading && !error && needsClarification.length > 0 && (
+            <section className="adm-enroll-section">
+              <h2 className="adm-section-label adm-section-label--clarification">
+                Needs Clarification
+                <span className="adm-section-count">{needsClarification.length}</span>
+              </h2>
+              <EnrollmentTable rows={needsClarification} onRowClick={handleRowClick} />
+            </section>
+          )}
+
+          {/*  Pending group  */}
+          {!loading && !error && pending.length > 0 && (
+            <section className="adm-enroll-section">
+              <h2 className="adm-section-label adm-section-label--pending">
+                Pending
+                <span className="adm-section-count">{pending.length}</span>
+              </h2>
+              <EnrollmentTable rows={pending} onRowClick={handleRowClick} />
+            </section>
+          )}
+        </>
       )}
 
     </div>
@@ -138,6 +367,7 @@ export default function Enrollments() {
 
 // 
 // EnrollmentTable — reusable table sub-component
+// => Now also shows status column in search mode since results span all statuses
 // 
 function EnrollmentTable({ rows, onRowClick }) {
   return (
