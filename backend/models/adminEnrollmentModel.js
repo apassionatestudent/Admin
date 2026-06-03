@@ -184,3 +184,53 @@ export const updateEnrollmentStatus = async (pool, publicId, newStatus) => {
   );
   return result.rows[0] ?? null;
 };
+
+
+// => Search enrollments across ALL statuses by email or profile name fields
+// => Used by admin search - not restricted to Pending/Needs Clarification
+export const searchEnrollments = async (pool, { email, first_name, middle_name, surname, name_extension }) => {
+  const client = await pool.connect();
+  try {
+    const rows = await client.query(`
+      SELECT
+        e.public_id,
+        e.status,
+        e.submitted_at,
+        e.assessment_type,
+        sa.username         AS student_email,
+        c.title           AS course_name,
+        s.sector,
+         COALESCE(b_direct.branch_name, b_class.branch_name) AS branch_name,
+        sp.first_name,
+        sp.middle_name,
+        sp.surname,
+        sp.name_extension
+      FROM enrollment e
+      JOIN  student_accounts sa    ON sa.student_id  = e.student_id
+      LEFT JOIN courses c          ON c.course_id    = e.course_id
+      LEFT JOIN sectors s          ON c.sector_id    = s.sector_id
+      LEFT JOIN classes cl         ON e.class_id     = cl.class_id
+      LEFT JOIN branches b_direct  ON e.branch_id    = b_direct.branch_id
+      LEFT JOIN branches b_class   ON cl.branch_id   = b_class.branch_id
+      LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
+      WHERE
+        -- => At least one search param must match; all provided params are ANDed together
+        ($1::text IS NULL OR sa.username          ILIKE '%' || $1 || '%')
+        AND ($2::text IS NULL OR sp.first_name      ILIKE '%' || $2 || '%')
+        AND ($3::text IS NULL OR sp.middle_name     ILIKE '%' || $3 || '%')
+        AND ($4::text IS NULL OR sp.surname         ILIKE '%' || $4 || '%')
+        AND ($5::text IS NULL OR sp.name_extension  ILIKE '%' || $5 || '%')
+      ORDER BY e.submitted_at DESC
+      LIMIT 50
+    `, [
+      email         || null,
+      first_name    || null,
+      middle_name   || null,
+      surname       || null,
+      name_extension || null,
+    ]);
+    return rows.rows;
+  } finally {
+    client.release();
+  }
+};

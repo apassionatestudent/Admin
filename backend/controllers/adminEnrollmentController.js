@@ -5,6 +5,7 @@ import {
   fetchPendingEnrollments,
   fetchEnrollmentDetail,
   changeEnrollmentStatus,
+  searchEnrollmentsService 
 } from '../services/adminEnrollmentService.js';
 
 // 
@@ -68,5 +69,21 @@ export const patchEnrollmentStatus = async (req, res) => {
     }
     console.error('patchEnrollmentStatus error:', err);
     return res.status(500).json({ error: 'Failed to update status.' });
+  }
+};
+
+// => GET /api/admin/enrollments/search
+// => Searches enrollments across all statuses by email or name fields
+export const searchEnrollmentsController = async (req, res) => {
+  const { email, first_name, middle_name, surname, name_extension } = req.query;
+  try {
+    const results = await searchEnrollmentsService({  // ✅ Remove pool parameter
+      email, first_name, middle_name, surname, name_extension,
+    });
+    res.json({ enrollments: results });
+    console.log('searchEnrollmentsController results:', results);
+  } catch (err) {
+    const status = err.message.includes('required') ? 400 : 500;
+    res.status(status).json({ error: err.message });
   }
 };
