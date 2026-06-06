@@ -9,6 +9,7 @@ import adminEnrollmentRouter from './routes/adminEnrollmentRoute.js';
 import adminAuthRouter from './routes/adminAuthRoute.js';
 // => Location router for resolving PSGC codes to readable names in EnrollmentDetail
 import locationRouter, { loadLocationCache } from './routes/locationRoutes.js';
+import adminClassRouter from './routes/adminClassRoute.js';
 
 dotenv.config();
 
@@ -28,8 +29,12 @@ app.use(cookieParser());
 // => Routes
 app.use('/api/admin-auth', adminAuthRouter);
 app.use('/api/admin/enrollments', adminEnrollmentRouter);
+
 // => Location endpoints - used by EnrollmentDetail to resolve PSGC codes to readable names
 app.use('/api/location', locationRouter);
+
+app.use('/api/admin/classes', adminClassRouter);
+
 
 // => Initialize DB tables that the admin backend needs
 async function initDB() {

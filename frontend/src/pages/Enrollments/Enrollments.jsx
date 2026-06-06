@@ -20,7 +20,7 @@ const statusClass = {
 
 // => Formats ISO date string to a short readable date
 const formatDate = (dateStr) => {
-  if (!dateStr) return '—';
+  if (!dateStr) return '-';
   return new Date(dateStr).toLocaleDateString('en-PH', {
     year: 'numeric', month: 'short', day: 'numeric',
   });
@@ -31,7 +31,7 @@ const formatDate = (dateStr) => {
 const fullName = (row) => {
   const parts = [row.first_name, row.middle_name, row.surname, row.name_extension]
     .filter(v => v && v.trim().toUpperCase() !== 'N/A');
-  return parts.length ? parts.join(' ') : row.student_email ?? '—';
+  return parts.length ? parts.join(' ') : row.student_email ?? '-';
 };
 
 // => Empty search filters - used for reset
@@ -159,7 +159,7 @@ export default function Enrollments() {
           {/* => Subtitle changes based on whether a search is active */}
           <p className="adm-enroll-subtitle">
             {isSearchMode
-              ? <>Showing search results — <strong>{searchResults.length}</strong> enrollment{searchResults.length !== 1 ? 's' : ''} found.</>
+              ? <>Showing search results - <strong>{searchResults.length}</strong> enrollment{searchResults.length !== 1 ? 's' : ''} found.</>
               : <>Showing <strong>Pending</strong> and <strong>Needs Clarification</strong> submissions.</>
             }
           </p>
@@ -262,7 +262,7 @@ export default function Enrollments() {
                   value={filters.name_extension}
                   onChange={e => setFilters(f => ({ ...f, name_extension: e.target.value }))}
                 >
-                  <option value="">— Any —</option>
+                  <option value="">- Any -</option>
                   <option value="Jr.">Jr.</option>
                   <option value="Sr.">Sr.</option>
                   <option value="II">II</option>
@@ -333,11 +333,11 @@ export default function Enrollments() {
           {!loading && !error && enrollments.length === 0 && (
             <div className="adm-enroll-state">
               <span className="adm-state-icon">✓</span>
-              <p>All caught up — no pending enrollments.</p>
+              <p>All caught up - no pending enrollments.</p>
             </div>
           )}
 
-          {/*  Needs Clarification group (shown first — higher urgency)  */}
+          {/*  Needs Clarification group (shown first - higher urgency)  */}
           {!loading && !error && needsClarification.length > 0 && (
             <section className="adm-enroll-section">
               <h2 className="adm-section-label adm-section-label--clarification">
@@ -366,7 +366,7 @@ export default function Enrollments() {
 }
 
 // 
-// EnrollmentTable — reusable table sub-component
+// EnrollmentTable - reusable table sub-component
 // => Now also shows status column in search mode since results span all statuses
 // 
 function EnrollmentTable({ rows, onRowClick }) {
@@ -397,10 +397,10 @@ function EnrollmentTable({ rows, onRowClick }) {
                 <span className="adm-student-name">{fullName(row)}</span>
                 <span className="adm-student-email">{row.student_email}</span>
               </td>
-              <td>{row.course_name ?? '—'}</td>
-              <td>{row.sector ?? '—'}</td>
-              <td>{row.branch_name ?? '—'}</td>
-              <td>{row.assessment_type ?? '—'}</td>
+              <td>{row.course_name ?? '-'}</td>
+              <td>{row.sector ?? '-'}</td>
+              <td>{row.branch_name ?? '-'}</td>
+              <td>{row.assessment_type ?? '-'}</td>
               <td className="adm-td-date">{formatDate(row.submitted_at)}</td>
               <td>
                 <span className={`adm-badge ${statusClass[row.status] || ''}`}>

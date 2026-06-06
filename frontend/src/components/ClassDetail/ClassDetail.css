@@ -1,18 +1,18 @@
 /* =========================================================
-   EnrollmentDetail.css - Admin enrollment detail page
-   Aesthetic: structured government-form utility with
-   clear visual hierarchy and document-preview emphasis
+   ClassDetail.css - Admin class detail page
+   Aesthetic: matches EnrollmentDetail.css - structured
+   government-form utility with clear visual hierarchy
    ========================================================= */
 
-/*  Page shell  */
-.adm-detail-page {
+/* Page shell */
+.adm-class-detail-page {
   padding: 32px 40px 64px;
   min-height: 100vh;
   background: #f4f5f8;
   font-family: var(--font-body), sans-serif;
 }
 
-/*  Back button  */
+/* Back button */
 .adm-back-btn {
   display: inline-flex;
   align-items: center;
@@ -32,8 +32,8 @@
   color: #1a56db;
 }
 
-/*  Loading / Error states  */
-.adm-detail-state {
+/* Loading / Error states */
+.adm-class-detail-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -43,12 +43,12 @@
   font-size: 0.9375rem;
 }
 
-.adm-detail-state--error {
+.adm-class-detail-state--error {
   color: #b91c1c;
-  font-size: 1.5rem;
+  font-size: 1.125rem;
 }
 
-/*  Spinner  */
+/* Spinner */
 .adm-spinner {
   width: 36px;
   height: 36px;
@@ -58,27 +58,21 @@
   animation: adm-spin 0.8s linear infinite;
 }
 
-.adm-spinner--sm {
-  width: 20px;
-  height: 20px;
-  border-width: 2px;
-}
-
 @keyframes adm-spin {
   to { transform: rotate(360deg); }
 }
 
-/*  Content body  */
-.adm-detail-body {
+/* Content body */
+.adm-class-detail-body {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 24px;
 }
 
 /* ════════════════════════════════════
    HERO HEADER
    ════════════════════════════════════ */
-.adm-detail-hero {
+.adm-class-detail-hero {
   background: var(--sidebar-bg);
   border-radius: 14px;
   padding: 28px 32px;
@@ -94,7 +88,7 @@
   min-width: 0;
 }
 
-.adm-hero-course {
+.adm-hero-sector {
   font-size: 0.8125rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -103,7 +97,7 @@
   margin: 0 0 6px;
 }
 
-.adm-hero-name {
+.adm-hero-course-name {
   font-size: 1.625rem;
   font-weight: 700;
   color: #f9fafb;
@@ -111,13 +105,13 @@
   letter-spacing: -0.02em;
 }
 
-.adm-hero-email {
+.adm-hero-branch {
   font-size: 0.875rem;
   color: #9ca3af;
   margin: 0;
 }
 
-/*  Status badge on hero  */
+/* Status badge on hero */
 .adm-hero-badge {
   display: inline-block;
   padding: 6px 16px;
@@ -129,7 +123,23 @@
   flex-shrink: 0;
 }
 
-/*  Generic status colors - shared with Enrollments.css  */
+/* ════════════════════════════════════
+   STATUS COLORS
+   => Used on hero badge and enrollment badges inside the student table
+   ════════════════════════════════════ */
+.status--planned {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.status--ongoing {
+  background: #d1fae5;
+  color: #065f46;
+}
+.status--concluded {
+  background: #f3f4f6;
+  color: #374151;
+}
+/* => Enrollment status colors (reused from EnrollmentDetail.css) */
 .status--pending {
   background: #fef3c7;
   color: #92400e;
@@ -162,7 +172,7 @@
 /* ════════════════════════════════════
    SECTION WRAPPER
    ════════════════════════════════════ */
-.adm-section {
+.adm-class-section {
   background: #ffffff;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
@@ -220,7 +230,7 @@
   color: #111827;
   background: #fff;
   cursor: pointer;
-  min-width: 220px;
+  min-width: 200px;
   transition: border-color 0.15s;
   font-family: inherit;
 }
@@ -266,7 +276,7 @@
 }
 
 /* ════════════════════════════════════
-   INFO GRID (label + value cards)
+   INFO GRID
    ════════════════════════════════════ */
 .adm-info-grid {
   display: grid;
@@ -298,84 +308,32 @@
   word-break: break-word;
 }
 
-/*  Contact numbers row  */
-.adm-contact-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-top: 14px;
-}
-
-.adm-contact-row .adm-info-card {
-  flex: 0 0 auto;
-  min-width: 160px;
-}
-
-/* ════════════════════════════════════
-   DOCUMENTS GRID
-   ════════════════════════════════════ */
-.adm-docs-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-}
-
-/*  Single doc preview card  */
-.adm-doc-preview {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.adm-doc-type {
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+/* => Remaining slots note inside enrolled card */
+.adm-slots-note {
+  font-size: 0.8rem;
   color: #6b7280;
-  padding: 10px 14px 8px;
-  margin: 0;
-  border-bottom: 1px solid #e5e7eb;
-  background: #fff;
+  font-weight: 400;
 }
 
-.adm-doc-preview-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 32px;
-  font-size: 0.8125rem;
-  color: #9ca3af;
+/* Remarks box */
+.adm-remarks-box {
+  margin-top: 16px;
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+  border-radius: 8px;
+  padding: 14px 16px;
 }
 
-.adm-doc-preview-state--error {
-  color: #b91c1c;
-}
-
-/* => Image preview fills width, capped height with scroll */
-.adm-doc-img {
-  width: 100%;
-  max-height: 420px;
-  object-fit: contain;
-  display: block;
-  background: #fff;
-}
-
-/* => PDF preview as an embedded viewer */
-.adm-doc-iframe {
-  width: 100%;
-  height: 480px;
-  border: none;
-  display: block;
-  background: #fff;
+.adm-remarks-text {
+  font-size: 0.875rem;
+  color: #374151;
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  line-height: 1.6;
 }
 
 /* ════════════════════════════════════
-   SUB TABLES (work exp, trainings, etc.)
+   ENROLLED STUDENTS TABLE
    ════════════════════════════════════ */
 .adm-sub-table-wrap {
   overflow-x: auto;
@@ -388,7 +346,7 @@
   border-collapse: collapse;
   font-size: 0.8375rem;
   color: #374151;
-  min-width: 600px;
+  min-width: 560px;
 }
 
 .adm-sub-table thead tr {
@@ -417,198 +375,72 @@
   border-bottom: none;
 }
 
-.adm-sub-table tbody tr:hover {
-  background: #f9fafb;
-}
-
-/* ════════════════════════════════════
-   DOC CLICKABLE WRAPPER
-   ════════════════════════════════════ */
-.adm-doc-clickable {
-  cursor: zoom-in;
-  position: relative;
-  display: block;
-}
-
-.adm-doc-enlarge-hint {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  background: rgba(0,0,0,0.55);
-  color: #fff;
-  font-size: 0.72rem;
-  padding: 4px 8px;
-  border-radius: 6px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.adm-doc-clickable:hover .adm-doc-enlarge-hint {
-  opacity: 1;
-}
-
-.search-icon {
-  width: 14px;
-  height: 14px;
-  vertical-align: middle;
-  margin-right: 0.35rem;
-  object-fit: contain;
-}
-
-/* => Thumbnail iframe - small fixed height, non-interactive */
-.adm-doc-iframe--thumb {
-  height: 220px;
-  pointer-events: none;
-}
-
-/* ════════════════════════════════════
-   DOCUMENT MODAL
-   ════════════════════════════════════ */
-.adm-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.75);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  animation: adm-fade-in 0.15s ease;
-}
-
-@keyframes adm-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-.adm-modal-box {
-  background: #fff;
-  border-radius: 14px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  max-width: 900px;
-  width: 100%;
-  max-height: 90vh;
-  animation: adm-modal-up 0.18s ease;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.4);
-}
-
-@keyframes adm-modal-up {
-  from { transform: translateY(16px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
-}
-
-.adm-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 20px;
-  border-bottom: 1px solid #e5e7eb;
-  flex-shrink: 0;
-}
-
-.adm-modal-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #374151;
-}
-
-.adm-modal-close {
-  background: none;
-  border: none;
-  font-size: 1rem;
-  color: #6b7280;
+/* => Clickable row to navigate to enrollment detail */
+.adm-sub-table-row {
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: background 0.12s, color 0.12s;
-  line-height: 1;
+  transition: background 0.12s;
 }
 
-.adm-modal-close:hover {
-  background: #f3f4f6;
+.adm-sub-table-row:hover {
+  background: #f0f4ff;
+}
+
+.adm-td-student-name {
+  font-weight: 600;
   color: #111827;
 }
 
-.adm-modal-img {
-  width: 100%;
-  max-height: calc(90vh - 60px);
-  object-fit: contain;
-  display: block;
-  background: #f9fafb;
+.adm-td-email {
+  color: #6b7280;
+  font-size: 0.8125rem;
 }
 
-.adm-modal-iframe {
-  width: 100%;
-  height: calc(90vh - 60px);
-  border: none;
-  display: block;
+.adm-td-date {
+  white-space: nowrap;
+  color: #6b7280;
 }
 
-/* ════════════════════════════════════
-   INFO CARD - value row with copy button
-   ════════════════════════════════════ */
-.adm-info-value-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 6px;
+.adm-td-arrow {
+  color: #d1d5db;
+  font-size: 1.1rem;
+  text-align: right;
+  padding-right: 14px;
 }
 
-.adm-copy-btn {
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  padding: 2px 4px;
-  cursor: pointer;
-  color: #9ca3af;
-  border-radius: 4px;
-  line-height: 1;
-  transition: color 0.12s, background 0.12s;
-  margin-top: 1px;
+.adm-sub-table-row:hover .adm-td-arrow {
+  color: #1a56db;
 }
 
-.adm-copy-icon {
-  width: 16px;
-  height: 16px;
+/* Badge used inside student table */
+.adm-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
-.adm-copy-btn:hover {
-  color: #374151;
-  background: #f3f4f6;
-}
-
-.adm-copy-btn--copied {
-  color: #059669;
-}
-
-/*  Responsive  */
+/* Responsive */
 @media (max-width: 640px) {
-  .adm-detail-page {
+  .adm-class-detail-page {
     padding: 20px 16px 48px;
   }
 
-  .adm-detail-hero {
+  .adm-class-detail-hero {
     padding: 20px;
   }
 
-  .adm-hero-name {
+  .adm-hero-course-name {
     font-size: 1.25rem;
   }
 
-  .adm-section {
+  .adm-class-section {
     padding: 18px 16px;
   }
 
   .adm-info-grid {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .adm-docs-grid {
-    grid-template-columns: 1fr;
   }
 }

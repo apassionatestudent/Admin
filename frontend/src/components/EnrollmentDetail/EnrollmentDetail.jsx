@@ -768,7 +768,7 @@ function InfoCard({ label, value, copyable = true }) {
 
   const handleCopy = () => {
     // => Only copy if there's a real value (not a dash placeholder)
-    if (!value || value === '-' || value === '—') return;
+    if (!value || value === '-' || value === '-') return;
     navigator.clipboard.writeText(String(value)).then(() => {
       setCopied(true);
       // => Reset the copied indicator after 1.5s
@@ -781,7 +781,7 @@ function InfoCard({ label, value, copyable = true }) {
       <p className="adm-info-label">{label}</p>
       <div className="adm-info-value-row">
         <p className="adm-info-value">{value}</p>
-        {copyable && value && value !== '-' && value !== '—' && (
+        {copyable && value && value !== '-' && value !== '-' && (
           <button
             className={`adm-copy-btn ${copied ? 'adm-copy-btn--copied' : ''}`}
             onClick={handleCopy}
