@@ -21,7 +21,7 @@ html, body {
   --font-display: 'Cormorant Garamond', serif;
   --font-body: 'Merriweather', serif;
 
-  /* => Font size scale — use these everywhere instead of hardcoded rem values */
+  /* => Font size scale - use these everywhere instead of hardcoded rem values */
   --text-xs: 0.82rem;    /* => tags, footer, forgot link */
   --text-sm: 0.95rem;    /* => labels, helper text */
   --text-base: 1.05rem;  /* => inputs, buttons, body copy */

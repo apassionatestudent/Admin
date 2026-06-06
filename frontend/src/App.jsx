@@ -19,6 +19,7 @@ import Admins        from './pages/Admins/Admins.jsx';
 
 // components 
 import EnrollmentDetail from './components/EnrollmentDetail/EnrollmentDetail.jsx';
+import ClassDetail from './components/ClassDetail/ClassDetail.jsx';
 
 import './App.css';
 
@@ -42,6 +43,8 @@ function App() {
                     <Route path="enrollments/:publicId" element={<EnrollmentDetail />} />
 
                     <Route path="classes"               element={<Classes />} />
+                    <Route path="classes/:publicId"     element={<ClassDetail />} />
+
                     <Route path="support-tickets"       element={<SupportTickets />} />
                     <Route path="students"              element={<Students />} />
                     <Route path="reports"               element={<Reports />} />
