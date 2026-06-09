@@ -185,9 +185,9 @@ export default function Classes() {
     setMoreOpen(false);
   };
 
-  // ─────────────────────────────────────────────────────────
+  
   // ADD CLASS MODAL HANDLERS
-  // ─────────────────────────────────────────────────────────
+  
 
   // => Fetch form options (courses, branches, instructors) when modal opens
   const handleOpenModal = async () => {
@@ -679,9 +679,9 @@ export default function Classes() {
   );
 }
 
-// ─────────────────────────────────────────────────────────
+
 // ClassTable - reusable table sub-component
-// ─────────────────────────────────────────────────────────
+
 function ClassTable({ rows, onRowClick }) {
   return (
     <div className="adm-table-wrap">

@@ -1,0 +1,468 @@
+/* =========================================================
+   Students.css - Admin student list page
+   Aesthetic: matches Classes.css / Enrollments.css pattern
+   Clean government-dashboard utility with sharp data-ink ratio
+   ========================================================= */
+
+/* Page shell */
+.adm-students-page {
+  padding: 36px 40px;
+  min-height: 100vh;
+  background: #f4f5f8;
+  font-family: var(--font-body), sans-serif;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+/* Page header */
+.adm-students-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.adm-students-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0f1724;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+}
+
+.adm-students-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.adm-students-subtitle strong {
+  color: #374151;
+}
+
+/* Count badge top-right */
+.adm-students-count {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.adm-students-count-num {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #1a56db;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.adm-students-count-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+}
+
+/* ════════════════════════════════════
+   LOADING / ERROR / EMPTY STATES
+   ════════════════════════════════════ */
+.adm-students-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 0;
+  color: #6b7280;
+  font-size: 0.9375rem;
+}
+
+.adm-students-state--error {
+  color: #b91c1c;
+}
+
+.adm-state-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+/* Spinner */
+.adm-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #1a56db;
+  border-radius: 50%;
+  animation: adm-spin 0.8s linear infinite;
+}
+
+@keyframes adm-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ════════════════════════════════════
+   SEARCH BAR
+   => Reuses same structure as Classes.css
+   ════════════════════════════════════ */
+.adm-search-wrap {
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.adm-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.adm-search-input {
+  flex: 1;
+  min-width: 220px;
+  padding: 9px 14px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #111827;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.adm-search-input:focus {
+  outline: none;
+  border-color: #1a56db;
+}
+
+.adm-search-input:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.adm-search-btn {
+  padding: 9px 22px;
+  background: var(--sidebar-bg);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.adm-search-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.adm-search-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.adm-more-btn {
+  padding: 9px 16px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.adm-more-btn:hover {
+  background: #e5e7eb;
+}
+
+.adm-more-btn--open {
+  border-color: #1a56db;
+  color: #1a56db;
+}
+
+.adm-clear-btn {
+  padding: 9px 16px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.adm-clear-btn:hover {
+  background: #fecaca;
+}
+
+/* Collapsible More Options panel */
+.adm-more-panel {
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+
+.adm-more-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.adm-more-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.adm-more-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+}
+
+.adm-more-input {
+  padding: 8px 12px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 7px;
+  font-size: 0.875rem;
+  color: #111827;
+  font-family: inherit;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+
+.adm-more-input:focus {
+  outline: none;
+  border-color: #1a56db;
+}
+
+.adm-search-error {
+  font-size: 0.8125rem;
+  color: #b91c1c;
+  margin: 0;
+}
+
+/* ════════════════════════════════════
+   TABLE
+   ════════════════════════════════════ */
+.adm-table-wrap {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow-x: auto;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.adm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  color: #374151;
+  min-width: 640px;
+}
+
+.adm-table thead tr {
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.adm-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+/* Table row */
+.adm-table-row {
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  animation: adm-row-in 0.28s ease both;
+}
+
+@keyframes adm-row-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.adm-table-row:last-child {
+  border-bottom: none;
+}
+
+.adm-table-row:hover {
+  background: #f0f4ff;
+}
+
+.adm-table td {
+  padding: 14px 16px;
+  vertical-align: middle;
+}
+
+/* Row number */
+.adm-td-num {
+  color: #9ca3af;
+  font-size: 0.8125rem;
+  width: 40px;
+}
+
+/* Name cell */
+.adm-td-name {
+  min-width: 180px;
+}
+
+.adm-student-name {
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Email cell */
+.adm-td-email {
+  color: #6b7280;
+  font-size: 0.8375rem;
+}
+
+/* Date cell */
+.adm-td-date {
+  white-space: nowrap;
+  color: #6b7280;
+  font-size: 0.8375rem;
+}
+
+/* Arrow cell */
+.adm-td-arrow {
+  color: #d1d5db;
+  font-size: 1.25rem;
+  text-align: right;
+  padding-right: 20px;
+}
+
+.adm-table-row:hover .adm-td-arrow {
+  color: #1a56db;
+}
+
+/* ════════════════════════════════════
+   STATUS BADGES
+   ════════════════════════════════════ */
+.adm-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.adm-badge.status--active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.adm-badge.status--inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ════════════════════════════════════
+   PAGINATION
+   ════════════════════════════════════ */
+.adm-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 28px;
+  flex-wrap: wrap;
+}
+
+.adm-page-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.adm-page-btn:hover:not(:disabled):not(.adm-page-btn--active) {
+  background: #f0f4ff;
+  border-color: #1a56db;
+  color: #1a56db;
+}
+
+.adm-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* => Active page highlighted in brand blue */
+.adm-page-btn--active {
+  background: #1a56db;
+  border-color: #1a56db;
+  color: #fff;
+  font-weight: 700;
+  cursor: default;
+}
+
+/* => Prev / Next get slightly wider */
+.adm-page-btn--nav {
+  padding: 0 14px;
+  font-size: 0.8125rem;
+}
+
+.adm-page-ellipsis {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  line-height: 36px;
+  padding: 0 4px;
+  user-select: none;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .adm-students-page {
+    padding: 20px 16px;
+  }
+
+  .adm-students-title {
+    font-size: 1.375rem;
+  }
+
+  .adm-pagination {
+    gap: 4px;
+  }
+
+  .adm-page-btn {
+    min-width: 32px;
+    height: 32px;
+    font-size: 0.8125rem;
+  }
+}

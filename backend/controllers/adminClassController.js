@@ -11,10 +11,10 @@ import {
   fetchClassFormOptions,
 } from '../services/adminClassService.js';
 
-// ─────────────────────────────────────────────────────────
+// 
 // GET /api/admin/classes
 // => Returns Ongoing + Planned classes (default list view)
-// ─────────────────────────────────────────────────────────
+// 
 export const listActiveClasses = async (req, res) => {
   try {
     const classes = await fetchActiveClasses();
@@ -25,11 +25,11 @@ export const listActiveClasses = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────
+// 
 // GET /api/admin/classes/search
 // => Searches classes across all statuses
 // => Must be registered BEFORE /:publicId in the router
-// ─────────────────────────────────────────────────────────
+// 
 export const searchClassesController = async (req, res) => {
   const { course_name, branch_name, instructor_name, status, sector, start_date_from, start_date_to } = req.query;
   try {
@@ -43,11 +43,11 @@ export const searchClassesController = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────
+// 
 // GET /api/admin/classes/form-options
 // => Returns courses, branches, instructors for the Add Class modal
 // => Must be registered BEFORE /:publicId to avoid ambiguity
-// ─────────────────────────────────────────────────────────
+// 
 export const getFormOptions = async (req, res) => {
   try {
     const options = await fetchClassFormOptions();
@@ -58,10 +58,10 @@ export const getFormOptions = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────
+// 
 // GET /api/admin/classes/:publicId
 // => Full detail bundle: class info + enrolled students
-// ─────────────────────────────────────────────────────────
+// 
 export const getClassDetail = async (req, res) => {
   const { publicId } = req.params;
   try {
@@ -76,10 +76,10 @@ export const getClassDetail = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────
+// 
 // PATCH /api/admin/classes/:publicId/status
 // => Body: { status: 'Planned' | 'Ongoing' | 'Concluded' }
-// ─────────────────────────────────────────────────────────
+// 
 export const patchClassStatus = async (req, res) => {
   const { publicId } = req.params;
   const { status }   = req.body;
@@ -103,10 +103,10 @@ export const patchClassStatus = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────
+// 
 // POST /api/admin/classes
 // => Body: class fields (see service for required list)
-// ─────────────────────────────────────────────────────────
+// 
 export const createClassController = async (req, res) => {
   try {
     // => Attach the creating admin's ID from the JWT payload (set by protectAdmin middleware)

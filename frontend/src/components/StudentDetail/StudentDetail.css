@@ -1,0 +1,656 @@
+/* =========================================================
+   StudentDetail.css - Admin student detail page
+   Aesthetic: matches ClassDetail.css / EnrollmentDetail.css
+   Structured government-form utility with clear visual hierarchy
+   ========================================================= */
+
+/* Page shell */
+.adm-student-detail-page {
+  padding: 32px 40px 64px;
+  min-height: 100vh;
+  background: #f4f5f8;
+  font-family: var(--font-body), sans-serif;
+}
+
+/* Loading / Error states */
+.adm-student-detail-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 80px 0;
+  color: #6b7280;
+  font-size: 0.9375rem;
+}
+
+.adm-student-detail-state--error {
+  color: #b91c1c;
+  font-size: 1.125rem;
+}
+
+/* Spinner */
+.adm-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #1a56db;
+  border-radius: 50%;
+  animation: adm-spin 0.8s linear infinite;
+}
+
+@keyframes adm-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Content body */
+.adm-student-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ════════════════════════════════════
+   HERO HEADER
+   ════════════════════════════════════ */
+.adm-student-hero {
+  background: var(--sidebar-bg);
+  border-radius: 14px;
+  padding: 28px 32px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.adm-hero-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.adm-hero-uli {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #f2e208;
+  margin: 0 0 6px;
+}
+
+.adm-hero-name {
+  font-size: 1.625rem;
+  font-weight: 700;
+  color: #f9fafb;
+  margin: 0 0 4px;
+  letter-spacing: -0.02em;
+}
+
+.adm-hero-email {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* Hero status badge */
+.adm-hero-badge {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ════════════════════════════════════
+   STATUS COLORS
+   ════════════════════════════════════ */
+.status--active {
+  background: #d1fae5;
+  color: #065f46;
+}
+.status--inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+/* => Class status badges */
+.status--planned {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.status--ongoing {
+  background: #d1fae5;
+  color: #065f46;
+}
+.status--concluded {
+  background: #f3f4f6;
+  color: #374151;
+}
+/* => Enrollment status badges */
+.status--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+.status--approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+.status--clarification {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.status--rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.status--dropped {
+  background: #f3f4f6;
+  color: #374151;
+}
+.status--completed {
+  background: #ecfdf5;
+  color: #047857;
+}
+.status--reserved {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+/* ════════════════════════════════════
+   SECTION WRAPPER
+   ════════════════════════════════════ */
+.adm-student-section {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 24px 28px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.adm-section-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+  margin: 0 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.adm-section-count-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.adm-empty-note {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* ════════════════════════════════════
+   ACCOUNT ACTIONS ROW
+   ════════════════════════════════════ */
+.adm-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.adm-action-btn {
+  padding: 9px 22px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+
+.adm-action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* => Primary action (Edit) */
+.adm-action-btn--primary {
+  background: var(--sidebar-bg);
+  color: #fff;
+}
+
+.adm-action-btn--primary:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+/* => Deactivate (red) */
+.adm-action-btn--danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.adm-action-btn--danger:hover:not(:disabled) {
+  background: #fecaca;
+}
+
+/* => Activate (green) */
+.adm-action-btn--success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.adm-action-btn--success:hover:not(:disabled) {
+  background: #a7f3d0;
+}
+
+.adm-save-msg {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.adm-save-msg--success {
+  color: #065f46;
+}
+
+.adm-save-msg--error {
+  color: #b91c1c;
+}
+
+/* ════════════════════════════════════
+   INFO GRID
+   ════════════════════════════════════ */
+.adm-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.adm-info-card {
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.adm-info-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #9ca3af;
+  margin: 0 0 4px;
+}
+
+.adm-info-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #111827;
+  margin: 0;
+  word-break: break-word;
+}
+
+/* ════════════════════════════════════
+   ENROLLMENT HISTORY TABLE
+   ════════════════════════════════════ */
+.adm-sub-table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.adm-sub-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8375rem;
+  color: #374151;
+  min-width: 700px;
+}
+
+.adm-sub-table thead tr {
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.adm-sub-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.adm-sub-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+
+.adm-sub-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* => Clickable rows */
+.adm-sub-table-row {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.adm-sub-table-row:hover {
+  background: #f0f4ff;
+}
+
+.adm-td-course {
+  font-weight: 600;
+  color: #111827;
+  min-width: 160px;
+}
+
+.adm-td-branch {
+  color: #6b7280;
+}
+
+.adm-td-dates {
+  white-space: nowrap;
+  color: #6b7280;
+  font-size: 0.8125rem;
+}
+
+.adm-td-date {
+  white-space: nowrap;
+  color: #6b7280;
+}
+
+.adm-td-arrow {
+  color: #d1d5db;
+  font-size: 1.1rem;
+  text-align: right;
+  padding-right: 14px;
+}
+
+.adm-sub-table-row:hover .adm-td-arrow {
+  color: #1a56db;
+}
+
+/* Badge used inside tables */
+.adm-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* ════════════════════════════════════
+   EDIT MODAL
+   => Reuses adm-modal-* class pattern from Classes.css
+   ════════════════════════════════════ */
+.adm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: adm-fade-in 0.15s ease;
+}
+
+@keyframes adm-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.adm-modal-box {
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-width: 620px;
+  width: 100%;
+  max-height: 90vh;
+  animation: adm-modal-up 0.18s ease;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.3);
+}
+
+.adm-modal-box--form {
+  overflow: visible;
+}
+
+@keyframes adm-modal-up {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.adm-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.adm-modal-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+.adm-modal-close {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.12s, color 0.12s;
+  line-height: 1;
+}
+
+.adm-modal-close:hover:not(:disabled) {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.adm-modal-close:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Scrollable form body */
+.adm-modal-body {
+  padding: 22px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: calc(90vh - 130px);
+}
+
+.adm-modal-footer {
+  padding: 14px 22px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Section sub-header inside modal */
+.adm-form-section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+  margin: 4px 0 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+/* Form elements */
+.adm-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* => Side-by-side two-column row */
+.adm-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.adm-form-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.adm-form-required {
+  color: #b91c1c;
+  margin-left: 2px;
+}
+
+.adm-form-optional {
+  color: #9ca3af;
+  font-weight: 400;
+  font-size: 0.75rem;
+  margin-left: 4px;
+}
+
+.adm-form-input,
+.adm-form-select {
+  padding: 9px 12px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #111827;
+  font-family: inherit;
+  background: #fff;
+  transition: border-color 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.adm-form-input:focus,
+.adm-form-select:focus {
+  outline: none;
+  border-color: #1a56db;
+}
+
+.adm-form-error {
+  font-size: 0.8125rem;
+  color: #b91c1c;
+  margin: 0;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+}
+
+.adm-form-success {
+  font-size: 0.8125rem;
+  color: #065f46;
+  margin: 0;
+  padding: 10px 14px;
+  background: #ecfdf5;
+  border-radius: 8px;
+  border: 1px solid #a7f3d0;
+}
+
+/* Modal buttons */
+.adm-modal-cancel-btn {
+  padding: 9px 20px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.adm-modal-cancel-btn:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.adm-modal-cancel-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.adm-modal-save-btn {
+  padding: 9px 24px;
+  background: var(--sidebar-bg);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s;
+}
+
+.adm-modal-save-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.adm-modal-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .adm-student-detail-page {
+    padding: 20px 16px 48px;
+  }
+
+  .adm-student-hero {
+    padding: 20px;
+  }
+
+  .adm-hero-name {
+    font-size: 1.25rem;
+  }
+
+  .adm-student-section {
+    padding: 18px 16px;
+  }
+
+  .adm-info-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .adm-form-row {
+    grid-template-columns: 1fr;
+  }
+}
