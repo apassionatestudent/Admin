@@ -5,11 +5,13 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { sql } from './config/db.js';
+
 import adminEnrollmentRouter from './routes/adminEnrollmentRoute.js';
 import adminAuthRouter from './routes/adminAuthRoute.js';
 // => Location router for resolving PSGC codes to readable names in EnrollmentDetail
 import locationRouter, { loadLocationCache } from './routes/locationRoutes.js';
 import adminClassRouter from './routes/adminClassRoute.js';
+import adminStudentRouter from './routes/adminStudentRoute.js';
 
 dotenv.config();
 
@@ -34,6 +36,8 @@ app.use('/api/admin/enrollments', adminEnrollmentRouter);
 app.use('/api/location', locationRouter);
 
 app.use('/api/admin/classes', adminClassRouter);
+
+app.use('/api/admin/students', adminStudentRouter);
 
 
 // => Initialize DB tables that the admin backend needs
