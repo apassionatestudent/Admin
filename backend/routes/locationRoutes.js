@@ -94,6 +94,13 @@ let cache = {
   barangaysByParent: {},
 };
 
+// => PSGC codes are always numeric, 2-10 digits (e.g. "13", "1300000000").
+// => Validates req.params BEFORE they're used in outgoing fetch() calls below.
+// => Required to fix SSRF (Server-Side Request Forgery) alerts - without this, a user-controlled
+// => param flows unsanitized into a server-side fetch URL, which CodeQL flags as a potential
+// => vector for forcing our server to make unintended/malicious outbound requests.
+const isValidPSGCCode = (code) => /^[0-9]{2,10}$/.test(code);
+
 // => Fetch only regions on startup - small list, stable
 export const loadLocationCache = async () => {
   try {
@@ -117,6 +124,11 @@ router.get('/regions', (req, res) => {
 // => Uses hierarchy endpoint: /api/regions/{code}/provinces
 router.get('/provinces/:regionCode', async (req, res) => {
   const regionCode = req.params.regionCode;
+
+  // => Reject anything that isn't a valid PSGC code - blocks SSRF before the fetch() call below
+  if (!isValidPSGCCode(regionCode)) {
+    return res.status(400).json({ error: 'Invalid region code' });
+  }
 
   // => Return from cache if already fetched
   if (cache.provincesByRegion[regionCode]) {
@@ -154,6 +166,11 @@ router.get('/provinces/:regionCode', async (req, res) => {
 router.get('/cities/:provinceCode', async (req, res) => {
   const provinceCode = req.params.provinceCode;
 
+  // => Reject anything that isn't a valid PSGC code - blocks SSRF before the fetch() call below
+  if (!isValidPSGCCode(provinceCode)) {
+    return res.status(400).json({ error: 'Invalid province code' });
+  }
+
   if (cache.citiesByProvince[provinceCode]) {
     return res.json(cache.citiesByProvince[provinceCode]);
   }
@@ -184,6 +201,11 @@ router.get('/cities/:provinceCode', async (req, res) => {
 // GET /cities-by-region/:regionCode
 router.get('/cities-by-region/:regionCode', async (req, res) => {
   const regionCode = req.params.regionCode;
+
+  // => Reject anything that isn't a valid PSGC code - blocks SSRF before the fetch() call below
+  if (!isValidPSGCCode(regionCode)) {
+    return res.status(400).json({ error: 'Invalid region code' });
+  }
 
   if (cache.citiesByRegion[regionCode]) {
     return res.json(cache.citiesByRegion[regionCode]);
@@ -260,6 +282,11 @@ router.get('/cities-by-region/:regionCode', async (req, res) => {
 // => psgc.cloud codes are 10 digits - no conversion needed, use them directly
 router.get('/barangays/:cityCode', async (req, res) => {
   const code = req.params.cityCode;
+
+  // => Reject anything that isn't a valid PSGC code - blocks SSRF before the two fetch() calls below
+  if (!isValidPSGCCode(code)) {
+    return res.status(400).json({ error: 'Invalid city code' });
+  }
 
   // => Return from cache if already fetched
   if (cache.barangaysByParent[code]) {
