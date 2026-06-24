@@ -3,6 +3,8 @@
 
 import express from 'express';
 import { protectAdmin } from '../middleware/adminAuth.js';
+// => Import general admin API rate limiter (relaxed: 200 req / 10 min)
+import { adminApiRateLimit } from '../middleware/adminRateLimit.js';
 import {
   listStudents,
   searchStudentsController,
@@ -15,26 +17,24 @@ const router = express.Router();
 
 // => All student routes require a valid admin JWT
 // => protectAdmin middleware applied per-route
+// => adminApiRateLimit added to satisfy CodeQL CWE-770 (missing rate limiting)
 
 // => GET /api/admin/students
-// => Paginated list, latest 10 first; ?page=N for subsequent pages
-router.get('/', protectAdmin, listStudents);
+router.get('/', adminApiRateLimit, protectAdmin, listStudents);
 
 // => GET /api/admin/students/search
-// => Search by name fields and email/username
 // => Must be declared BEFORE /:publicId to avoid Express treating 'search' as a publicId
-router.get('/search', protectAdmin, searchStudentsController);
+router.get('/search', adminApiRateLimit, protectAdmin, searchStudentsController);
 
 // => GET /api/admin/students/:publicId
-// => Full detail bundle: account + profile + enrollment history
-router.get('/:publicId', protectAdmin, getStudentDetail);
+router.get('/:publicId', adminApiRateLimit, protectAdmin, getStudentDetail);
 
 // => PATCH /api/admin/students/:publicId/active
 // => Body: { is_active: true | false }
-router.patch('/:publicId/active', protectAdmin, patchStudentActive);
+router.patch('/:publicId/active', adminApiRateLimit, protectAdmin, patchStudentActive);
 
 // => PUT /api/admin/students/:publicId
 // => Body: all editable profile + account fields
-router.put('/:publicId', protectAdmin, updateStudentController);
+router.put('/:publicId', adminApiRateLimit, protectAdmin, updateStudentController);
 
 export default router;

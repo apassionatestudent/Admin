@@ -28,7 +28,6 @@ const generateAdminToken = (admin) => {
 
 // => POST /api/admin-auth/login
 export const loginAdmin = async (req, res) => {
-    console.log('Login attempt:', req.body); // => temporary debug line, remove after confirming
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -39,12 +38,6 @@ export const loginAdmin = async (req, res) => {
         // => Look up the admin by email
         const admin = await Admin.findByEmail(email);
 
-        // => temporary debug lines, remove after fixing
-        console.log('Admin found:', admin);
-        console.log('Password hash in DB:', admin?.password_hash);
-        console.log('Password from request:', password);
-        const testMatch = await bcrypt.compare(password, admin?.password_hash);
-        console.log('bcrypt.compare result:', testMatch);
         if (!admin) {
             // => Intentionally vague: don't reveal whether the email exists
             return res.status(400).json({ message: 'Invalid credentials' });
