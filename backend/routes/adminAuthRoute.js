@@ -4,7 +4,8 @@ import express from 'express';
 import { loginAdmin, logoutAdmin, getMe } from '../controllers/adminAuthController.js';
 import { protectAdmin } from '../middleware/adminAuth.js';
 // => Import auth-specific rate limiter (strict: 10 req / 15 min)
-import { authRateLimit } from '../middleware/adminRateLimit.js';
+// => Import read rate limiter (relaxed: 60 req / 1 min) for the /me route
+import { authRateLimit, readRateLimit } from '../middleware/adminRateLimit.js';
 
 const adminAuthRouter = express.Router();
 
@@ -14,7 +15,8 @@ adminAuthRouter.post('/login', authRateLimit, loginAdmin);
 adminAuthRouter.post('/logout', authRateLimit, logoutAdmin);
 
 // => Protected route: token required
-// => protectAdmin middleware runs first, then getMe
-adminAuthRouter.get('/me', protectAdmin, getMe);
+// => readRateLimit must be a direct flat argument — CodeQL does not recognize array-composed middleware
+// => readRateLimit runs first, then protectAdmin, then getMe
+adminAuthRouter.get('/me', readRateLimit, protectAdmin, getMe);
 
 export default adminAuthRouter;
