@@ -8,14 +8,16 @@ import { authRateLimit, readRateLimit } from '../middleware/adminRateLimit.js';
 
 const adminAuthRouter = express.Router();
 
+// => Compose rate limiting with auth protection so authorization is never executed unthrottled
+const protectAdminRateLimited = [readRateLimit, protectAdmin];
+
 // => Public routes: no token required
 // => authRateLimit applied here to block brute-force login attempts
 adminAuthRouter.post('/login', authRateLimit, loginAdmin);
 adminAuthRouter.post('/logout', authRateLimit, logoutAdmin);
 
 // => Protected route: token required
-// => readRateLimit added to satisfy CodeQL CWE-770 (missing rate limiting) on line 18
-// => protectAdmin middleware runs first, then getMe
-adminAuthRouter.get('/me', readRateLimit, protectAdmin, getMe);
+// => readRateLimit now directly composes with protectAdmin via protectAdminRateLimited
+adminAuthRouter.get('/me', protectAdminRateLimited, getMe);
 
 export default adminAuthRouter;
