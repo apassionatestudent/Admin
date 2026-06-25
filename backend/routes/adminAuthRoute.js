@@ -15,7 +15,7 @@ adminAuthRouter.post('/login', authRateLimit, loginAdmin);
 adminAuthRouter.post('/logout', authRateLimit, logoutAdmin);
 
 // => Protected route: token required
-// => readRateLimit must be a direct flat argument — CodeQL does not recognize array-composed middleware
+// => readRateLimit must be a direct flat argument - CodeQL does not recognize array-composed middleware
 // => readRateLimit runs first, then protectAdmin, then getMe
 adminAuthRouter.get('/me', readRateLimit, protectAdmin, getMe);
 

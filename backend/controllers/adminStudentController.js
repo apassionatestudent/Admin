@@ -28,8 +28,8 @@ export const listStudents = async (req, res) => {
 
 // GET /api/admin/students/search
 // => Two search modes depending on which params arrive:
-// => 1) ?q=sometext        — free-text from the main search bar (ORs name + email)
-// => 2) ?surname=&first_name=&... — individual fields from More Options (ANDed)
+// => 1) ?q=sometext        - free-text from the main search bar (ORs name + email)
+// => 2) ?surname=&first_name=&... - individual fields from More Options (ANDed)
 // => Must be declared BEFORE /:publicId in the router
 export const searchStudentsController = async (req, res) => {
   // => q is the free-text param sent by the main search bar

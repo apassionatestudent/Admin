@@ -31,7 +31,7 @@ export const adminApiRateLimit = rateLimit({
 });
 
 // => General read limiter for protected GET routes like /me
-// => 60 requests per minute per IP — enough for normal polling, blocks hammering
+// => 60 requests per minute per IP - enough for normal polling, blocks hammering
 export const readRateLimit = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: 60,

@@ -1,6 +1,11 @@
+// => admin/controllers/adminAuthController.js
+
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { Admin } from '../models/adminModel.js';
+// => generateCsrfToken and invalidateCsrfToken live in middleware
+// => but are called here since issuing/revoking tokens is a controller responsibility
+import { generateCsrfToken, invalidateCsrfToken } from '../middleware/adminCsrf.js';
 
 // => Cookie options for security (mirrors studentAuthController pattern)
 const cookieOptions = {
@@ -60,16 +65,22 @@ export const loginAdmin = async (req, res) => {
         const token = generateAdminToken(admin);
         res.cookie('admin_token', token, cookieOptions); // => separate cookie name from student token
 
+        // => Generate CSRF token on login and send it to the frontend
+        // => Frontend must store this in memory and include it as x-csrf-token on all mutations
+        const csrfToken = generateCsrfToken();
+
         return res.status(200).json({
             admin: {
                 admin_id:  admin.admin_id,
                 email:     admin.email,
                 full_name: admin.full_name,
                 role:      admin.role,
-            }
+            },
+            csrfToken,
         });
 
     } catch (error) {
+        // => Safe: logs only the error object, never user-submitted data
         console.error('Admin login error:', error);
         return res.status(500).json({ message: 'Server error' });
     }
@@ -77,6 +88,12 @@ export const loginAdmin = async (req, res) => {
 
 // => POST /api/admin-auth/logout
 export const logoutAdmin = (req, res) => {
+    // => Invalidate the CSRF token so it can't be reused after logout
+    const csrfToken = req.headers['x-csrf-token'];
+    if (csrfToken) {
+        invalidateCsrfToken(csrfToken);
+    }
+
     // => Clears the admin cookie
     res.cookie('admin_token', '', { ...cookieOptions, maxAge: 1 });
     return res.status(200).json({ message: 'Logged out successfully' });
