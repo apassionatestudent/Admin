@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+// import axios from 'axios';
+// => axiosAdmin automatically attaches withCredentials and x-csrf-token header
+import axiosAdmin from '../../api/axiosAdmin.js';
+
 import { useNavigate } from 'react-router-dom';
 
 import './Login.css';
@@ -31,11 +34,15 @@ export default function Login() {
     setError(null); // => clear previous errors on each attempt
 
     try {
-      await axios.post(
+      // => axiosAdmin handles withCredentials automatically
+      const res = await axiosAdmin.post(
         '/api/admin-auth/login', // => proxied to http://localhost:3000 via vite.config.js
-        { email: form.email, password: form.password },
-        { withCredentials: true } // => required so the admin_token cookie is saved in the browser
+        { email: form.email, password: form.password }
       );
+
+      // => Store CSRF token in sessionStorage so all subsequent mutation requests can use it
+      // => axiosAdmin interceptor reads this and attaches it as x-csrf-token header automatically
+      sessionStorage.setItem('csrfToken', res.data.csrfToken);
 
       // => No "Remember Me" for admins - session only, cleared when browser closes
       sessionStorage.setItem('isAdminLoggedIn', 'true');

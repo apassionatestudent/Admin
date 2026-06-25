@@ -13,7 +13,10 @@ import locationRouter, { loadLocationCache } from './routes/locationRoutes.js';
 import adminClassRouter from './routes/adminClassRoute.js';
 import adminStudentRouter from './routes/adminStudentRoute.js';
 
-dotenv.config();
+dotenv.config(); // => moved up - must run before any module reads process.env
+
+// => CSRF validation middleware - token is generated in adminAuthController on login
+import { csrfProtection } from './middleware/adminCsrf.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,6 +30,9 @@ app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(cookieParser());
+// => CSRF validation: must come after cookieParser() and express.json()
+// => Rejects POST/PATCH/PUT/DELETE without a valid x-csrf-token header
+app.use(csrfProtection);
 
 // => Routes
 app.use('/api/admin-auth', adminAuthRouter);
