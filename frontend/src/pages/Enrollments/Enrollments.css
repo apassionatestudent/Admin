@@ -417,6 +417,74 @@
 }
 
 /* ════════════════════════════════════
+   FILTER BUTTONS (type + branch)
+   ════════════════════════════════════ */
+.adm-filter-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 24px; /* => same rhythm as .adm-search-wrap above it */
+}
+
+.adm-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.adm-filter-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  margin-right: 2px;
+}
+
+.adm-filter-btn {
+  padding: 6px 14px;
+  background: #fff;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 999px; /* => pill shape distinguishes filters from the square search/more buttons */
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.adm-filter-btn:hover {
+  background: #f3f4f6;
+}
+
+.adm-filter-btn--active {
+  background: var(--sidebar-bg);
+  border-color: var(--sidebar-bg);
+  color: #fff;
+}
+
+.adm-filter-select {
+  padding: 6px 12px;
+  background: #fff;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 999px; /* => matches the pill radius of .adm-filter-btn for visual consistency */
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.adm-filter-select:focus {
+  outline: none;
+  border-color: #1a56db;
+}
+
+/* ════════════════════════════════════
    TYPE BADGE (TESDA vs SHS)
    ════════════════════════════════════ */
 .adm-type-badge {
