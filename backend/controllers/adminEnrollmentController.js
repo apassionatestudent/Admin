@@ -109,7 +109,9 @@ export const patchTesdaEnrollmentStatus = async (req, res) => {
   }
 
   try {
-    const updated = await changeTesdaEnrollmentStatus(publicId, status);
+    // => external_remarks was being destructured but never forwarded -
+    //    that's why status saved but the remark silently vanished
+    const updated = await changeTesdaEnrollmentStatus(publicId, status, external_remarks);
     if (!updated) {
       return res.status(404).json({ error: 'Enrollment not found.' });
     }
@@ -136,7 +138,9 @@ export const patchShsEnrollmentStatus = async (req, res) => {
   }
 
   try {
-    const updated = await changeShsEnrollmentStatus(publicId, status);
+    // => Same fix as TESDA - external_remarks was being read from the
+    //    body but never forwarded to the service layer
+    const updated = await changeShsEnrollmentStatus(publicId, status, external_remarks);
     if (!updated) {
       return res.status(404).json({ error: 'Enrollment not found.' });
     }
