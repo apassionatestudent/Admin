@@ -24,11 +24,17 @@ import SHSEnrollmentDetail   from './components/SHSEnrollmentDetail/shsEnrollmen
 import ClassDetail from './components/ClassDetail/ClassDetail.jsx';
 import StudentDetail from './components/StudentDetail/StudentDetail.jsx';
 
+import { Toaster } from "react-hot-toast";
+
+
 import './App.css';
 
 function App() {
     return (
-        // => BrowserRouter provides the routing context required by useNavigate, useLocation, etc.
+        <div>
+
+        {/* <Toaster />  */}
+        {/* // => BrowserRouter provides the routing context required by useNavigate, useLocation, etc. */}
         <BrowserRouter>
             <Routes>
                 {/* => Public route: login page */}
@@ -63,8 +69,13 @@ function App() {
                     <Route path="chatbots"              element={<Chatbots />} />
                     <Route path="admins"                element={<Admins />} />
                 </Route>
+                
             </Routes>
+            
         </BrowserRouter>
+        </div>
+
+        
     );
 }
 

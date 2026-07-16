@@ -180,6 +180,8 @@ export const getTesdaEnrollmentDetailByPublicId = async (pool, publicId) => {
         cl.end_date,
         cl.class_type,
         cl.groupchat_link,
+        e.internal_remarks,
+        e.external_remarks,
         sa.username                                          AS student_username
       FROM tesda_enrollments e
       JOIN  student_accounts sa    ON sa.student_id = e.student_id
