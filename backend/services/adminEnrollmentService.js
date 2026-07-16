@@ -1,101 +1,110 @@
 // => admin/services/adminEnrollmentService.js
-// => Mirrors the pattern in enrollmentService.js and documentService.js
+// => FULL REWRITE - mirrors adminClassService.js pattern
 // => pool is imported here so controllers stay thin
 
 import { pool } from '../config/db.js';
 
 import {
   getPendingEnrollments,
-  getEnrollmentDetailByPublicId,
-  getEnrollmentDocsByEnrollmentId,
-  getWorkExperienceByEnrollmentId,
-  getTrainingSeminarsByEnrollmentId,
-  updateEnrollmentStatus,
-  searchEnrollments
+  searchEnrollments,
+  getTesdaEnrollmentDetailByPublicId,
+  getShsEnrollmentDetailByPublicId,
+  getProfileByStudentId,
+  getAddressByStudentId,
+  getGuardianByStudentId,
+  getTesdaDocsByEnrollmentId,
+  getClassificationsByEnrollmentId,
+  getShsDocsByEnrollmentId,
+  getFamilyMembersByStudentId,
+  updateTesdaEnrollmentStatus,
+  updateShsEnrollmentStatus,
+  updateProfile, updateAddress, upsertGuardian,
+  updateTesdaEnrollmentFields, updateShsEnrollmentFields,
+  replaceClassifications, replaceFamilyMembers,
+  addTesdaDocument, replaceTesdaDocument,
+  addShsDocument, replaceShsDocument,
+  deleteShsDocument, deleteTesdaDocument, getAvailableShsClasses,
+  getAvailableTesdaClasses,
+  getShsTracksAndClusters,
+  getClusterCourses 
 } from '../models/adminEnrollmentModel.js';
 
 // 
-// GET LIST: pending + needs-clarification enrollments
+// GET LIST: pending + needs-clarification, combined TESDA + SHS
 // 
 export const fetchPendingEnrollments = async () => {
   return await getPendingEnrollments(pool);
 };
 
 // 
-// GET DETAIL: full enrollment data + related tables in one response object
-// => Assembles enrollment info, student profile, docs, work exp, trainings
-// => profile_id is not directly on the enrollment row so we derive it via
-//    a second query after the main detail fetch
+// SEARCH: across all statuses, combined TESDA + SHS
 // 
-export const fetchEnrollmentDetail = async (publicId) => {
-  const enrollment = await getEnrollmentDetailByPublicId(pool, publicId);
+export const searchEnrollmentsService = async (filters) => {
+  const hasFilter = Object.values(filters).some(v => v && v.trim());
+  if (!hasFilter) throw new Error('At least one search field is required.');
+  return searchEnrollments(pool, filters);
+};
+
+// 
+// TESDA DETAIL: enrollment + shared profile/address/guardian + TESDA-only
+//   docs and client classifications, assembled into one response bundle
+// 
+export const fetchTesdaEnrollmentDetail = async (publicId) => {
+  const enrollment = await getTesdaEnrollmentDetailByPublicId(pool, publicId);
   if (!enrollment) return null;
 
-  // => Resolve profile_id from student_profile using student_id from the enrollment row
-  const profileResult = await pool.query(
-    `SELECT * FROM student_profile WHERE student_id = $1 LIMIT 1`,
-    [enrollment.student_id]
-  );
-  const profile   = profileResult.rows[0] ?? null;
-  const profileId = profile?.profile_id ?? null;
-
-  // => Fetch all related sub-tables in parallel
-  const [docs, workExp, trainings, licensures, competencies, contacts, address] =
-    await Promise.all([
-      getEnrollmentDocsByEnrollmentId(pool, enrollment.enrollment_id),
-      getWorkExperienceByEnrollmentId(pool, enrollment.enrollment_id),
-      getTrainingSeminarsByEnrollmentId(pool, enrollment.enrollment_id),
-
-      profileId
-        ? pool.query(
-            `SELECT title, year_taken, examination_venue, rating, remarks, expiry_date
-               FROM licensure_examination WHERE profile_id = $1 ORDER BY year_taken DESC NULLS LAST`,
-            [profileId]
-          ).then(r => r.rows)
-        : Promise.resolve([]),
-
-      profileId
-        ? pool.query(
-            `SELECT title, qualification_level, industry_sector,
-                    certificate_number, date_of_issuance, expiration_date
-               FROM competency_assessment WHERE profile_id = $1 ORDER BY date_of_issuance DESC NULLS LAST`,
-            [profileId]
-          ).then(r => r.rows)
-        : Promise.resolve([]),
-
-      profileId
-        ? pool.query(
-            `SELECT contact_type, contact_value
-               FROM contact_numbers WHERE profile_id = $1`,
-            [profileId]
-          ).then(r => r.rows)
-        : Promise.resolve([]),
-
-      profileId
-        ? pool.query(
-            `SELECT street, barangay_code, city_code, province_code, region_code, zip_code
-               FROM student_address WHERE profile_id = $1 LIMIT 1`,
-            [profileId]
-          ).then(r => r.rows[0] ?? null)
-        : Promise.resolve(null),
-    ]);
+  const [profile, address, guardian, docs, classifications] = await Promise.all([
+    getProfileByStudentId(pool, enrollment.student_id),
+    getAddressByStudentId(pool, enrollment.student_id),
+    getGuardianByStudentId(pool, enrollment.student_id),
+    getTesdaDocsByEnrollmentId(pool, enrollment.enrollment_id),
+    getClassificationsByEnrollmentId(pool, enrollment.enrollment_id),
+  ]);
 
   return {
-    enrollment,  // => lean: only enrollment + course + branch + email
-    profile,     // => separate: all student_profile columns
-    docs,
-    workExp,
-    trainings,
-    licensures,
-    competencies,
-    contacts,
+    enrollment,
+    profile,
     address,
+    guardian,
+    docs,
+    classifications,
+    // => logs: no enrollment_logs table exists yet - frontend renders an
+    //    empty state when this is omitted/empty. See audit log TODO.
   };
 };
 
 // 
-// UPDATE STATUS
-// => Validates allowed statuses server-side before hitting the DB
+// SHS DETAIL: enrollment + shared profile/address + SHS-only docs and
+//   family members (keyed by student_id, not enrollment_id)
+// 
+export const fetchShsEnrollmentDetail = async (publicId) => {
+  const enrollment = await getShsEnrollmentDetailByPublicId(pool, publicId);
+  if (!enrollment) return null;
+
+  const [profile, address, docs, familyMembers, clusterCourses] = await Promise.all([
+    getProfileByStudentId(pool, enrollment.student_id),
+    getAddressByStudentId(pool, enrollment.student_id),
+    getShsDocsByEnrollmentId(pool, enrollment.enrollment_id),
+    getFamilyMembersByStudentId(pool, enrollment.student_id),
+    // => Read-only G11/G12 curriculum for whatever cluster the student
+    //    submitted with - cluster itself is locked from editing, so this
+    //    always reflects their actual submission, never something reassigned
+    getClusterCourses(pool, enrollment.cluster),
+  ]);
+
+  return {
+    enrollment,
+    profile,
+    address,
+    docs,
+    familyMembers,
+    clusterCourses,
+    // => logs: same TODO as TESDA above
+  };
+};
+
+// 
+// STATUS UPDATES - both types share the same allowed status set
 // 
 const ALLOWED_STATUSES = [
   'Pending',
@@ -107,17 +116,127 @@ const ALLOWED_STATUSES = [
   'Reserved',
 ];
 
-export const changeEnrollmentStatus = async (publicId, newStatus) => {
+export const changeTesdaEnrollmentStatus = async (publicId, newStatus, externalRemarks) => {
   if (!ALLOWED_STATUSES.includes(newStatus)) {
     throw new Error(`Invalid status: ${newStatus}`);
   }
-  return await updateEnrollmentStatus(pool, publicId, newStatus);
+  return await updateTesdaEnrollmentStatus(pool, publicId, newStatus, externalRemarks);
+};
+
+export const changeShsEnrollmentStatus = async (publicId, newStatus, externalRemarks) => {
+  if (!ALLOWED_STATUSES.includes(newStatus)) {
+    throw new Error(`Invalid status: ${newStatus}`);
+  }
+  return await updateShsEnrollmentStatus(pool, publicId, newStatus, externalRemarks);
 };
 
 
-// => Search enrollments across all statuses - delegates directly to model
-export const searchEnrollmentsService = async (filters) => {  
-  const hasFilter = Object.values(filters).some(v => v && v.trim());
-  if (!hasFilter) throw new Error('At least one search field is required.');
-  return searchEnrollments(pool, filters);  
+// 
+// SECTION UPDATES - resolve student_id from the enrollment first (since
+//   profile/address/guardian aren't directly keyed by public_id), then
+//   delegate to the shared/table-specific model functions
+// 
+
+export const updateTesdaProfileSection = async (publicId, fields) => {
+  const enrollment = await getTesdaEnrollmentDetailByPublicId(pool, publicId);
+  if (!enrollment) return null;
+  return await updateProfile(pool, enrollment.student_id, fields);
+};
+
+export const updateTesdaAddressSection = async (publicId, fields) => {
+  const enrollment = await getTesdaEnrollmentDetailByPublicId(pool, publicId);
+  if (!enrollment) return null;
+  return await updateAddress(pool, enrollment.student_id, fields);
+};
+
+export const updateTesdaGuardianSection = async (publicId, fields) => {
+  const enrollment = await getTesdaEnrollmentDetailByPublicId(pool, publicId);
+  if (!enrollment) return null;
+  return await upsertGuardian(pool, enrollment.student_id, fields);
+};
+
+export const updateTesdaEnrollmentSection = async (publicId, fields) => {
+  return await updateTesdaEnrollmentFields(pool, publicId, fields);
+};
+
+export const updateTesdaClassificationsSection = async (publicId, classifications, othersText) => {
+  const enrollment = await getTesdaEnrollmentDetailByPublicId(pool, publicId);
+  if (!enrollment) return null;
+  await replaceClassifications(pool, enrollment.enrollment_id, classifications, othersText);
+  return await getClassificationsByEnrollmentId(pool, enrollment.enrollment_id);
+};
+
+export const updateShsProfileSection = async (publicId, fields) => {
+  const enrollment = await getShsEnrollmentDetailByPublicId(pool, publicId);
+  if (!enrollment) return null;
+  return await updateProfile(pool, enrollment.student_id, fields);
+};
+
+export const updateShsAddressSection = async (publicId, fields) => {
+  const enrollment = await getShsEnrollmentDetailByPublicId(pool, publicId);
+  if (!enrollment) return null;
+  return await updateAddress(pool, enrollment.student_id, fields);
+};
+
+export const updateShsEnrollmentSection = async (publicId, fields) => {
+  return await updateShsEnrollmentFields(pool, publicId, fields);
+};
+
+export const updateShsFamilySection = async (publicId, members) => {
+  const enrollment = await getShsEnrollmentDetailByPublicId(pool, publicId);
+  if (!enrollment) return null;
+  await replaceFamilyMembers(pool, enrollment.student_id, members);
+  return await getFamilyMembersByStudentId(pool, enrollment.student_id);
+};
+
+// 
+// DOCUMENT ADD / REPLACE
+// => R2 upload happens in the controller (needs req.file from multer);
+//    these just persist the resulting key against the right enrollment
+// 
+export const addTesdaDocumentSection = async (publicId, docData) => {
+  const enrollment = await getTesdaEnrollmentDetailByPublicId(pool, publicId);
+  if (!enrollment) return null;
+  return await addTesdaDocument(pool, enrollment.enrollment_id, docData);
+};
+
+export const replaceTesdaDocumentSection = async (docPublicId, documentKey) => {
+  return await replaceTesdaDocument(pool, docPublicId, documentKey);
+};
+
+// Add SHS document by public_id
+export const addShsDocumentSection = async (publicId, docData) => {
+  const enrollment = await getShsEnrollmentDetailByPublicId(pool, publicId);
+  if (!enrollment) return null;
+  return await addShsDocument(pool, enrollment.enrollment_id, docData);
+};
+
+// Replace SHS document by public_id
+export const replaceShsDocumentSection = async (docPublicId, documentKey) => {
+  return await replaceShsDocument(pool, docPublicId, documentKey);
+};
+
+// Delete SHS document by public_id
+export const deleteShsDocumentSection = async (docPublicId) => {
+  return await deleteShsDocument(pool, docPublicId);
+};
+
+// Delete TESDA document by public_id
+// => New - mirrors deleteShsDocumentSection, no service-layer logic needed,
+//    the audit check itself lives in the model
+export const deleteTesdaDocumentSection = async (docPublicId) => {
+  return await deleteTesdaDocument(pool, docPublicId);
+};
+// SHS Classes 
+export const fetchAvailableShsClasses = async (filters) => {
+  return await getAvailableShsClasses(pool, filters);
+};
+
+// TESDA Classes
+export const fetchAvailableTesdaClasses = async (filters) => {
+  return await getAvailableTesdaClasses(pool, filters);
+};
+
+export const fetchShsTracksAndClusters = async () => {
+  return await getShsTracksAndClusters(pool);
 };

@@ -18,6 +18,7 @@ import ChatbotsIcon    from "../../assets/icons/chatbots.png";
 import AdminsIcon      from "../../assets/icons/admins.png";
 import LogoutIcon      from "../../assets/icons/logout.png";
 import DefaultAvatar   from "../../assets/icons/default-avatar.png";
+import AccountIcon    from "../../assets/icons/account.png";
 
 const NAV_ITEMS = [
   { id: "dashboard",       label: "Dashboard",       icon: DashboardIcon,  to: "/dashboard" },
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
   { id: "logs",            label: "Logs",            icon: LogsIcon,       to: "/dashboard/logs" },
   { id: "chatbots",        label: "Chatbots",        icon: ChatbotsIcon,   to: "/dashboard/chatbots" },
   { id: "admins",          label: "Admins",          icon: AdminsIcon,     to: "/dashboard/admins" },
+  { id: "account",         label: "Account",         icon: AccountIcon,    to: "/dashboard/account" },
 ];
 
 const Sidebar = ({

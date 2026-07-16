@@ -18,7 +18,9 @@ import Chatbots      from './pages/Chatbots/Chatbots.jsx';
 import Admins        from './pages/Admins/Admins.jsx';
 
 // components 
-import EnrollmentDetail from './components/EnrollmentDetail/EnrollmentDetail.jsx';
+// import EnrollmentDetail from './components/EnrollmentDetail/EnrollmentDetail.jsx';
+import TESDAEnrollmentDetail from './components/TESDAEnrollmentDetail/tesdaEnrollmentDetail.jsx';
+import SHSEnrollmentDetail   from './components/SHSEnrollmentDetail/shsEnrollmentDetail.jsx';
 import ClassDetail from './components/ClassDetail/ClassDetail.jsx';
 import StudentDetail from './components/StudentDetail/StudentDetail.jsx';
 
@@ -41,7 +43,9 @@ function App() {
 
                     {/* => Sub-routes render inside the <Outlet /> in Dashboard.jsx */}
                     <Route path="enrollments"           element={<Enrollments />} />
-                    <Route path="enrollments/:publicId" element={<EnrollmentDetail />} />
+                    {/* <Route path="enrollments/:publicId" element={<EnrollmentDetail />} /> */}
+                    <Route path="enrollments/tesda/:publicId" element={<TESDAEnrollmentDetail />} />
+                    <Route path="enrollments/shs/:publicId"   element={<SHSEnrollmentDetail />} />  
 
                     <Route path="classes"               element={<Classes />} />
                     <Route path="classes/:publicId"     element={<ClassDetail />} />
