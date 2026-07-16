@@ -1,80 +1,191 @@
 // => admin/models/adminEnrollmentModel.js
-// => All queries receive `pool` as a param - mirrors the student-side pattern
+// => FULL REWRITE - the previous version queried a pre-split schema that no
+//    longer exists (enrollment, enrollment_documents, classes, sp.surname).
+//    Rebuilt against the current tesda_enrollments / shs_enrollments split.
+// => All queries receive `pool` as a param - mirrors adminClassModel.js pattern
 // => Only admins call these; student ownership checks are NOT needed here
 
 // 
-// GET PENDING / NEEDS-CLARIFICATION ENROLLMENTS (LIST VIEW)
-// => Returns only 'Pending' and 'Needs Clarification' enrollments
-// => Joined with course, sector, branch, class, and student profile for display
-// => Sorted by submitted_at ASC so oldest (most urgent) appears first
+// LIST: Pending + Needs Clarification enrollments, combined TESDA + SHS
+// => UNION ALL with each branch NULL-casting the other type's fields so
+//    column types line up (course_name is TESDA-only, track/cluster SHS-only)
+// => enrollment_type discriminator lets the frontend route to the right
+//    detail page and render the right badge
 // 
 export const getPendingEnrollments = async (pool) => {
   const result = await pool.query(
     `SELECT
         e.public_id,
+        'TESDA'::text                                        AS enrollment_type,
         e.status,
         e.submitted_at,
-        e.assessment_type,
-        e.fee_at_enrollment,
-        e.is_shs,
-        e.is_tesda_scholar,
-        c.title                                           AS course_name,
-        s.sector                                          AS sector,
-        COALESCE(b_direct.branch_name, b_class.branch_name) AS branch_name,
-        cl.start_date,
-        cl.end_date,
-        -- => Student identity for admin context
+        sa.username                                          AS student_email,
         sp.first_name,
-        sp.surname,
         sp.middle_name,
-        sp.sex,
-        sp.birthdate,
-        sa.username                                          AS student_username
-      FROM enrollment e
-      JOIN student_accounts sa   ON e.student_id   = sa.student_id
-      LEFT JOIN student_profile sp ON sp.student_id = sa.student_id
-      LEFT JOIN courses c          ON e.course_id   = c.course_id
-      LEFT JOIN sectors s          ON c.sector_id   = s.sector_id
-      LEFT JOIN classes cl         ON e.class_id    = cl.class_id
-      LEFT JOIN branches b_direct  ON e.branch_id   = b_direct.branch_id
-      LEFT JOIN branches b_class   ON cl.branch_id  = b_class.branch_id
+        sp.last_name,
+        sp.name_extension,
+        c.title                                               AS course_name,
+        NULL::text                                            AS track,
+        NULL::text                                            AS cluster,
+        COALESCE(b_direct.branch_name, b_class.branch_name)  AS branch_name
+      FROM tesda_enrollments e
+      JOIN  student_accounts sa    ON sa.student_id  = e.student_id
+      LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
+      LEFT JOIN courses c          ON c.course_id    = e.course_id
+      LEFT JOIN tesda_classes cl   ON cl.class_id    = e.class_id
+      LEFT JOIN branches b_direct  ON e.branch_id    = b_direct.branch_id
+      LEFT JOIN branches b_class   ON cl.branch_id   = b_class.branch_id
       WHERE e.status IN ('Pending', 'Needs Clarification')
-      ORDER BY e.submitted_at ASC`
+
+      UNION ALL
+
+      SELECT
+        e.public_id,
+        'SHS'::text                                          AS enrollment_type,
+        e.status,
+        e.submitted_at,
+        sa.username                                          AS student_email,
+        sp.first_name,
+        sp.middle_name,
+        sp.last_name,
+        sp.name_extension,
+        NULL::text                                            AS course_name,
+        e.track,
+        e.cluster,
+        COALESCE(b_direct.branch_name, b_class.branch_name)  AS branch_name
+      FROM shs_enrollments e
+      JOIN  student_accounts sa    ON sa.student_id  = e.student_id
+      LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
+      LEFT JOIN shs_classes cl     ON cl.class_id    = e.class_id
+      LEFT JOIN branches b_direct  ON e.branch_id    = b_direct.branch_id
+      LEFT JOIN branches b_class   ON cl.branch_id   = b_class.branch_id
+      WHERE e.status IN ('Pending', 'Needs Clarification')
+
+      ORDER BY submitted_at ASC`
   );
   return result.rows;
 };
 
-// => Fetches only what lives directly on the enrollment row and its FK-joined tables
-// => Profile columns (name, sex, birthdate, etc.) are NOT selected here
-// => They are fetched separately in the service using profile_id
-export const getEnrollmentDetailByPublicId = async (pool, publicId) => {
+// 
+// SEARCH: across ALL statuses, both TESDA and SHS, by email or profile name
+// => Same UNION ALL shape as the list query above
+// => Filter key stays "surname" to match the existing frontend/controller
+//    contract - it filters against sp.last_name under the hood
+// 
+export const searchEnrollments = async (pool, { email, first_name, middle_name, surname, name_extension }) => {
+  const client = await pool.connect();
+  try {
+    const rows = await client.query(
+      `SELECT
+          e.public_id,
+          'TESDA'::text                                        AS enrollment_type,
+          e.status,
+          e.submitted_at,
+          sa.username                                          AS student_email,
+          sp.first_name,
+          sp.middle_name,
+          sp.last_name,
+          sp.name_extension,
+          c.title                                               AS course_name,
+          NULL::text                                            AS track,
+          NULL::text                                            AS cluster,
+          COALESCE(b_direct.branch_name, b_class.branch_name)  AS branch_name
+        FROM tesda_enrollments e
+        JOIN  student_accounts sa    ON sa.student_id  = e.student_id
+        LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
+        LEFT JOIN courses c          ON c.course_id    = e.course_id
+        LEFT JOIN tesda_classes cl   ON cl.class_id    = e.class_id
+        LEFT JOIN branches b_direct  ON e.branch_id    = b_direct.branch_id
+        LEFT JOIN branches b_class   ON cl.branch_id   = b_class.branch_id
+        WHERE
+          ($1::text IS NULL OR sa.username      ILIKE '%' || $1 || '%')
+          AND ($2::text IS NULL OR sp.first_name    ILIKE '%' || $2 || '%')
+          AND ($3::text IS NULL OR sp.middle_name   ILIKE '%' || $3 || '%')
+          AND ($4::text IS NULL OR sp.last_name     ILIKE '%' || $4 || '%')
+          AND ($5::text IS NULL OR sp.name_extension ILIKE '%' || $5 || '%')
+
+        UNION ALL
+
+        SELECT
+          e.public_id,
+          'SHS'::text                                          AS enrollment_type,
+          e.status,
+          e.submitted_at,
+          sa.username                                          AS student_email,
+          sp.first_name,
+          sp.middle_name,
+          sp.last_name,
+          sp.name_extension,
+          NULL::text                                            AS course_name,
+          e.track,
+          e.cluster,
+          COALESCE(b_direct.branch_name, b_class.branch_name)  AS branch_name
+        FROM shs_enrollments e
+        JOIN  student_accounts sa    ON sa.student_id  = e.student_id
+        LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
+        LEFT JOIN shs_classes cl     ON cl.class_id    = e.class_id
+        LEFT JOIN branches b_direct  ON e.branch_id    = b_direct.branch_id
+        LEFT JOIN branches b_class   ON cl.branch_id   = b_class.branch_id
+        WHERE
+          ($1::text IS NULL OR sa.username      ILIKE '%' || $1 || '%')
+          AND ($2::text IS NULL OR sp.first_name    ILIKE '%' || $2 || '%')
+          AND ($3::text IS NULL OR sp.middle_name   ILIKE '%' || $3 || '%')
+          AND ($4::text IS NULL OR sp.last_name     ILIKE '%' || $4 || '%')
+          AND ($5::text IS NULL OR sp.name_extension ILIKE '%' || $5 || '%')
+
+        ORDER BY submitted_at DESC
+        LIMIT 50`,
+      [
+        email          || null,
+        first_name     || null,
+        middle_name    || null,
+        surname        || null,
+        name_extension || null,
+      ]
+    );
+    return rows.rows;
+  } finally {
+    client.release();
+  }
+};
+
+// 
+// TESDA DETAIL: enrollment row + course/sector + branch (direct or via class)
+//   + class period/type/groupchat from the joined tesda_classes row
+// 
+export const getTesdaEnrollmentDetailByPublicId = async (pool, publicId) => {
   const result = await pool.query(
     `SELECT
         e.public_id,
         e.enrollment_id,
         e.student_id,
+        e.branch_id,
+        e.course_id,
+        e.class_id,
+        e.fee_at_enrollment,
+        e.uli,
+        e.ncae_taken,
+        e.ncae_where,
+        e.ncae_when,
+        e.is_tesda_scholar,
+        e.scholarship_type,
+        e.other_scholarship,
         e.status,
         e.submitted_at,
         e.updated_at,
-        e.assessment_type,
-        e.fee_at_enrollment,
-        e.is_shs,
-        e.is_tesda_scholar,
-        -- => Course info
         c.title                                              AS course_name,
-        c.course_id,
         s.sector                                             AS sector,
-        -- => Branch resolved same way as student side: direct branch_id first, class branch as fallback
         COALESCE(b_direct.branch_name, b_class.branch_name) AS branch_name,
         cl.start_date,
         cl.end_date,
-        -- => Only username comes from student_accounts directly
-        sa.username AS student_username
-      FROM enrollment e
-      JOIN  student_accounts sa    ON e.student_id  = sa.student_id
-      LEFT JOIN courses c          ON e.course_id   = c.course_id
-      LEFT JOIN sectors s          ON c.sector_id   = s.sector_id
-      LEFT JOIN classes cl         ON e.class_id    = cl.class_id
+        cl.class_type,
+        cl.groupchat_link,
+        sa.username                                          AS student_username
+      FROM tesda_enrollments e
+      JOIN  student_accounts sa    ON sa.student_id = e.student_id
+      LEFT JOIN courses c          ON c.course_id   = e.course_id
+      LEFT JOIN sectors s          ON s.sector_id   = c.sector_id
+      LEFT JOIN tesda_classes cl   ON cl.class_id   = e.class_id
       LEFT JOIN branches b_direct  ON e.branch_id   = b_direct.branch_id
       LEFT JOIN branches b_class   ON cl.branch_id  = b_class.branch_id
       WHERE e.public_id = $1`,
@@ -84,153 +195,515 @@ export const getEnrollmentDetailByPublicId = async (pool, publicId) => {
 };
 
 // 
-// GET ENROLLMENT DOCUMENTS BY ENROLLMENT ID
-// => Returns all docs tied to an enrollment row
-// => Uses internal enrollment_id (not public_id) - resolved from detail query above
+// SHS DETAIL: enrollment row + branch (direct or via class) + class
+//   period/groupchat from the joined shs_classes row
 // 
-export const getEnrollmentDocsByEnrollmentId = async (pool, enrollmentId) => {
+export const getShsEnrollmentDetailByPublicId = async (pool, publicId) => {
   const result = await pool.query(
     `SELECT
-        public_id,
-        document_type,
-        document_key,
-        uploaded_at
-      FROM enrollment_documents
-      WHERE enrollment_id = $1
-      ORDER BY uploaded_at ASC`,
-    [enrollmentId]
-  );
-  return result.rows;
-};
-
-// 
-// GET WORK EXPERIENCE BY ENROLLMENT ID
-// 
-export const getWorkExperienceByEnrollmentId = async (pool, enrollmentId) => {
-  const result = await pool.query(
-    `SELECT
-        company, position, salary,
-        date_from, date_to, appointment_status, years_exp
-      FROM work_experience
-      WHERE enrollment_id = $1
-      ORDER BY date_from DESC NULLS LAST`,
-    [enrollmentId]
-  );
-  return result.rows;
-};
-
-// 
-// GET TRAINING / SEMINARS BY ENROLLMENT ID
-// 
-export const getTrainingSeminarsByEnrollmentId = async (pool, enrollmentId) => {
-  const result = await pool.query(
-    `SELECT
-        title, venue, date_from, date_to, hours, conducted_by
-      FROM training_seminar
-      WHERE enrollment_id = $1
-      ORDER BY date_from DESC NULLS LAST`,
-    [enrollmentId]
-  );
-  return result.rows;
-};
-
-// 
-// GET LICENSURE EXAMINATIONS BY PROFILE ID
-// => Licensures are tied to student_profile, not enrollment
-// => profile_id is resolved via student_profile join in the detail query
-// 
-export const getLicensuresByProfileId = async (pool, profileId) => {
-  const result = await pool.query(
-    `SELECT
-        title, year_taken, examination_venue, rating, remarks, expiry_date
-      FROM licensure_examination
-      WHERE profile_id = $1
-      ORDER BY year_taken DESC NULLS LAST`,
-    [profileId]
-  );
-  return result.rows;
-};
-
-// 
-// GET COMPETENCY ASSESSMENTS BY PROFILE ID
-// => Competencies are also tied to student_profile, not enrollment
-// 
-export const getCompetenciesByProfileId = async (pool, profileId) => {
-  const result = await pool.query(
-    `SELECT
-        title, qualification_level, industry_sector,
-        certificate_number, date_of_issuance, expiration_date
-      FROM competency_assessment
-      WHERE profile_id = $1
-      ORDER BY date_of_issuance DESC NULLS LAST`,
-    [profileId]
-  );
-  return result.rows;
-};
-
-// 
-// UPDATE ENROLLMENT STATUS
-// => Called by the admin after reviewing the enrollment
-// => Returns the updated row so the frontend can reflect the change immediately
-// 
-export const updateEnrollmentStatus = async (pool, publicId, newStatus) => {
-  const result = await pool.query(
-    `UPDATE enrollment
-        SET status     = $1,
-            updated_at = NOW()
-      WHERE public_id  = $2
-      RETURNING public_id, status`,
-    [newStatus, publicId]
+        e.public_id,
+        e.enrollment_id,
+        e.student_id,
+        e.branch_id,
+        e.lrn,
+        e.class_id,
+        e.last_school_attended,
+        e.school_address,
+        e.grade_level_completed,
+        e.school_year_completed,
+        e.track,
+        e.cluster,
+        e.electives,
+        e.emergency_name,
+        e.emergency_relationship,
+        e.emergency_contact_no,
+        e.emergency_address,
+        e.has_medical_condition,
+        e.medical_condition_detail,
+        e.allergies,
+        e.maintenance_medication,
+        e.internal_remarks,
+        e.external_remarks,
+        e.status,
+        e.submitted_at,
+        e.updated_at,
+        -- => course_id/course_name join dropped: course_id is no longer
+        --    written for new SHS enrollments (a cluster is a fixed 2-year
+        --    curriculum, not a single course the student picks), and
+        --    nothing in the frontend actually rendered course_name.
+        --    Curriculum is now fetched separately by cluster - see
+        --    getClusterCourses below.
+        e.course_id,
+        COALESCE(b_direct.branch_name, b_class.branch_name) AS branch_name,
+        cl.start_date,
+        cl.end_date,
+        cl.groupchat_link,
+        sa.username                                          AS student_username
+      FROM shs_enrollments e
+      JOIN  student_accounts sa    ON sa.student_id = e.student_id
+      LEFT JOIN shs_classes cl     ON cl.class_id   = e.class_id
+      LEFT JOIN branches b_direct  ON e.branch_id   = b_direct.branch_id
+      LEFT JOIN branches b_class   ON cl.branch_id  = b_class.branch_id
+      WHERE e.public_id = $1`,
+    [publicId]
   );
   return result.rows[0] ?? null;
 };
 
+// 
+// SHS CLUSTER CURRICULUM: read-only G11/G12 course list for admin display -
+//   looked up by enrollment.cluster (the shs_clusters.value string), NOT by
+//   enrollment.course_id. A cluster is a fixed 2-year curriculum; the
+//   student never picks an individual course, so this is purely
+//   informational context on the detail page, never edited from here.
+// 
+export const getClusterCourses = async (pool, clusterValue) => {
+  if (!clusterValue) return [];
+  const result = await pool.query(
+    `SELECT sc.course_id, sc.title, sc.description, sc.grade_level, sc.course_link
+       FROM shs_courses sc
+       JOIN shs_clusters cl ON cl.cluster_id = sc.cluster_id
+      WHERE cl.value = $1
+        AND sc.status = 'active'
+        AND sc.deleted_at IS NULL
+      ORDER BY sc.grade_level ASC, sc.title ASC`,
+    [clusterValue]
+  );
+  return result.rows;
+};
 
-// => Search enrollments across ALL statuses by email or profile name fields
-// => Used by admin search - not restricted to Pending/Needs Clarification
-export const searchEnrollments = async (pool, { email, first_name, middle_name, surname, name_extension }) => {
+// 
+// SHARED PROFILE / ADDRESS / GUARDIAN LOOKUPS
+// => student_profile, student_address, and student_guardian are all shared
+//    between TESDA and SHS - one function each, used by both detail services
+// => FIX: student_address is keyed by student_id, not profile_id (that
+//    column doesn't exist on this table - the old model queried it wrong)
+// 
+export const getProfileByStudentId = async (pool, studentId) => {
+  const result = await pool.query(
+    `SELECT * FROM student_profile WHERE student_id = $1 LIMIT 1`,
+    [studentId]
+  );
+  return result.rows[0] ?? null;
+};
+
+export const getAddressByStudentId = async (pool, studentId) => {
+  const result = await pool.query(
+    `SELECT street, barangay_code, city_code, province_code, district_code, region_code
+       FROM student_address WHERE student_id = $1 LIMIT 1`,
+    [studentId]
+  );
+  return result.rows[0] ?? null;
+};
+
+// => student_guardian only has a row when the enrollee was a minor at
+//    submission time - null result is expected and normal for adult enrollees
+export const getGuardianByStudentId = async (pool, studentId) => {
+  const result = await pool.query(
+    `SELECT guardian_name, guardian_address, guardian_contact_no
+       FROM student_guardian WHERE student_id = $1 LIMIT 1`,
+    [studentId]
+  );
+  return result.rows[0] ?? null;
+};
+
+// 
+// TESDA-ONLY: documents + client classifications
+// 
+export const getTesdaDocsByEnrollmentId = async (pool, enrollmentId) => {
+  const result = await pool.query(
+    `SELECT public_id, document_type, document_key, uploaded_at
+       FROM tesda_documents
+       WHERE enrollment_id = $1
+       ORDER BY uploaded_at ASC`,
+    [enrollmentId]
+  );
+  return result.rows;
+};
+
+export const getClassificationsByEnrollmentId = async (pool, enrollmentId) => {
+  const result = await pool.query(
+    `SELECT classification_id, classification_value, others_text
+       FROM tesda_client_classifications
+       WHERE enrollment_id = $1`,
+    [enrollmentId]
+  );
+  return result.rows;
+};
+
+// 
+// SHS-ONLY: documents + family members
+// => family members are keyed by student_id (shared identity), not
+//    enrollment_id - same reasoning as student_profile/student_address
+// 
+export const getShsDocsByEnrollmentId = async (pool, enrollmentId) => {
+  const result = await pool.query(
+    `SELECT public_id, document_type, document_key, uploaded_at
+       FROM shs_documents
+       WHERE enrollment_id = $1
+       ORDER BY uploaded_at ASC`,
+    [enrollmentId]
+  );
+  return result.rows;
+};
+
+export const getFamilyMembersByStudentId = async (pool, studentId) => {
+  const result = await pool.query(
+    `SELECT family_member_id, role, full_name, occupation, contact_no, relationship_to_student
+       FROM shs_family_members
+       WHERE student_id = $1
+       ORDER BY CASE role WHEN 'Father' THEN 1 WHEN 'Mother' THEN 2 WHEN 'Guardian' THEN 3 END`,
+    [studentId]
+  );
+  return result.rows;
+};
+
+
+// STATUS UPDATES - separate per type since they hit different tables
+
+// => remarks is optional (nullable) - admin may change status without a note
+// => externalRemarks is saved ONLY here, together with the status - never
+//    through the generic /enrollment PATCH. That's what makes "clears on
+//    status change, only persists when Save Status is confirmed" possible:
+//    whatever the admin is typing never touches the DB until this fires.
+export const updateTesdaEnrollmentStatus = async (pool, publicId, newStatus, externalRemarks) => {
+  const result = await pool.query(
+    `UPDATE tesda_enrollments
+        SET status           = $1,
+            external_remarks = $2,
+            updated_at       = NOW()
+      WHERE public_id        = $3
+      RETURNING public_id, status, external_remarks`,
+    [newStatus, externalRemarks ?? null, publicId]
+  );
+  return result.rows[0] ?? null;
+};
+
+export const updateShsEnrollmentStatus = async (pool, publicId, newStatus, externalRemarks) => {
+  const result = await pool.query(
+    `UPDATE shs_enrollments
+        SET status           = $1,
+            external_remarks = $2,
+            updated_at       = NOW()
+      WHERE public_id        = $3
+      RETURNING public_id, status, external_remarks`,
+    [newStatus, externalRemarks ?? null, publicId]
+  );
+  return result.rows[0] ?? null;
+};
+
+// 
+// GENERIC PARTIAL UPDATE HELPER
+// => Column names can't be parameterized with $ placeholders, so every
+//    table using this MUST whitelist its editable columns here first.
+//    Any key in `fields` not on the whitelist is silently dropped - this
+//    is the actual injection guard, not just a nice-to-have.
+// 
+const ALLOWED_COLUMNS = {
+  student_profile: new Set([
+    'last_name', 'first_name', 'middle_name', 'name_extension',
+    'contact_no', 'facebook_link', 'email', 'nationality', 'sex',
+    'civil_status', 'employment_status', 'birth_date',
+    'birthplace_region', 'birthplace_province', 'birthplace_city',
+    'highest_educ_attainment', 'religion', 'religion_others',
+  ]),
+  student_address: new Set([
+    'street', 'barangay_code', 'city_code', 'province_code',
+    'district_code', 'region_code',
+  ]),
+  tesda_enrollments: new Set([
+    'uli', 'branch_id', 'course_id', 'class_id', 'fee_at_enrollment',
+    'ncae_taken', 'ncae_where', 'ncae_when',
+    'is_tesda_scholar', 'scholarship_type', 'other_scholarship',
+    'internal_remarks',
+  ]),
+  shs_enrollments: new Set([
+    'lrn', 'branch_id', 'class_id',
+    'last_school_attended', 'school_address',
+    'grade_level_completed', 'school_year_completed',
+    'track', 'cluster', 'electives',
+    'emergency_name', 'emergency_relationship', 'emergency_contact_no', 'emergency_address',
+    'has_medical_condition', 'medical_condition_detail', 'allergies', 'maintenance_medication',
+    'internal_remarks',
+  ]),
+};
+
+// => status is deliberately excluded from both enrollment whitelists - it
+//    already has its own dedicated PATCH .../status endpoint with its own
+//    ALLOWED_STATUSES validation in the service layer. Don't let it slip
+//    in through the generic field editor and bypass that check.
+const buildPartialUpdate = (table, idColumn, idValue, fields) => {
+  const allowed = ALLOWED_COLUMNS[table];
+  const keys = Object.keys(fields).filter(k => allowed.has(k));
+  if (keys.length === 0) return null;
+
+  const setClauses = keys.map((k, i) => `${k} = $${i + 1}`);
+  const values      = keys.map(k => fields[k]);
+  values.push(idValue);
+
+  return {
+    text: `UPDATE ${table} SET ${setClauses.join(', ')} WHERE ${idColumn} = $${keys.length + 1} RETURNING *`,
+    values,
+  };
+};
+
+// 
+// SHARED PROFILE / ADDRESS UPDATES
+// => Used by both TESDA and SHS routes, since both tables are shared
+//    identity data - one implementation, called from both section handlers
+// 
+export const updateProfile = async (pool, studentId, fields) => {
+  const query = buildPartialUpdate('student_profile', 'student_id', studentId, fields);
+  if (!query) return null;
+  const result = await pool.query(query.text, query.values);
+  return result.rows[0] ?? null;
+};
+
+export const updateAddress = async (pool, studentId, fields) => {
+  const query = buildPartialUpdate('student_address', 'student_id', studentId, fields);
+  if (!query) return null;
+  const result = await pool.query(query.text, query.values);
+  return result.rows[0] ?? null;
+};
+
+// => Guardian is an upsert, not a plain update - a row may not exist yet
+//    (student was an adult at submission, or the section was left blank).
+// => ASSUME: PK column is guardian_id and there's no UNIQUE constraint on
+//    student_id confirmed, so this does an explicit check-then-write
+//    instead of ON CONFLICT.
+export const upsertGuardian = async (pool, studentId, { guardian_name, guardian_address, guardian_contact_no }) => {
+  const existing = await pool.query(
+    `SELECT guardian_id FROM student_guardian WHERE student_id = $1 LIMIT 1`,
+    [studentId]
+  );
+
+  if (existing.rows[0]) {
+    const result = await pool.query(
+      `UPDATE student_guardian
+          SET guardian_name = $1, guardian_address = $2, guardian_contact_no = $3
+        WHERE student_id = $4
+        RETURNING *`,
+      [guardian_name ?? null, guardian_address ?? null, guardian_contact_no ?? null, studentId]
+    );
+    return result.rows[0];
+  }
+
+  const result = await pool.query(
+    `INSERT INTO student_guardian (student_id, guardian_name, guardian_address, guardian_contact_no)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+    [studentId, guardian_name ?? null, guardian_address ?? null]
+  );
+  return result.rows[0];
+};
+
+// 
+// TESDA / SHS ENROLLMENT FIELD UPDATES
+// => One function each, covers every editable column on that table
+// 
+export const updateTesdaEnrollmentFields = async (pool, publicId, fields) => {
+  const query = buildPartialUpdate('tesda_enrollments', 'public_id', publicId, fields);
+  if (!query) return null;
+  const result = await pool.query(query.text, query.values);
+  return result.rows[0] ?? null;
+};
+
+export const updateShsEnrollmentFields = async (pool, publicId, fields) => {
+  const query = buildPartialUpdate('shs_enrollments', 'public_id', publicId, fields);
+  if (!query) return null;
+  const result = await pool.query(query.text, query.values);
+  return result.rows[0] ?? null;
+};
+
+// 
+// CLASSIFICATIONS - replace-all pattern (delete existing, insert the new
+//   set) since it's a checkbox list, not individually addressable rows
+// 
+export const replaceClassifications = async (pool, enrollmentId, classifications, othersText) => {
   const client = await pool.connect();
   try {
-    const rows = await client.query(`
-      SELECT
-        e.public_id,
-        e.status,
-        e.submitted_at,
-        e.assessment_type,
-        sa.username         AS student_email,
-        c.title           AS course_name,
-        s.sector,
-         COALESCE(b_direct.branch_name, b_class.branch_name) AS branch_name,
-        sp.first_name,
-        sp.middle_name,
-        sp.surname,
-        sp.name_extension
-      FROM enrollment e
-      JOIN  student_accounts sa    ON sa.student_id  = e.student_id
-      LEFT JOIN courses c          ON c.course_id    = e.course_id
-      LEFT JOIN sectors s          ON c.sector_id    = s.sector_id
-      LEFT JOIN classes cl         ON e.class_id     = cl.class_id
-      LEFT JOIN branches b_direct  ON e.branch_id    = b_direct.branch_id
-      LEFT JOIN branches b_class   ON cl.branch_id   = b_class.branch_id
-      LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
-      WHERE
-        -- => At least one search param must match; all provided params are ANDed together
-        ($1::text IS NULL OR sa.username          ILIKE '%' || $1 || '%')
-        AND ($2::text IS NULL OR sp.first_name      ILIKE '%' || $2 || '%')
-        AND ($3::text IS NULL OR sp.middle_name     ILIKE '%' || $3 || '%')
-        AND ($4::text IS NULL OR sp.surname         ILIKE '%' || $4 || '%')
-        AND ($5::text IS NULL OR sp.name_extension  ILIKE '%' || $5 || '%')
-      ORDER BY e.submitted_at DESC
-      LIMIT 50
-    `, [
-      email         || null,
-      first_name    || null,
-      middle_name   || null,
-      surname       || null,
-      name_extension || null,
-    ]);
-    return rows.rows;
+    await client.query('BEGIN');
+    await client.query(
+      `DELETE FROM tesda_client_classifications WHERE enrollment_id = $1`,
+      [enrollmentId]
+    );
+    for (const value of classifications) {
+      await client.query(
+        `INSERT INTO tesda_client_classifications (enrollment_id, classification_value, others_text)
+           VALUES ($1, $2, $3)`,
+        [enrollmentId, value, value === 'others' ? (othersText || null) : null]
+      );
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
   } finally {
     client.release();
   }
+};
+
+// 
+// FAMILY MEMBERS - replace-all pattern, same reasoning as classifications
+// => Keyed by student_id, not enrollment_id
+// => The DEFERRABLE constraint trigger (both-parents-or-guardian) checks
+//    at COMMIT, after every row in this transaction has landed
+// 
+export const replaceFamilyMembers = async (pool, studentId, members) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      `DELETE FROM shs_family_members WHERE student_id = $1`,
+      [studentId]
+    );
+    for (const m of members) {
+      await client.query(
+        `INSERT INTO shs_family_members
+           (student_id, role, full_name, occupation, contact_no, relationship_to_student)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+        [studentId, m.role, m.full_name, m.occupation || null, m.contact_no || null, m.relationship_to_student || null]
+      );
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
+// 
+// DOCUMENTS - add new / replace existing file, per type
+// => R2 upload itself happens in the controller (needs req.file from
+//    multer) - these functions only persist the resulting key
+// 
+export const addTesdaDocument = async (pool, enrollmentId, { documentType, documentKey }) => {
+  const result = await pool.query(
+    // => is_original explicitly FALSE - admin-added docs are deletable,
+    //    unlike student-submitted ones (see insertEnrollmentDocuments)
+    `INSERT INTO tesda_documents (enrollment_id, document_type, document_key, uploaded_at, is_original)
+       VALUES ($1, $2, $3, NOW(), FALSE)
+       RETURNING public_id, document_type, document_key, uploaded_at, is_original`,
+    [enrollmentId, documentType, documentKey]
+  );
+  return result.rows[0];
+};
+
+export const replaceTesdaDocument = async (pool, docPublicId, documentKey) => {
+  const result = await pool.query(
+    `UPDATE tesda_documents SET document_key = $1, uploaded_at = NOW()
+       WHERE public_id = $2
+       RETURNING public_id, document_type, document_key, uploaded_at`,
+    [documentKey, docPublicId]
+  );
+  return result.rows[0] ?? null;
+};
+
+// Add SHS document by public_id
+// Add SHS document by public_id
+export const addShsDocument = async (pool, enrollmentId, { documentType, documentKey }) => {
+  const result = await pool.query(
+    // => is_original explicitly FALSE - same reasoning as addTesdaDocument
+    `INSERT INTO shs_documents (enrollment_id, document_type, document_key, uploaded_at, is_original)
+       VALUES ($1, $2, $3, NOW(), FALSE)
+       RETURNING public_id, document_type, document_key, uploaded_at, is_original`,
+    [enrollmentId, documentType, documentKey]
+  );
+  return result.rows[0];
+};
+// Replace SHS document by public_id
+export const replaceShsDocument = async (pool, docPublicId, documentKey) => {
+  const result = await pool.query(
+    `UPDATE shs_documents SET document_key = $1, uploaded_at = NOW()
+       WHERE public_id = $2
+       RETURNING public_id, document_type, document_key, uploaded_at`,
+    [documentKey, docPublicId]
+  );
+  return result.rows[0] ?? null;
+};
+
+// Delete SHS document by public_id
+// => Audit lock: check is_original BEFORE deleting. Returns a tagged
+//    object so the controller can tell "not found" (404) apart from
+//    "blocked, student-submitted original" (403) - a bare null/row
+//    can't carry that distinction.
+export const deleteShsDocument = async (pool, docPublicId) => {
+  const check = await pool.query(
+    `SELECT public_id, is_original FROM shs_documents WHERE public_id = $1`,
+    [docPublicId]
+  );
+  const doc = check.rows[0];
+  if (!doc) return { notFound: true };
+  if (doc.is_original) return { blocked: true };
+
+  const result = await pool.query(
+    `DELETE FROM shs_documents WHERE public_id = $1 RETURNING public_id`,
+    [docPublicId]
+  );
+  return { deleted: result.rows[0] };
+};
+
+// Delete TESDA document by public_id
+// => Same is_original audit-lock pattern as deleteShsDocument above.
+//    TESDA never had a delete path before this - this is new, not a patch.
+export const deleteTesdaDocument = async (pool, docPublicId) => {
+  const check = await pool.query(
+    `SELECT public_id, is_original FROM tesda_documents WHERE public_id = $1`,
+    [docPublicId]
+  );
+  const doc = check.rows[0];
+  if (!doc) return { notFound: true };
+  if (doc.is_original) return { blocked: true };
+
+  const result = await pool.query(
+    `DELETE FROM tesda_documents WHERE public_id = $1 RETURNING public_id`,
+    [docPublicId]
+  );
+  return { deleted: result.rows[0] };
+};
+
+// => ASSUME: shs_classes has branch_id/track/cluster columns, mirroring
+//    how the student-side /api/shs-classes endpoint filters. Verify
+//    against your actual schema.
+export const getAvailableShsClasses = async (pool, { branchId, track, cluster }) => {
+  const result = await pool.query(
+    `SELECT class_id, start_date, end_date, groupchat_link
+       FROM shs_classes
+       WHERE branch_id = $1 AND track = $2
+         AND ($3::text IS NULL OR cluster = $3)
+       ORDER BY start_date ASC`,
+    [branchId, track, cluster || null]
+  );
+  return result.rows;
+};
+
+// => Returns SHS tracks and clusters together in one round trip - both are
+//    small, static-ish reference tables, so no pagination/filtering needed
+export const getShsTracksAndClusters = async (pool) => {
+  const [tracksResult, clustersResult] = await Promise.all([
+    pool.query(`SELECT track_id, value, name FROM shs_tracks ORDER BY track_id`),
+    pool.query(
+      `SELECT sc.cluster_id, sc.value, sc.name, st.value AS track_value
+         FROM shs_clusters sc
+         JOIN shs_tracks st ON st.track_id = sc.track_id
+         ORDER BY sc.cluster_id`
+    ),
+  ]);
+  return { tracks: tracksResult.rows, clusters: clustersResult.rows };
+};
+
+
+// => Mirrors getAvailableShsClasses - TESDA classes are filtered by
+//    branch + course instead of track/cluster
+export const getAvailableTesdaClasses = async (pool, { branchId, courseId }) => {
+  const result = await pool.query(
+    `SELECT class_id, start_date, end_date, groupchat_link
+       FROM tesda_classes
+       WHERE branch_id = $1 AND course_id = $2
+       ORDER BY start_date ASC`,
+    [branchId, courseId]
+  );
+  return result.rows;
 };

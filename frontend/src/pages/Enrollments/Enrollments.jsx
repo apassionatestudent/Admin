@@ -1,5 +1,6 @@
 // => admin/pages/Enrollments/Enrollments.jsx
-// => Displays all Pending and Needs Clarification enrollments for admin review
+// => Displays all Pending and Needs Clarification enrollments for admin review,
+//    combined across both TESDA and SHS via the backend's UNION ALL list query.
 // => Also handles cross-status search by email or name fields
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -29,17 +30,40 @@ const formatDate = (dateStr) => {
 // => Derives student full name from profile fields
 // => Filters out falsy values AND 'N/A' so name extension doesn't appear when not applicable
 const fullName = (row) => {
-  const parts = [row.first_name, row.middle_name, row.surname, row.name_extension]
+  const parts = [row.first_name, row.middle_name, row.last_name, row.name_extension]
     .filter(v => v && v.trim().toUpperCase() !== 'N/A');
   return parts.length ? parts.join(' ') : row.student_email ?? '-';
 };
+
+// => Enrollment type badge - distinguishes TESDA vs SHS rows in the combined list
+const TYPE_LABEL = { TESDA: 'TESDA', SHS: 'SHS' };
+const TYPE_CLASS = { TESDA: 'adm-type-badge--tesda', SHS: 'adm-type-badge--shs' };
+
+// => Program column shows course name for TESDA rows, track - cluster for SHS
+//    rows. shsLookups is passed in explicitly rather than closed over, since
+//    these are called from EnrollmentTable, a sibling component - not
+//    Enrollments() itself, where the actual state lives.
+const trackLabel = (value, shsLookups) =>
+  shsLookups.tracks.find(t => t.value === value)?.name ?? value;
+
+const clusterLabel = (value, shsLookups) =>
+  shsLookups.clusters.find(c => c.value === value)?.name ?? value;
+
+const programDisplay = (row, shsLookups) =>
+  row.enrollment_type === 'SHS'
+    ? [
+        row.track && trackLabel(row.track, shsLookups),
+        row.cluster && clusterLabel(row.cluster, shsLookups),
+      ].filter(Boolean).join(' - ') || '-'
+    : row.course_name ?? '-';
+
 
 // => Empty search filters - used for reset
 const EMPTY_FILTERS = {
   email:          '',
   first_name:     '',
   middle_name:    '',
-  surname:        '',
+  last_name:      '',
   name_extension: '',
 };
 
@@ -60,6 +84,10 @@ export default function Enrollments() {
 
   // => Ref to abort stale search requests when a new one fires
   const abortRef = useRef(null);
+
+  // => SHS track/cluster lookup data - used by EnrollmentTable via prop,
+  //    since programDisplay lives outside this component
+  const [shsLookups, setShsLookups] = useState({ tracks: [], clusters: [] });
 
   // => Fetch default (Pending + Needs Clarification) enrollments on mount
   useEffect(() => {
@@ -83,9 +111,27 @@ export default function Enrollments() {
     fetchEnrollments();
   }, []);
 
-  const handleRowClick = (publicId) => {
-    // => Route must match App.jsx: /dashboard/enrollments/:publicId
-    navigate(`/dashboard/enrollments/${publicId}`);
+  // => SHS track/cluster labels, fetched once - used to show human-readable
+  //    names in the Program column instead of raw DB values like 'tech_prof'
+  useEffect(() => {
+    fetch('/api/admin/enrollments/shs/lookups', { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => {
+        // => Only accept well-formed responses - an error body like
+        //    {error: '...'} would otherwise corrupt state and crash
+        //    programDisplay's .find() calls on the next render
+        if (Array.isArray(data?.tracks) && Array.isArray(data?.clusters)) {
+          setShsLookups(data);
+        }
+      })
+      .catch(err => console.error('Failed to fetch SHS lookups:', err));
+  }, []);
+
+  // => Route must match App.jsx: /dashboard/enrollments/tesda/:publicId or /shs/:publicId
+  // => Any enrollment_type other than 'SHS' falls back to the tesda/ route.
+  const handleRowClick = (publicId, enrollmentType) => {
+    const typeSegment = enrollmentType === 'SHS' ? 'shs' : 'tesda';
+    navigate(`/dashboard/enrollments/${typeSegment}/${publicId}`);
   };
 
   // => Build query string from non-empty filters only
@@ -136,6 +182,9 @@ export default function Enrollments() {
 
   // => Clear search and restore default view
   const handleClearSearch = () => {
+    // => Abort any in-flight search first - otherwise a stale response can
+    //    still resolve after clearing and silently repopulate results
+    if (abortRef.current) abortRef.current.abort();
     setFilters(EMPTY_FILTERS);
     setSearchResults(null);
     setSearchError(null);
@@ -159,7 +208,10 @@ export default function Enrollments() {
           {/* => Subtitle changes based on whether a search is active */}
           <p className="adm-enroll-subtitle">
             {isSearchMode
-              ? <>Showing search results - <strong>{searchResults.length}</strong> enrollment{searchResults.length !== 1 ? 's' : ''} found.</>
+              ? <>
+                  Showing search results - <strong>{searchResults.length}</strong> enrollment{searchResults.length !== 1 ? 's' : ''} found.
+                  {searchResults.length === 50 && ' Results are capped at 50 - refine your search for a more precise match.'}
+                </>
               : <>Showing <strong>Pending</strong> and <strong>Needs Clarification</strong> submissions.</>
             }
           </p>
@@ -248,8 +300,8 @@ export default function Enrollments() {
                   type="text"
                   className="adm-more-input"
                   placeholder="e.g. Cruz"
-                  value={filters.surname}
-                  onChange={e => setFilters(f => ({ ...f, surname: e.target.value }))}
+                  value={filters.last_name}
+                  onChange={e => setFilters(f => ({ ...f, last_name: e.target.value }))}
                   onKeyDown={handleKeyDown}
                 />
               </div>
@@ -302,7 +354,7 @@ export default function Enrollments() {
 
           {!searchLoading && searchResults.length > 0 && (
             <section className="adm-enroll-section">
-              <EnrollmentTable rows={searchResults} onRowClick={handleRowClick} />
+              <EnrollmentTable rows={searchResults} onRowClick={handleRowClick} shsLookups={shsLookups} />
             </section>
           )}
         </>
@@ -344,7 +396,7 @@ export default function Enrollments() {
                 Needs Clarification
                 <span className="adm-section-count">{needsClarification.length}</span>
               </h2>
-              <EnrollmentTable rows={needsClarification} onRowClick={handleRowClick} />
+              <EnrollmentTable rows={needsClarification} onRowClick={handleRowClick} shsLookups={shsLookups} />
             </section>
           )}
 
@@ -355,7 +407,7 @@ export default function Enrollments() {
                 Pending
                 <span className="adm-section-count">{pending.length}</span>
               </h2>
-              <EnrollmentTable rows={pending} onRowClick={handleRowClick} />
+              <EnrollmentTable rows={pending} onRowClick={handleRowClick} shsLookups={shsLookups} />
             </section>
           )}
         </>
@@ -369,17 +421,16 @@ export default function Enrollments() {
 // EnrollmentTable - reusable table sub-component
 // => Now also shows status column in search mode since results span all statuses
 // 
-function EnrollmentTable({ rows, onRowClick }) {
+function EnrollmentTable({ rows, onRowClick, shsLookups }) {
   return (
     <div className="adm-table-wrap">
       <table className="adm-table">
         <thead>
           <tr>
             <th>Student</th>
-            <th>Course</th>
-            <th>Sector</th>
+            <th>Type</th>
+            <th>Program</th>
             <th>Branch</th>
-            <th>Assessment</th>
             <th>Submitted</th>
             <th>Status</th>
             <th></th>
@@ -387,20 +438,32 @@ function EnrollmentTable({ rows, onRowClick }) {
         </thead>
         <tbody>
           {rows.map((row, idx) => (
+            // navigate via keyboard
             <tr
               key={row.public_id}
               className="adm-table-row"
               style={{ animationDelay: `${idx * 40}ms` }}
-              onClick={() => onRowClick(row.public_id)}
+              onClick={() => onRowClick(row.public_id, row.enrollment_type)}
+              tabIndex={0}
+              role="button"
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onRowClick(row.public_id, row.enrollment_type);
+                }
+              }}
             >
               <td className="adm-td-student">
                 <span className="adm-student-name">{fullName(row)}</span>
                 <span className="adm-student-email">{row.student_email}</span>
               </td>
-              <td>{row.course_name ?? '-'}</td>
-              <td>{row.sector ?? '-'}</td>
+              <td>
+                <span className={`adm-type-badge ${TYPE_CLASS[row.enrollment_type] || ''}`}>
+                  {TYPE_LABEL[row.enrollment_type] ?? row.enrollment_type ?? '-'}
+                </span>
+              </td>
+               <td>{programDisplay(row, shsLookups)}</td>
               <td>{row.branch_name ?? '-'}</td>
-              <td>{row.assessment_type ?? '-'}</td>
               <td className="adm-td-date">{formatDate(row.submitted_at)}</td>
               <td>
                 <span className={`adm-badge ${statusClass[row.status] || ''}`}>

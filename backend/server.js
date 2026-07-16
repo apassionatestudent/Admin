@@ -12,6 +12,7 @@ import adminAuthRouter from './routes/adminAuthRoute.js';
 import locationRouter, { loadLocationCache } from './routes/locationRoutes.js';
 import adminClassRouter from './routes/adminClassRoute.js';
 import adminStudentRouter from './routes/adminStudentRoute.js';
+import nationalityRoutes from './routes/nationalityRoutes.js';
 
 dotenv.config(); // => moved up - must run before any module reads process.env
 
@@ -44,6 +45,9 @@ app.use('/api/location', locationRouter);
 app.use('/api/admin/classes', adminClassRouter);
 
 app.use('/api/admin/students', adminStudentRouter);
+
+// => nationality routes 
+app.use('/api/reference', nationalityRoutes);
 
 
 // => Initialize DB tables that the admin backend needs

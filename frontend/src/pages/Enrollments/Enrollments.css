@@ -416,6 +416,29 @@
   margin: 0;
 }
 
+/* ════════════════════════════════════
+   TYPE BADGE (TESDA vs SHS)
+   ════════════════════════════════════ */
+.adm-type-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.adm-type-badge--tesda {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.adm-type-badge--shs {
+  background: #fce7f3;
+  color: #9d174d;
+}
+
 /*  Responsive  */
 @media (max-width: 640px) {
   .adm-enroll-page {

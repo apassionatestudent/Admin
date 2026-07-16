@@ -26,7 +26,7 @@ export const getPaginatedStudents = async (pool, page = 1, onlyActive = false) =
         sa.is_email_confirmed,
         sa.created_at,
         sa.last_login_at,
-        sp.surname,
+        sp.last_name,
         sp.first_name,
         sp.middle_name,
         sp.name_extension,
@@ -38,7 +38,7 @@ export const getPaginatedStudents = async (pool, page = 1, onlyActive = false) =
       GROUP BY
         sa.public_id, sa.student_id, sa.username,
         sa.is_active, sa.is_email_confirmed, sa.created_at, sa.last_login_at,
-        sp.surname, sp.first_name, sp.middle_name, sp.name_extension
+        sp.last_name, sp.first_name, sp.middle_name, sp.name_extension
       ORDER BY sa.created_at DESC
       LIMIT  $1
       OFFSET $2`,
@@ -62,26 +62,26 @@ export const getPaginatedStudents = async (pool, page = 1, onlyActive = false) =
 
 // SEARCH STUDENTS
 // => Two modes:
-// => 1) Free-text (q param): ORs across surname, first_name, and username
-// =>    Used by the main search bar; handles students with no profile (null surname)
+// => 1) Free-text (q param): ORs across last_name, first_name, and username
+// =>    Used by the main search bar; handles students with no profile (null last_name)
 // => 2) Field filters (More Options): ANDs individual fields together
 export const searchStudents = async (pool, filters, page = 1) => {
   const limit  = 10;
   const offset = (page - 1) * limit;
 
-  const { q, surname, first_name, middle_name, name_extension, username } = filters;
+  const { q, last_name, first_name, middle_name, name_extension, username } = filters;
 
   // => Build WHERE clause depending on which mode was used
   let whereClause;
   let params;
 
   // => Combined mode: q (free-text OR) + individual fields (AND) can both be present
-  // => q matches across surname, first_name, and username with OR
+  // => q matches across last_name, first_name, and username with OR
   // => Individual fields are ANDed on top as additional narrowing filters
   // => All params are positional so we build them in a fixed order
   params = [
     q              || null,   // => $1 free-text
-    surname        || null,   // => $2
+    last_name        || null,   // => $2
     first_name     || null,   // => $3
     middle_name    || null,   // => $4
     name_extension || null,   // => $5
@@ -92,12 +92,12 @@ export const searchStudents = async (pool, filters, page = 1) => {
     WHERE
       -- => q: free-text OR across name fields and email; skipped if null
       ($1::text IS NULL OR (
-        sp.surname     ILIKE '%' || $1 || '%'
+        sp.last_name     ILIKE '%' || $1 || '%'
         OR sp.first_name  ILIKE '%' || $1 || '%'
         OR sa.username    ILIKE '%' || $1 || '%'
       ))
       -- => Individual field filters (AND); each skipped if null
-      AND ($2::text IS NULL OR sp.surname        ILIKE '%' || $2 || '%')
+      AND ($2::text IS NULL OR sp.last_name        ILIKE '%' || $2 || '%')
       AND ($3::text IS NULL OR sp.first_name     ILIKE '%' || $3 || '%')
       AND ($4::text IS NULL OR sp.middle_name    ILIKE '%' || $4 || '%')
       AND ($5::text IS NULL OR sp.name_extension ILIKE '%' || $5 || '%')
@@ -116,7 +116,7 @@ export const searchStudents = async (pool, filters, page = 1) => {
         sa.is_email_confirmed,
         sa.created_at,
         sa.last_login_at,
-        sp.surname,
+        sp.last_name,
         sp.first_name,
         sp.middle_name,
         sp.name_extension,
@@ -128,7 +128,7 @@ export const searchStudents = async (pool, filters, page = 1) => {
       GROUP BY
         sa.public_id, sa.student_id, sa.username,
         sa.is_active, sa.is_email_confirmed, sa.created_at, sa.last_login_at,
-        sp.surname, sp.first_name, sp.middle_name, sp.name_extension
+        sp.last_name, sp.first_name, sp.middle_name, sp.name_extension
       ORDER BY sa.created_at DESC
       LIMIT  $${limitParam}
       OFFSET $${offsetParam}`,
@@ -171,7 +171,7 @@ export const getStudentByPublicId = async (pool, publicId) => {
         -- => Profile fields
         sp.profile_id,
         sp.uli,
-        sp.surname,
+        sp.last_name,
         sp.first_name,
         sp.middle_name,
         sp.name_extension,
@@ -250,7 +250,7 @@ export const toggleStudentActive = async (pool, publicId, isActive) => {
 export const updateStudentProfile = async (pool, studentId, profileFields) => {
   const {
     uli,
-    surname,
+    last_name,
     first_name,
     middle_name,
     name_extension,
@@ -272,7 +272,7 @@ export const updateStudentProfile = async (pool, studentId, profileFields) => {
   // => This handles both students who have a profile and those who don't yet
   const result = await pool.query(
     `INSERT INTO student_profile
-        (student_id, uli, surname, first_name, middle_name, name_extension,
+        (student_id, uli, last_name, first_name, middle_name, name_extension,
          mother_name, father_name, birthdate,
          birthplace_region, birthplace_province, birthplace_city_or_municipality,
          nationality, sex, civil_status, highest_educational_attainment,
@@ -280,7 +280,7 @@ export const updateStudentProfile = async (pool, studentId, profileFields) => {
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       ON CONFLICT (student_id) DO UPDATE SET
         uli                             = EXCLUDED.uli,
-        surname                         = EXCLUDED.surname,
+        last_name                         = EXCLUDED.last_name,
         first_name                      = EXCLUDED.first_name,
         middle_name                     = EXCLUDED.middle_name,
         name_extension                  = EXCLUDED.name_extension,
@@ -298,7 +298,7 @@ export const updateStudentProfile = async (pool, studentId, profileFields) => {
         client_type                     = EXCLUDED.client_type
       RETURNING *`,
     [
-      studentId, uli || null, surname, first_name,
+      studentId, uli || null, last_name, first_name,
       middle_name || null, name_extension || null,
       mother_name, father_name, birthdate,
       birthplace_region, birthplace_province || null,
