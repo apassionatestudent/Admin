@@ -170,23 +170,24 @@ export const getStudentByPublicId = async (pool, publicId) => {
         sa.last_login_at,
         -- => Profile fields
         sp.profile_id,
-        sp.uli,
         sp.last_name,
         sp.first_name,
         sp.middle_name,
         sp.name_extension,
-        sp.mother_name,
-        sp.father_name,
-        sp.birthdate,
+        sp.birth_date,
         sp.birthplace_region,
         sp.birthplace_province,
-        sp.birthplace_city_or_municipality,
+        sp.birthplace_city,
         sp.nationality,
         sp.sex,
         sp.civil_status,
-        sp.highest_educational_attainment,
+        sp.highest_educ_attainment,
         sp.employment_status,
-        sp.client_type
+        sp.facebook_link,
+        sp.email,
+        sp.contact_no,
+        sp.religion,
+        sp.religion_others
       FROM student_accounts sa
       LEFT JOIN student_profile sp ON sp.student_id = sa.student_id
       WHERE sa.public_id = $1`,
@@ -249,63 +250,65 @@ export const toggleStudentActive = async (pool, publicId, isActive) => {
 // 
 export const updateStudentProfile = async (pool, studentId, profileFields) => {
   const {
-    uli,
     last_name,
     first_name,
     middle_name,
     name_extension,
-    mother_name,
-    father_name,
-    birthdate,
+    birth_date,
     birthplace_region,
     birthplace_province,
-    birthplace_city_or_municipality,
+    birthplace_city,
     nationality,
     sex,
     civil_status,
-    highest_educational_attainment,
+    highest_educ_attainment,
     employment_status,
-    client_type,
+    facebook_link,
+    email,
+    contact_no,
+    religion,
+    religion_others,
   } = profileFields;
+  // => updated to match latest student_profile schema
 
   // => INSERT ... ON CONFLICT (student_id) DO UPDATE
   // => This handles both students who have a profile and those who don't yet
   const result = await pool.query(
     `INSERT INTO student_profile
-        (student_id, uli, last_name, first_name, middle_name, name_extension,
-         mother_name, father_name, birthdate,
-         birthplace_region, birthplace_province, birthplace_city_or_municipality,
-         nationality, sex, civil_status, highest_educational_attainment,
-         employment_status, client_type)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+        (student_id, last_name, first_name, middle_name, name_extension,
+         birth_date, birthplace_region, birthplace_province, birthplace_city,
+         nationality, sex, civil_status, highest_educ_attainment,
+         employment_status, facebook_link, email, contact_no, religion, religion_others)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
       ON CONFLICT (student_id) DO UPDATE SET
-        uli                             = EXCLUDED.uli,
-        last_name                         = EXCLUDED.last_name,
-        first_name                      = EXCLUDED.first_name,
-        middle_name                     = EXCLUDED.middle_name,
-        name_extension                  = EXCLUDED.name_extension,
-        mother_name                     = EXCLUDED.mother_name,
-        father_name                     = EXCLUDED.father_name,
-        birthdate                       = EXCLUDED.birthdate,
-        birthplace_region               = EXCLUDED.birthplace_region,
-        birthplace_province             = EXCLUDED.birthplace_province,
-        birthplace_city_or_municipality = EXCLUDED.birthplace_city_or_municipality,
-        nationality                     = EXCLUDED.nationality,
-        sex                             = EXCLUDED.sex,
-        civil_status                    = EXCLUDED.civil_status,
-        highest_educational_attainment  = EXCLUDED.highest_educational_attainment,
-        employment_status               = EXCLUDED.employment_status,
-        client_type                     = EXCLUDED.client_type
+        last_name               = EXCLUDED.last_name,
+        first_name              = EXCLUDED.first_name,
+        middle_name             = EXCLUDED.middle_name,
+        name_extension          = EXCLUDED.name_extension,
+        birth_date               = EXCLUDED.birth_date,
+        birthplace_region        = EXCLUDED.birthplace_region,
+        birthplace_province      = EXCLUDED.birthplace_province,
+        birthplace_city          = EXCLUDED.birthplace_city,
+        nationality              = EXCLUDED.nationality,
+        sex                      = EXCLUDED.sex,
+        civil_status             = EXCLUDED.civil_status,
+        highest_educ_attainment  = EXCLUDED.highest_educ_attainment,
+        employment_status        = EXCLUDED.employment_status,
+        facebook_link            = EXCLUDED.facebook_link,
+        email                    = EXCLUDED.email,
+        contact_no               = EXCLUDED.contact_no,
+        religion                 = EXCLUDED.religion,
+        religion_others          = EXCLUDED.religion_others
       RETURNING *`,
     [
-      studentId, uli || null, last_name, first_name,
+      studentId, last_name, first_name,
       middle_name || null, name_extension || null,
-      mother_name, father_name, birthdate,
-      birthplace_region, birthplace_province || null,
-      birthplace_city_or_municipality,
-      nationality, sex, civil_status,
-      highest_educational_attainment, employment_status,
-      client_type || null,
+      birth_date || null,
+      birthplace_region, birthplace_province || null, birthplace_city || null,
+      nationality, sex, civil_status || null,
+      highest_educ_attainment || null, employment_status || null,
+      facebook_link, email, contact_no || null,
+      religion || null, religion_others || null,
     ]
   );
   return result.rows[0] ?? null;

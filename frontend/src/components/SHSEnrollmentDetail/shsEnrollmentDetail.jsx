@@ -97,6 +97,7 @@ const fullName = (p) =>
     .join(' ') || '-';
 
 const MIN_AGE = 16; // => matches SHSStep1.jsx MIN_AGE
+const MAX_AGE = 100; // => matches SHSStep1.jsx MAX_AGE
 
 const validateMobile = (value) => {
   if (!value) return null;
@@ -104,17 +105,23 @@ const validateMobile = (value) => {
   return null;
 };
 
+// => Same EMAIL_REGEX/FACEBOOK_LINK_REGEX as TESDAStep1.jsx, SHSStep1.jsx,
+// => tesdaEnrollmentDetail.jsx, and StudentDetail.jsx - all five write to
+// => (or read from) the same student_profile.email / .facebook_link
+// => columns, so they all enforce identically.
+const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 const validateEmailFormat = (value) => {
   if (!value) return 'Email address is required.';
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(value)) return 'Please enter a valid email address.';
+  if (!EMAIL_REGEX.test(value)) return 'Please enter a valid email address.';
   return null;
 };
 
+// => Accepts facebook.com with no subdomain, www., or Meta's actual
+// => "web." desktop subdomain. fb.com shortlinks no longer accepted.
+const FACEBOOK_LINK_REGEX = /^(https?:\/\/)?(www\.|web\.)?facebook\.com\/.+$/i;
 const validateFacebookLink = (value) => {
   if (!value) return 'Facebook profile link is required.';
-  const fbRegex = /^(https?:\/\/)?(www\.)?(facebook|fb)\.com\/.+/i;
-  if (!fbRegex.test(value)) return 'Please enter a valid Facebook profile link.';
+  if (!FACEBOOK_LINK_REGEX.test(value)) return 'Please enter a valid Facebook profile link (e.g. https://www.facebook.com/yourname).';
   return null;
 };
 
@@ -231,6 +238,9 @@ function EditableField({ label, value, onChange, type = 'text', options = null, 
         value={value ?? ''}
         onChange={e => onChange(e.target.value)}
         disabled={disabled}
+        // => min/max only apply to type="date" - a no-op on other types
+        min={min}
+        max={max}
       />
       {error && <span className="adm-edit-error">{error}</span>}
     </div>
@@ -852,6 +862,10 @@ export default function SHSEnrollmentDetail() {
       setSectionError(`Enrollee must be at least ${MIN_AGE} years old.`);
       return;
     }
+    if (age !== null && age > MAX_AGE) {
+      setSectionError(`Please check the birthdate - computed age exceeds ${MAX_AGE} years.`);
+      return;
+    }
 
     try {
       const result = await patchSection('profile', draft);
@@ -1379,7 +1393,15 @@ export default function SHSEnrollmentDetail() {
                     }}
                   />
                   <EditableField label="Sex" type="select" options={SEX_OPTIONS} value={draft.sex} onChange={v => updateDraft('sex', v)} required />
-                  <EditableField label="Birthdate" type="date" value={draft.birth_date} onChange={v => updateDraft('birth_date', v)} required />
+                  <EditableField
+                    label="Birthdate"
+                    type="date"
+                    value={draft.birth_date}
+                    min={(() => { const t = new Date(); return new Date(t.getFullYear() - MAX_AGE, t.getMonth(), t.getDate()).toISOString().slice(0, 10); })()}
+                    max={(() => { const t = new Date(); return new Date(t.getFullYear() - MIN_AGE, t.getMonth(), t.getDate()).toISOString().slice(0, 10); })()}
+                    onChange={v => updateDraft('birth_date', v)}
+                    required
+                  />
                   <EditableField label="Nationality" type="select" options={nationalities} value={draft.nationality} onChange={v => updateDraft('nationality', v)} required />
                   <EditableField label="Religion" type="select" options={RELIGIONS} value={draft.religion} onChange={v => updateDraft('religion', v)} />
                   {draft.religion === 'Others' && (

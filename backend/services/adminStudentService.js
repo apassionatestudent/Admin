@@ -64,38 +64,37 @@ export const updateStudentRecord = async (publicId, body) => {
   if (!studentRow) throw new Error('Student not found.');
 
   const {
-    // => Profile fields
-    uli, surname, first_name, middle_name, name_extension,
-    mother_name, father_name, birthdate,
-    birthplace_region, birthplace_province, birthplace_city_or_municipality,
+    // => Profile fields - matches latest student_profile schema, no alias
+    last_name, first_name, middle_name, name_extension,
+    birth_date,
+    birthplace_region, birthplace_province, birthplace_city,
     nationality, sex, civil_status,
-    highest_educational_attainment, employment_status, client_type,
+    highest_educ_attainment, employment_status,
+    facebook_link, email, contact_no, religion, religion_others,
     // => Account fields
     username, is_email_confirmed,
   } = body;
 
   // => Validate required profile fields before hitting DB
-  if (!surname)                          throw new Error('surname is required.');
-  if (!first_name)                       throw new Error('first_name is required.');
-  if (!mother_name)                      throw new Error('mother_name is required.');
-  if (!father_name)                      throw new Error('father_name is required.');
-  if (!birthdate)                        throw new Error('birthdate is required.');
-  if (!birthplace_region)                throw new Error('birthplace_region is required.');
-  if (!birthplace_city_or_municipality)  throw new Error('birthplace_city_or_municipality is required.');
-  if (!nationality)                      throw new Error('nationality is required.');
-  if (!sex)                              throw new Error('sex is required.');
-  if (!civil_status)                     throw new Error('civil_status is required.');
-  if (!highest_educational_attainment)   throw new Error('highest_educational_attainment is required.');
-  if (!employment_status)                throw new Error('employment_status is required.');
+  // => Mirrors the NOT NULL constraints on the latest student_profile table
+  if (!last_name)          throw new Error('last_name is required.');
+  if (!first_name)        throw new Error('first_name is required.');
+  if (!birthplace_region) throw new Error('birthplace_region is required.');
+  if (!nationality)       throw new Error('nationality is required.');
+  if (!sex)                throw new Error('sex is required.');
+  if (!facebook_link)     throw new Error('facebook_link is required.');
+  if (!email)              throw new Error('email is required.');
+  if (!contact_no)         throw new Error('contact_no is required.');
 
   // => Run profile upsert and account update in parallel
   const [updatedProfile, updatedAccount] = await Promise.all([
     updateStudentProfile(pool, studentRow.student_id, {
-      uli, surname, first_name, middle_name, name_extension,
-      mother_name, father_name, birthdate,
-      birthplace_region, birthplace_province, birthplace_city_or_municipality,
+      last_name, first_name, middle_name, name_extension,
+      birth_date,
+      birthplace_region, birthplace_province, birthplace_city,
       nationality, sex, civil_status,
-      highest_educational_attainment, employment_status, client_type,
+      highest_educ_attainment, employment_status,
+      facebook_link, email, contact_no, religion, religion_others,
     }),
     // => Only pass account fields that were actually provided
     (username !== undefined || is_email_confirmed !== undefined)
