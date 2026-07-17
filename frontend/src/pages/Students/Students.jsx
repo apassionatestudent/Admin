@@ -12,7 +12,8 @@ import './Students.css';
 
 // => Derives display name from row fields; falls back to email
 const fullName = (row) => {
-  const parts = [row.first_name, row.middle_name, row.surname, row.name_extension]
+  // => backend now returns "last_name" (not "surname") from student_profile
+  const parts = [row.first_name, row.middle_name, row.last_name, row.name_extension]
     .filter(v => v && v.trim().toUpperCase() !== 'N/A');
   return parts.length ? parts.join(' ') : row.username ?? '-';
 };

@@ -103,6 +103,63 @@ const SEX_OPTIONS = ['Male', 'Female'];
 //    server.js, so this is enforced at the UI layer only.
 const EMPLOYMENT_OPTIONS = ['Employed', 'Unemployed'];
 
+// => Age gate - mirrors TESDAStep2.jsx's MIN_AGE/MAX_AGE. Admins edit the
+//    same student_profile.birth_date column students submit through, so
+//    the same bounds apply here.
+const MIN_STUDENT_AGE = 12;
+const MAX_STUDENT_AGE = 100;
+
+// => Computes the allowed <input type="date"> range - recomputed on each
+//    render (not a module-level constant) so the page doesn't drift out
+//    of date if left open across midnight.
+const getAgeDateBounds = () => {
+  const today = new Date();
+  const toISO = (d) => d.toISOString().slice(0, 10);
+  const maxDate = new Date(today.getFullYear() - MIN_STUDENT_AGE, today.getMonth(), today.getDate());
+  const minDate = new Date(today.getFullYear() - MAX_STUDENT_AGE, today.getMonth(), today.getDate());
+  return { min: toISO(minDate), max: toISO(maxDate) };
+};
+
+// => Validates a birth_date string (YYYY-MM-DD) against the 12-100 age gate
+const validateAge = (dateStr) => {
+  if (!dateStr) return 'Birthdate is required.';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const birth = new Date(y, m - 1, d);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
+  if (age < MIN_STUDENT_AGE) return `Student must be at least ${MIN_STUDENT_AGE} years old.`;
+  if (age > MAX_STUDENT_AGE) return `Please check the birthdate - age exceeds ${MAX_STUDENT_AGE} years.`;
+  return null;
+};
+
+// => Matches student_profile.civil_status - same list as TESDAStep2.jsx's
+//    CIVIL_STATUS constant, so admin edits stay consistent with what
+//    students actually submit.
+const CIVIL_STATUS_OPTIONS = ['Single', 'Married', 'Widow/er', 'Separated', 'Solo Parent'];
+
+// => Matches student_profile.name_extension - same list as TESDAStep1.jsx's
+//    NAME_EXTENSIONS constant (also used by shsEnrollmentDetail.jsx).
+const NAME_EXTENSIONS = ['N/A', 'Jr.', 'Sr.', 'II', 'III', 'IV', 'V'];
+
+// => Matches student_profile.highest_educ_attainment - same list as
+//    TESDAStep2.jsx's EDUC_ATTAINMENT constant.
+const EDUC_ATTAINMENT_OPTIONS = [
+  'No Grade Completed',
+  'Elementary Undergraduate',
+  'Elementary Graduate',
+  'Pre-School (Nursery/Kinder/Prep)',
+  'Post Secondary Undergraduate',
+  'Post Secondary Graduate',
+  'High School Undergraduate',
+  'High School Graduate',
+  'Junior High Graduate',
+  'Senior High Graduate',
+  'College Undergraduate',
+  'College Graduate or Higher',
+];
+
 // Utility helpers
 const formatDate = (dateStr) => {
   if (!dateStr) return '-';
@@ -137,10 +194,24 @@ const validateMobile = (value) => {
   return null;
 };
 
+// => Same EMAIL_REGEX as TESDAStep1.jsx, SHSStep1.jsx, shsEnrollmentDetail
+// => .jsx, and StudentDetail.jsx - all five touch the same
+// => student_profile.email column, so they all enforce identically.
+const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 const validateEmailFormat = (value) => {
-  if (!value || !value.includes('@')) return null; // => TESDA email is optional and can be a Facebook name instead
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(value)) return 'Please enter a valid email address.';
+  if (!value) return 'Email is required.';
+  if (!EMAIL_REGEX.test(value)) return 'Please enter a valid email address.';
+  return null;
+};
+
+// => Accepts facebook.com with no subdomain, www., or Meta's actual
+// => "web." desktop subdomain. Same FACEBOOK_LINK_REGEX as
+// => TESDAStep1.jsx, SHSStep1.jsx, shsEnrollmentDetail.jsx, and
+// => StudentDetail.jsx.
+const FACEBOOK_LINK_REGEX = /^(https?:\/\/)?(www\.|web\.)?facebook\.com\/.+$/i;
+const validateFacebookLink = (value) => {
+  if (!value) return null; // => admin is editing an existing record, field can stay blank
+  if (!FACEBOOK_LINK_REGEX.test(value)) return 'Please enter a valid Facebook URL (e.g. https://www.facebook.com/yourname).';
   return null;
 };
 
@@ -193,7 +264,7 @@ function InfoCard({ label, value, copyable = true }) {
 
 // => EditableField - the edit-mode counterpart to InfoCard. type controls
 //    the input rendered: 'text' | 'number' | 'date' | 'checkbox' | 'select'
-function EditableField({ label, value, onChange, type = 'text', options = null, error = null, disabled = false, required = false }) {
+function EditableField({ label, value, onChange, type = 'text', options = null, error = null, disabled = false, required = false, min = undefined, max = undefined }) {
   // => Required fields get a red asterisk, driven by server.js's NOT NULL
   //    constraints, not guesswork.
   const labelEl = (
@@ -259,6 +330,9 @@ function EditableField({ label, value, onChange, type = 'text', options = null, 
         value={value ?? ''}
         onChange={e => onChange(e.target.value)}
         disabled={disabled}
+        // => min/max only apply to type="date" - a no-op on other types
+        min={min}
+        max={max}
       />
       {error && <span className="adm-edit-error">{error}</span>}
     </div>
@@ -952,6 +1026,13 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
   };
 
   const handleSaveProfile = async () => {
+    const ageError = validateAge(draft.birth_date);
+    const emailError = validateEmailFormat(draft.email);
+    if (ageError || emailError) {
+      setFieldErrors(prev => ({ ...prev, birth_date: ageError, email: emailError }));
+      setSectionError('Please fix the highlighted fields before saving.');
+      return;
+    }
     if (Object.values(fieldErrors).some(Boolean)) {
       setSectionError('Please fix the highlighted fields before saving.');
       return;
@@ -1506,12 +1587,13 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                   <EditableField label="First Name" value={draft.first_name} onChange={v => updateDraft('first_name', toTitleCase(v))} required />
                   <EditableField label="Middle Name" value={draft.middle_name} onChange={v => updateDraft('middle_name', toTitleCase(v))} />
                   <EditableField label="Last Name" value={draft.last_name} onChange={v => updateDraft('last_name', toTitleCase(v))} required />
-                  <EditableField label="Name Extension" value={draft.name_extension} onChange={v => updateDraft('name_extension', v)} />
+                  <EditableField label="Name Extension" type="select" options={NAME_EXTENSIONS} value={draft.name_extension} onChange={v => updateDraft('name_extension', v)} />
                   <EditableField
                     label="Email"
                     type="text"
                     value={draft.email}
                     error={fieldErrors.email}
+                    required
                     onChange={v => {
                       updateDraft('email', v);
                       setFieldErrors(prev => ({ ...prev, email: validateEmailFormat(v) }));
@@ -1528,13 +1610,33 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                       setFieldErrors(prev => ({ ...prev, contact_no: validateMobile(digits) }));
                     }}
                   />
-                  <EditableField label="Facebook" value={draft.facebook_link} onChange={v => updateDraft('facebook_link', v)} />
+                  <EditableField
+                    label="Facebook"
+                    value={draft.facebook_link}
+                    error={fieldErrors.facebook_link}
+                    onChange={v => {
+                      updateDraft('facebook_link', v);
+                      setFieldErrors(prev => ({ ...prev, facebook_link: validateFacebookLink(v) }));
+                    }}
+                  />
                   <EditableField label="Sex" type="select" options={SEX_OPTIONS} value={draft.sex} onChange={v => updateDraft('sex', v)} required />
-                  <EditableField label="Birthdate" type="date" value={draft.birth_date} onChange={v => updateDraft('birth_date', v)} required />
+                  <EditableField
+                    label="Birthdate"
+                    type="date"
+                    value={draft.birth_date}
+                    min={getAgeDateBounds().min}
+                    max={getAgeDateBounds().max}
+                    error={fieldErrors.birth_date}
+                    required
+                    onChange={v => {
+                      updateDraft('birth_date', v);
+                      setFieldErrors(prev => ({ ...prev, birth_date: validateAge(v) }));
+                    }}
+                  />
                   <EditableField label="Nationality" type="select" options={nationalities} value={draft.nationality} onChange={v => updateDraft('nationality', v)} required />
-                  <EditableField label="Civil Status" value={draft.civil_status} onChange={v => updateDraft('civil_status', v)} required />
+                  <EditableField label="Civil Status" type="select" options={CIVIL_STATUS_OPTIONS} value={draft.civil_status} onChange={v => updateDraft('civil_status', v)} required />
                   <EditableField label="Employment" type="select" options={EMPLOYMENT_OPTIONS} value={draft.employment_status} onChange={v => updateDraft('employment_status', v)} required />
-                  <EditableField label="Education" value={draft.highest_educ_attainment} onChange={v => updateDraft('highest_educ_attainment', v)} required />
+                  <EditableField label="Education" type="select" options={EDUC_ATTAINMENT_OPTIONS} value={draft.highest_educ_attainment} onChange={v => updateDraft('highest_educ_attainment', v)} required />
                   <AddressCascadeFields
                     draft={draft}
                     updateDraft={updateDraft}
