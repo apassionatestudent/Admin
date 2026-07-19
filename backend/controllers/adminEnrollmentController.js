@@ -398,12 +398,12 @@ export const deleteTesdaDocumentController = async (req, res) => {
 
 // SHS Classes
 export const getAvailableShsClassesController = async (req, res) => {
-  const { branch_id, track, cluster } = req.query;
-  if (!branch_id || !track) {
-    return res.status(400).json({ error: 'branch_id and track are required.' });
+  const { track, cluster } = req.query;
+  if (!track) {
+    return res.status(400).json({ error: 'track is required.' });
   }
   try {
-    const classes = await fetchAvailableShsClasses({ branchId: branch_id, track, cluster });
+    const classes = await fetchAvailableShsClasses({ track, cluster });
     return res.status(200).json({ classes });
   } catch (err) {
     console.error('getAvailableShsClassesController error:', err);
@@ -413,12 +413,12 @@ export const getAvailableShsClassesController = async (req, res) => {
 
 // TESDA Classes
 export const getAvailableTesdaClassesController = async (req, res) => {
-  const { branch_id, course_id } = req.query;
-  if (!branch_id || !course_id) {
-    return res.status(400).json({ error: 'branch_id and course_id are required.' });
+  const { course_id } = req.query;
+  if (!course_id) {
+    return res.status(400).json({ error: 'course_id is required.' });
   }
   try {
-    const classes = await fetchAvailableTesdaClasses({ branchId: branch_id, courseId: course_id });
+    const classes = await fetchAvailableTesdaClasses({ courseId: course_id });
     return res.status(200).json({ classes });
   } catch (err) {
     console.error('getAvailableTesdaClassesController error:', err);

@@ -33,7 +33,7 @@ export const getPaginatedStudents = async (pool, page = 1, onlyActive = false) =
         COUNT(e.enrollment_id)::int AS enrollment_count
       FROM student_accounts sa
       LEFT JOIN student_profile sp ON sp.student_id = sa.student_id
-      LEFT JOIN enrollment       e  ON e.student_id  = sa.student_id
+      LEFT JOIN tesda_enrollments e  ON e.student_id  = sa.student_id
       ${activeClause}
       GROUP BY
         sa.public_id, sa.student_id, sa.username,
@@ -123,7 +123,7 @@ export const searchStudents = async (pool, filters, page = 1) => {
         COUNT(e.enrollment_id)::int AS enrollment_count
       FROM student_accounts sa
       LEFT JOIN student_profile sp ON sp.student_id = sa.student_id
-      LEFT JOIN enrollment       e  ON e.student_id  = sa.student_id
+      LEFT JOIN tesda_enrollments e  ON e.student_id  = sa.student_id
       ${whereClause}
       GROUP BY
         sa.public_id, sa.student_id, sa.username,
@@ -199,7 +199,7 @@ export const getStudentByPublicId = async (pool, publicId) => {
 // 
 // GET ENROLLMENT HISTORY FOR A STUDENT
 // => Returns all enrollments for the student ordered by most recent first
-// => Joins class, course, branch for display
+// => Joins class, course for display
 // 
 export const getStudentEnrollmentHistory = async (pool, studentId) => {
   const result = await pool.query(
@@ -213,13 +213,10 @@ export const getStudentEnrollmentHistory = async (pool, studentId) => {
         cl.start_date,
         cl.end_date,
         -- => Course info
-        c.title               AS course_name,
-        -- => Branch info
-        b.branch_name
-      FROM enrollment e
-      JOIN  classes   cl ON e.class_id   = cl.class_id
-      LEFT JOIN courses   c  ON cl.course_id  = c.course_id
-      LEFT JOIN branches  b  ON cl.branch_id  = b.branch_id
+        c.title               AS course_name
+      FROM tesda_enrollments e
+      JOIN  tesda_classes cl ON e.class_id   = cl.class_id
+      LEFT JOIN tesda_courses c  ON cl.course_id  = c.course_id
       WHERE e.student_id = $1
       ORDER BY e.submitted_at DESC NULLS LAST`,
     [studentId]

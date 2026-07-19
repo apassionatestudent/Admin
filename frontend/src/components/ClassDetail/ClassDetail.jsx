@@ -10,7 +10,7 @@ import './ClassDetail.css';
 
 // => Maps status to CSS modifier class
 const statusClass = {
-  'Planned':   'status--planned',
+  'Pending':   'status--pending',
   'Ongoing':   'status--ongoing',
   'Concluded': 'status--concluded',
 };
@@ -172,7 +172,6 @@ export default function ClassDetail() {
             {/* => Sector above the course name */}
             <p className="adm-hero-sector">{classRow.sector ?? 'No Sector'}</p>
             <h1 className="adm-hero-course-name">{classRow.course_name ?? '-'}</h1>
-            <p className="adm-hero-branch">{classRow.branch_name ?? '-'}</p>
           </div>
 
           <span className={`adm-hero-badge ${statusClass[classRow.status] || ''}`}>
@@ -191,7 +190,7 @@ export default function ClassDetail() {
               value={selectedStatus}
               onChange={e => { setSelectedStatus(e.target.value); setSaveMsg(null); }}
             >
-              <option value="Planned">Planned</option>
+              <option value="Pending">Pending</option>
               <option value="Ongoing">Ongoing</option>
               <option value="Concluded">Concluded</option>
             </select>
@@ -234,11 +233,6 @@ export default function ClassDetail() {
             <div className="adm-info-card">
               <p className="adm-info-label">Sector</p>
               <p className="adm-info-value">{classRow.sector ?? '-'}</p>
-            </div>
-
-            <div className="adm-info-card">
-              <p className="adm-info-label">Branch</p>
-              <p className="adm-info-value">{classRow.branch_name ?? '-'}</p>
             </div>
 
             <div className="adm-info-card">

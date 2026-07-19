@@ -50,12 +50,12 @@ router.get('/docs/:documentKey', adminApiRateLimit, protectAdmin, adminProxyDocu
 // => GET /api/admin/enrollments/tesda/:publicId
 router.get('/tesda/:publicId', adminApiRateLimit, protectAdmin, getTesdaEnrollmentDetail);
 
-// => GET /api/admin/enrollments/shs/classes/available?branch_id=&track=&cluster=
+// => GET /api/admin/enrollments/shs/classes/available?track=&cluster=
 // => MUST come before /shs/:publicId below, or Express matches "classes"
 //    as a :publicId value instead of this route.
 router.get('/shs/classes/available', adminApiRateLimit, protectAdmin, getAvailableShsClassesController);
 
-// => GET /api/admin/enrollments/tesda/classes/available?branch_id=&course_id=
+// => GET /api/admin/enrollments/tesda/classes/available?course_id=
 // => MUST come before /tesda/:publicId below, or Express matches "classes"
 //    as a :publicId value instead of this route.
 router.get('/tesda/classes/available', adminApiRateLimit, protectAdmin, getAvailableTesdaClassesController);

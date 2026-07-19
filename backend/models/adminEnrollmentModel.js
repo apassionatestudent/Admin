@@ -7,7 +7,7 @@
 
 // 
 // LIST: Pending + Needs Clarification enrollments, combined TESDA + SHS
-// => UNION ALL with each branch NULL-casting the other type's fields so
+// => UNION ALL with each side NULL-casting the other type's fields so
 //    column types line up (course_name is TESDA-only, track/cluster SHS-only)
 // => enrollment_type discriminator lets the frontend route to the right
 //    detail page and render the right badge
@@ -26,15 +26,12 @@ export const getPendingEnrollments = async (pool) => {
         sp.name_extension,
         c.title                                               AS course_name,
         NULL::text                                            AS track,
-        NULL::text                                            AS cluster,
-        COALESCE(b_direct.branch_name, b_class.branch_name)  AS branch_name
+        NULL::text                                            AS cluster
       FROM tesda_enrollments e
       JOIN  student_accounts sa    ON sa.student_id  = e.student_id
       LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
-      LEFT JOIN courses c          ON c.course_id    = e.course_id
+      LEFT JOIN tesda_courses c          ON c.course_id    = e.course_id
       LEFT JOIN tesda_classes cl   ON cl.class_id    = e.class_id
-      LEFT JOIN branches b_direct  ON e.branch_id    = b_direct.branch_id
-      LEFT JOIN branches b_class   ON cl.branch_id   = b_class.branch_id
       WHERE e.status IN ('Pending', 'Needs Clarification')
 
       UNION ALL
@@ -51,14 +48,11 @@ export const getPendingEnrollments = async (pool) => {
         sp.name_extension,
         NULL::text                                            AS course_name,
         e.track,
-        e.cluster,
-        COALESCE(b_direct.branch_name, b_class.branch_name)  AS branch_name
+        e.cluster
       FROM shs_enrollments e
       JOIN  student_accounts sa    ON sa.student_id  = e.student_id
       LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
       LEFT JOIN shs_classes cl     ON cl.class_id    = e.class_id
-      LEFT JOIN branches b_direct  ON e.branch_id    = b_direct.branch_id
-      LEFT JOIN branches b_class   ON cl.branch_id   = b_class.branch_id
       WHERE e.status IN ('Pending', 'Needs Clarification')
 
       ORDER BY submitted_at ASC`
@@ -88,15 +82,12 @@ export const searchEnrollments = async (pool, { email, first_name, middle_name, 
           sp.name_extension,
           c.title                                               AS course_name,
           NULL::text                                            AS track,
-          NULL::text                                            AS cluster,
-          COALESCE(b_direct.branch_name, b_class.branch_name)  AS branch_name
+          NULL::text                                            AS cluster
         FROM tesda_enrollments e
         JOIN  student_accounts sa    ON sa.student_id  = e.student_id
         LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
-        LEFT JOIN courses c          ON c.course_id    = e.course_id
+        LEFT JOIN tesda_courses c          ON c.course_id    = e.course_id
         LEFT JOIN tesda_classes cl   ON cl.class_id    = e.class_id
-        LEFT JOIN branches b_direct  ON e.branch_id    = b_direct.branch_id
-        LEFT JOIN branches b_class   ON cl.branch_id   = b_class.branch_id
         WHERE
           ($1::text IS NULL OR sa.username      ILIKE '%' || $1 || '%')
           AND ($2::text IS NULL OR sp.first_name    ILIKE '%' || $2 || '%')
@@ -118,14 +109,11 @@ export const searchEnrollments = async (pool, { email, first_name, middle_name, 
           sp.name_extension,
           NULL::text                                            AS course_name,
           e.track,
-          e.cluster,
-          COALESCE(b_direct.branch_name, b_class.branch_name)  AS branch_name
+          e.cluster
         FROM shs_enrollments e
         JOIN  student_accounts sa    ON sa.student_id  = e.student_id
         LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
         LEFT JOIN shs_classes cl     ON cl.class_id    = e.class_id
-        LEFT JOIN branches b_direct  ON e.branch_id    = b_direct.branch_id
-        LEFT JOIN branches b_class   ON cl.branch_id   = b_class.branch_id
         WHERE
           ($1::text IS NULL OR sa.username      ILIKE '%' || $1 || '%')
           AND ($2::text IS NULL OR sp.first_name    ILIKE '%' || $2 || '%')
@@ -150,7 +138,7 @@ export const searchEnrollments = async (pool, { email, first_name, middle_name, 
 };
 
 // 
-// TESDA DETAIL: enrollment row + course/sector + branch (direct or via class)
+// TESDA DETAIL: enrollment row + course/sector (direct or via class)
 //   + class period/type/groupchat from the joined tesda_classes row
 // 
 export const getTesdaEnrollmentDetailByPublicId = async (pool, publicId) => {
@@ -159,7 +147,6 @@ export const getTesdaEnrollmentDetailByPublicId = async (pool, publicId) => {
         e.public_id,
         e.enrollment_id,
         e.student_id,
-        e.branch_id,
         e.course_id,
         e.class_id,
         e.fee_at_enrollment,
@@ -175,7 +162,6 @@ export const getTesdaEnrollmentDetailByPublicId = async (pool, publicId) => {
         e.updated_at,
         c.title                                              AS course_name,
         s.sector                                             AS sector,
-        COALESCE(b_direct.branch_name, b_class.branch_name) AS branch_name,
         cl.start_date,
         cl.end_date,
         cl.class_type,
@@ -185,11 +171,9 @@ export const getTesdaEnrollmentDetailByPublicId = async (pool, publicId) => {
         sa.username                                          AS student_username
       FROM tesda_enrollments e
       JOIN  student_accounts sa    ON sa.student_id = e.student_id
-      LEFT JOIN courses c          ON c.course_id   = e.course_id
+      LEFT JOIN tesda_courses c          ON c.course_id   = e.course_id
       LEFT JOIN sectors s          ON s.sector_id   = c.sector_id
       LEFT JOIN tesda_classes cl   ON cl.class_id   = e.class_id
-      LEFT JOIN branches b_direct  ON e.branch_id   = b_direct.branch_id
-      LEFT JOIN branches b_class   ON cl.branch_id  = b_class.branch_id
       WHERE e.public_id = $1`,
     [publicId]
   );
@@ -197,8 +181,8 @@ export const getTesdaEnrollmentDetailByPublicId = async (pool, publicId) => {
 };
 
 // 
-// SHS DETAIL: enrollment row + branch (direct or via class) + class
-//   period/groupchat from the joined shs_classes row
+// SHS DETAIL: enrollment row + class period/groupchat from the joined
+//   shs_classes row
 // 
 export const getShsEnrollmentDetailByPublicId = async (pool, publicId) => {
   const result = await pool.query(
@@ -206,7 +190,6 @@ export const getShsEnrollmentDetailByPublicId = async (pool, publicId) => {
         e.public_id,
         e.enrollment_id,
         e.student_id,
-        e.branch_id,
         e.lrn,
         e.class_id,
         e.last_school_attended,
@@ -236,7 +219,6 @@ export const getShsEnrollmentDetailByPublicId = async (pool, publicId) => {
         --    Curriculum is now fetched separately by cluster - see
         --    getClusterCourses below.
         e.course_id,
-        COALESCE(b_direct.branch_name, b_class.branch_name) AS branch_name,
         cl.start_date,
         cl.end_date,
         cl.groupchat_link,
@@ -244,8 +226,6 @@ export const getShsEnrollmentDetailByPublicId = async (pool, publicId) => {
       FROM shs_enrollments e
       JOIN  student_accounts sa    ON sa.student_id = e.student_id
       LEFT JOIN shs_classes cl     ON cl.class_id   = e.class_id
-      LEFT JOIN branches b_direct  ON e.branch_id   = b_direct.branch_id
-      LEFT JOIN branches b_class   ON cl.branch_id  = b_class.branch_id
       WHERE e.public_id = $1`,
     [publicId]
   );
@@ -414,13 +394,13 @@ const ALLOWED_COLUMNS = {
     'district_code', 'region_code',
   ]),
   tesda_enrollments: new Set([
-    'uli', 'branch_id', 'course_id', 'class_id', 'fee_at_enrollment',
+    'uli', 'course_id', 'class_id', 'fee_at_enrollment',
     'ncae_taken', 'ncae_where', 'ncae_when',
     'is_tesda_scholar', 'scholarship_type', 'other_scholarship',
     'internal_remarks',
   ]),
   shs_enrollments: new Set([
-    'lrn', 'branch_id', 'class_id',
+    'lrn', 'class_id',
     'last_school_attended', 'school_address',
     'grade_level_completed', 'school_year_completed',
     'track', 'cluster', 'electives',
@@ -666,17 +646,17 @@ export const deleteTesdaDocument = async (pool, docPublicId) => {
   return { deleted: result.rows[0] };
 };
 
-// => ASSUME: shs_classes has branch_id/track/cluster columns, mirroring
-//    how the student-side /api/shs-classes endpoint filters. Verify
-//    against your actual schema.
-export const getAvailableShsClasses = async (pool, { branchId, track, cluster }) => {
+// => shs_classes is filtered by track/cluster only, mirroring how the
+//    student-side /api/shs-classes endpoint filters. Verify against your
+//    actual schema.
+export const getAvailableShsClasses = async (pool, { track, cluster }) => {
   const result = await pool.query(
     `SELECT class_id, start_date, end_date, groupchat_link
        FROM shs_classes
-       WHERE branch_id = $1 AND track = $2
-         AND ($3::text IS NULL OR cluster = $3)
+       WHERE track = $1
+         AND ($2::text IS NULL OR cluster = $2)
        ORDER BY start_date ASC`,
-    [branchId, track, cluster || null]
+    [track, cluster || null]
   );
   return result.rows;
 };
@@ -698,14 +678,14 @@ export const getShsTracksAndClusters = async (pool) => {
 
 
 // => Mirrors getAvailableShsClasses - TESDA classes are filtered by
-//    branch + course instead of track/cluster
-export const getAvailableTesdaClasses = async (pool, { branchId, courseId }) => {
+//    course only (Sector is derived from the course, not user-selectable)
+export const getAvailableTesdaClasses = async (pool, { courseId }) => {
   const result = await pool.query(
     `SELECT class_id, start_date, end_date, groupchat_link
        FROM tesda_classes
-       WHERE branch_id = $1 AND course_id = $2
+       WHERE course_id = $1
        ORDER BY start_date ASC`,
-    [branchId, courseId]
+    [courseId]
   );
   return result.rows;
 };
