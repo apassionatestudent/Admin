@@ -194,7 +194,7 @@ function InfoCard({ label, value, copyable = true, onViewFull = null, clamp = fa
 }
 
 // => EditableField - edit-mode counterpart to InfoCard
-function EditableField({ label, value, onChange, type = 'text', options = null, error = null, disabled = false, required = false }) {
+function EditableField({ label, value, onChange, type = 'text', options = null, error = null, disabled = false, required = false, min = undefined, max = undefined }) {
   // => Shared label - required fields get a red asterisk, driven by
   //    server.js's NOT NULL constraints, not guesswork.
   const labelEl = (
@@ -725,15 +725,15 @@ export default function SHSEnrollmentDetail() {
     resolve();
   }, [data]);
 
-  // => Fetch available shs_classes matching this enrollment's branch/track/
+  // => Fetch available shs_classes matching this enrollment's track/
   //    cluster only when the Class/Batch section is opened for editing
   useEffect(() => {
     if (editingSection !== 'classAssign') return;
     const enr = data?.enrollment;
-    if (!enr?.branch_id || !enr?.track) { setClassOptions([]); return; }
+    if (!enr?.track) { setClassOptions([]); return; }
 
     setLoadingClassOptions(true);
-    const params = new URLSearchParams({ branch_id: enr.branch_id, track: enr.track });
+    const params = new URLSearchParams({ track: enr.track });
     if (enr.cluster) params.append('cluster', enr.cluster);
 
     fetch(`/api/admin/enrollments/shs/classes/available?${params.toString()}`, { credentials: 'include' })
@@ -741,7 +741,7 @@ export default function SHSEnrollmentDetail() {
       .then(d => setClassOptions(d.classes || []))
       .catch(err => console.error('Failed to fetch available classes:', err))
       .finally(() => setLoadingClassOptions(false));
-  }, [editingSection, data?.enrollment?.branch_id, data?.enrollment?.track, data?.enrollment?.cluster]);
+  }, [editingSection, data?.enrollment?.track, data?.enrollment?.cluster]);
 
   // => Fetch nationalities for the profile
   useEffect(() => {
@@ -781,7 +781,7 @@ export default function SHSEnrollmentDetail() {
 
   // 
   // SECTION SAVE HANDLERS - spread-merge over existing enrollment object so
-  // joined display fields (branch_name, class period, groupchat_link,
+  // joined display fields (class period, groupchat_link,
   // student_username) survive a PATCH .../enrollment RETURNING * response.
   // 
 
@@ -902,7 +902,7 @@ export default function SHSEnrollmentDetail() {
   const handleSaveClassAssign = async () => {
     try {
       await patchSection('enrollment', { class_id: draft.class_id || null });
-      await fetchDetail(); // => refetch to pick up the newly joined class period/groupchat/branch
+      await fetchDetail(); // => refetch to pick up the newly joined class period/groupchat
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
@@ -1036,7 +1036,7 @@ export default function SHSEnrollmentDetail() {
             <div className="adm-hero-left">
               {/* => Shows the cluster (e.g. "Academic Track" grouping), not the
                    specific course - clearer at-a-glance context than course_name */}
-              <p className="adm-hero-course">{enrollment.cluster ?? '-'}</p>
+              <p className="adm-hero-course">{enrollment.cluster || '-'}</p>
               <h2 className="adm-hero-name">{fullName(profile)}</h2>
               <p className="adm-hero-email">{enrollment.student_username}</p>
             </div>
@@ -1127,8 +1127,7 @@ export default function SHSEnrollmentDetail() {
 
           {/* ════════════════════════════════════
               ENROLLMENT INFORMATION
-              => Branch/Date Submitted stay read-only (branch derived from
-                 branch_id, no picker built yet). LRN/Track/Cluster/Electives
+              => Date Submitted stays read-only. LRN/Track/Cluster/Electives
                  are direct columns, fully editable.
               ════════════════════════════════════ */}
           <section className="adm-section">
@@ -1159,27 +1158,27 @@ export default function SHSEnrollmentDetail() {
                        below: it feeds directly into class/batch assignment, so
                        changing it mid-enrollment risks orphaning the link.
                        If it's wrong, reject + have the student resubmit instead. */}
-                  <InfoCard label="Track" value={enrollment.track ?? '-'} />
+                  <InfoCard label="Track" value={enrollment.track || '-'} />
                   {/* => Cluster is locked from editing - it feeds directly into
                        class/batch assignment, so changing it mid-enrollment risks
                        orphaning the link. If it's wrong, reject + have the student
                        resubmit via the dashboard instead. */}
-                  <InfoCard label="Cluster" value={enrollment.cluster ?? '-'} />
+                  <InfoCard label="Cluster" value={enrollment.cluster || '-'} />
                   <InfoCard
                     label="Electives"
-                    value={enrollment.electives ?? '-'}
+                    value={enrollment.electives || '-'}
                     clamp
                     onViewFull={enrollment.electives ? () => setElectivesModalOpen(true) : null}
                   />
                 </>
               ) : (
                 <>
-                  <InfoCard label="LRN"            value={enrollment.lrn ?? '-'} />
-                  <InfoCard label="Track"          value={enrollment.track ?? '-'} />
-                  <InfoCard label="Cluster"        value={enrollment.cluster ?? '-'} />
+                  <InfoCard label="LRN"            value={enrollment.lrn || '-'} />
+                  <InfoCard label="Track"          value={enrollment.track || '-'} />
+                  <InfoCard label="Cluster"        value={enrollment.cluster || '-'} />
                   <InfoCard
                     label="Electives"
-                    value={enrollment.electives ?? '-'}
+                    value={enrollment.electives || '-'}
                     clamp
                     onViewFull={enrollment.electives ? () => setElectivesModalOpen(true) : null}
                   />
@@ -1220,7 +1219,6 @@ export default function SHSEnrollmentDetail() {
                 )}
               </div>
 
-              <InfoCard label="Branch"         value={enrollment.branch_name ?? '-'} />
               <InfoCard label="Date Submitted" value={formatDate(enrollment.submitted_at)} />
             </div>
           </section>
@@ -1258,10 +1256,10 @@ export default function SHSEnrollmentDetail() {
                 </>
               ) : (
                 <>
-                  <InfoCard label="Last School Attended" value={enrollment.last_school_attended ?? '-'} />
-                  <InfoCard label="School Address"       value={enrollment.school_address ?? '-'} />
-                  <InfoCard label="Grade Level Completed" value={enrollment.grade_level_completed ?? '-'} />
-                  <InfoCard label="School Year Completed" value={enrollment.school_year_completed ?? '-'} />
+                  <InfoCard label="Last School Attended" value={enrollment.last_school_attended || '-'} />
+                  <InfoCard label="School Address"       value={enrollment.school_address || '-'} />
+                  <InfoCard label="Grade Level Completed" value={enrollment.grade_level_completed || '-'} />
+                  <InfoCard label="School Year Completed" value={enrollment.school_year_completed || '-'} />
                 </>
               )}
             </div>
@@ -1317,7 +1315,7 @@ export default function SHSEnrollmentDetail() {
               //    "reserved" message box, regardless of whether a class is assigned.
               <div className="adm-info-grid adm-info-grid--halves">
                 <InfoCard label="Class Period" value={classPeriodDisplay} copyable={false} />
-                <InfoCard label="Groupchat Link" value={enrollment.groupchat_link ?? '-'} copyable={true} />
+                <InfoCard label="Groupchat Link" value={enrollment.groupchat_link || '-'} copyable={true} />
               </div>
             )}
           </section>
@@ -1411,18 +1409,18 @@ export default function SHSEnrollmentDetail() {
               ) : (
                 <>
                   <InfoCard label="Full Name"   value={fullName(profile)} />
-                  <InfoCard label="Email"       value={profile.email ?? '-'} />
-                  <InfoCard label="Contact No." value={profile.contact_no ?? '-'} />
-                  <InfoCard label="Facebook"    value={profile.facebook_link ?? '-'} />
-                  <InfoCard label="Sex"         value={profile.sex ?? '-'} />
+                  <InfoCard label="Email"       value={profile.email || '-'} />
+                  <InfoCard label="Contact No." value={profile.contact_no || '-'} />
+                  <InfoCard label="Facebook"    value={profile.facebook_link || '-'} />
+                  <InfoCard label="Sex"         value={profile.sex || '-'} />
                   <InfoCard label="Birthdate"   value={formatDate(profile.birth_date)} />
-                  <InfoCard label="Nationality" value={profile.nationality ?? '-'} />
+                  <InfoCard label="Nationality" value={profile.nationality || '-'} />
                   <InfoCard
                     label="Religion"
                     value={
                       profile.religion === 'Others'
                         ? (profile.religion_others || 'Others')
-                        : (profile.religion ?? '-')
+                        : (profile.religion || '-')
                     }
                   />
                 </>
@@ -1464,11 +1462,11 @@ export default function SHSEnrollmentDetail() {
               </div>
             ) : address && (
               <div className="adm-info-grid" style={{ marginTop: '12px' }}>
-                <InfoCard label="Street"   value={address.street ?? '-'} />
-                <InfoCard label="Region"   value={locationNames.region   ?? address.region_code   ?? '-'} />
-                <InfoCard label="Province" value={locationNames.province ?? address.province_code ?? '-'} />
-                <InfoCard label="City"     value={locationNames.city     ?? address.city_code     ?? '-'} />
-                <InfoCard label="Barangay" value={locationNames.barangay ?? address.barangay_code ?? '-'} />
+                <InfoCard label="Street"   value={address.street || '-'} />
+                <InfoCard label="Region"   value={(locationNames.region ?? address.region_code) || '-'} />
+                <InfoCard label="Province" value={(locationNames.province ?? address.province_code) || '-'} />
+                <InfoCard label="City"     value={(locationNames.city ?? address.city_code) || '-'} />
+                <InfoCard label="Barangay" value={(locationNames.barangay ?? address.barangay_code) || '-'} />
               </div>
             )}
           </section>
@@ -1553,10 +1551,10 @@ export default function SHSEnrollmentDetail() {
                     {sortedFamily.map((f, i) => (
                       <tr key={f.family_member_id ?? i}>
                         <td><span className="adm-family-role-badge">{f.role}</span></td>
-                        <td>{f.full_name ?? '-'}</td>
-                        <td>{f.occupation ?? '-'}</td>
-                        <td>{f.contact_no ?? '-'}</td>
-                        {hasGuardianRow && <td>{f.relationship_to_student ?? '-'}</td>}
+                        <td>{f.full_name || '-'}</td>
+                        <td>{f.occupation || '-'}</td>
+                        <td>{f.contact_no || '-'}</td>
+                        {hasGuardianRow && <td>{f.relationship_to_student || '-'}</td>}
                       </tr>
                     ))}
                   </tbody>
@@ -1607,10 +1605,10 @@ export default function SHSEnrollmentDetail() {
                 </>
               ) : (
                 <>
-                  <InfoCard label="Name"           value={enrollment.emergency_name ?? '-'} />
-                  <InfoCard label="Relationship"   value={enrollment.emergency_relationship ?? '-'} />
-                  <InfoCard label="Contact No."    value={enrollment.emergency_contact_no ?? '-'} />
-                  <InfoCard label="Address"        value={enrollment.emergency_address ?? '-'} />
+                  <InfoCard label="Name"           value={enrollment.emergency_name || '-'} />
+                  <InfoCard label="Relationship"   value={enrollment.emergency_relationship || '-'} />
+                  <InfoCard label="Contact No."    value={enrollment.emergency_contact_no || '-'} />
+                  <InfoCard label="Address"        value={enrollment.emergency_address || '-'} />
                 </>
               )}
             </div>
@@ -1668,9 +1666,9 @@ export default function SHSEnrollmentDetail() {
                     value={enrollment.has_medical_condition === 'yes' ? 'Yes' : 'None'}
                     copyable={false}
                   />
-                  <InfoCard label="Condition Detail"  value={enrollment.medical_condition_detail ?? '-'} />
-                  <InfoCard label="Allergies"          value={enrollment.allergies ?? '-'} />
-                  <InfoCard label="Maintenance Medication" value={enrollment.maintenance_medication ?? '-'} />
+                  <InfoCard label="Condition Detail"  value={enrollment.medical_condition_detail || '-'} />
+                  <InfoCard label="Allergies"          value={enrollment.allergies || '-'} />
+                  <InfoCard label="Maintenance Medication" value={enrollment.maintenance_medication || '-'} />
                 </>
               )}
             </div>

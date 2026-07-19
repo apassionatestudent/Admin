@@ -1,6 +1,7 @@
 // => admin/pages/Classes/Classes.jsx
-// => Displays all Ongoing and Planned classes for admin review
-// => Also handles cross-status search and Add Class modal
+// => Displays all Ongoing and Pending classes for admin review, combining
+//    TESDA + SHS (mirrors Enrollments.jsx's type/status filter pattern)
+// => Also handles cross-status search and Add Class modal (TESDA-only for now)
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -8,10 +9,16 @@ import { useNavigate } from 'react-router-dom';
 import './Classes.css';
 
 import searchIcon from '../../assets/icons/magnifying-glass.png';
+// => Replace each of these with your actual icon assets - they just need to live at these paths
+import emptyClassesIcon from '../../assets/icons/empty-classes.png';
+import warningIcon from '../../assets/icons/warning.png';
+import closeIcon from '../../assets/icons/close.png';
+import chevronIcon from '../../assets/icons/chevron-down.png'; // => rotated via CSS when open, see .adm-chevron--up
+import arrowIcon from '../../assets/icons/chevron-right.png';
 
 // => Maps each status to a CSS modifier class
 const statusClass = {
-  'Planned':   'status--planned',
+  'Pending':   'status--pending',
   'Ongoing':   'status--ongoing',
   'Concluded': 'status--concluded',
 };
@@ -27,20 +34,23 @@ const formatDate = (dateStr) => {
 };
 
 // => Empty search filters - used for reset
+// => program_type/track/cluster added for SHS; course_name/sector/instructor_name stay TESDA-only
 const EMPTY_FILTERS = {
   course_name:     '',
-  branch_name:     '',
   instructor_name: '',
   status:          '',
   sector:          '',
+  program_type:      '',
+  track:           '',
+  cluster:         '',
   start_date_from: '',
   start_date_to:   '',
 };
 
 // => Initial state for the Add Class form
+// => TESDA-only - the Add Class modal only creates tesda_classes rows
 const EMPTY_CLASS_FORM = {
   course_id:                   '',
-  branch_id:                   '',
   instructor_id:               '',
   start_date:                  '',
   end_date:                    '',
@@ -52,7 +62,7 @@ const EMPTY_CLASS_FORM = {
 export default function Classes() {
   const navigate = useNavigate();
 
-  // => Default classes list (Ongoing + Planned)
+  // => Default classes list (Ongoing + Pending), combining TESDA + SHS
   const [classes,  setClasses]  = useState([]);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState(null);
@@ -64,13 +74,18 @@ export default function Classes() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError,   setSearchError]   = useState(null);
 
-  
-  // => Cache for branch/sector dropdowns in More Options
+  // => Client-side ONLY filters (type + status) - never trigger a re-fetch,
+  //    they just filter whatever's already loaded in `classes` / `searchResults`
+  //    Mirrors Enrollments.jsx's typeFilter/statusFilter pattern
+  const [typeFilter,   setTypeFilter]   = useState('ALL'); // => 'ALL' | 'TESDA' | 'SHS'
+  const [statusFilter, setStatusFilter] = useState('ALL'); // => 'ALL' | one of statusClass's keys
+
+  // => Cache for sector dropdown in More Options
   // => useRef so it survives re-renders without triggering one
   const filterOptionsCache = useRef(null);
-  const [filterOptions, setFilterOptions] = useState({ branches: [], sectors: [] });
+  const [filterOptions, setFilterOptions] = useState({ sectors: [] });
 
-  // => Fetch branches and sectors for the More Options dropdowns
+  // => Fetch sectors for the More Options dropdown
   // => Must live inside the component so it can access filterOptionsCache and setFilterOptions
   const fetchFilterOptions = async () => {
     if (filterOptionsCache.current) {
@@ -84,7 +99,7 @@ export default function Classes() {
       });
       if (!res.ok) return;
       const data = await res.json();
-      const extracted = { branches: data.branches, sectors: data.sectors };
+      const extracted = { sectors: data.sectors };
       // => Store in ref (persists without re-render) and state (drives the UI)
       filterOptionsCache.current = extracted;
       setFilterOptions(extracted);
@@ -95,7 +110,7 @@ export default function Classes() {
 
   // => Add Class modal state
   const [modalOpen,    setModalOpen]    = useState(false);
-  const [formOptions,  setFormOptions]  = useState({ courses: [], branches: [], instructors: [] });
+  const [formOptions,  setFormOptions]  = useState({ courses: [], instructors: [] });
   const [classForm,    setClassForm]    = useState(EMPTY_CLASS_FORM);
   const [formError,    setFormError]    = useState(null);
   const [formSaving,   setFormSaving]   = useState(false);
@@ -103,7 +118,7 @@ export default function Classes() {
   // => Ref to abort stale search requests
   const abortRef = useRef(null);
 
-  // => Fetch default (Ongoing + Planned) classes on mount
+  // => Fetch default (Ongoing + Pending) classes on mount - combined TESDA + SHS
   useEffect(() => {
     const fetchClasses = async () => {
       setLoading(true);
@@ -126,7 +141,12 @@ export default function Classes() {
   }, []);
 
   // => Navigate to ClassDetail on row click
-  const handleRowClick = (publicId) => {
+  // => TESDA-only for now - there's no SHS class detail page yet (mirrors
+  //    how shsEnrollmentDetail.jsx was built separately from tesdaEnrollmentDetail.jsx;
+  //    that split hasn't happened for classes yet). SHS rows are a no-op click
+  //    until that page exists.
+  const handleRowClick = (publicId, classType) => {
+    if (classType === 'SHS') return;
     // => Route must match App.jsx: /dashboard/classes/:publicId
     navigate(`/dashboard/classes/${publicId}`);
   };
@@ -189,7 +209,7 @@ export default function Classes() {
   // ADD CLASS MODAL HANDLERS
   
 
-  // => Fetch form options (courses, branches, instructors) when modal opens
+  // => Fetch form options (courses, instructors) when modal opens
   const handleOpenModal = async () => {
     setClassForm(EMPTY_CLASS_FORM);
     setFormError(null);
@@ -204,9 +224,9 @@ export default function Classes() {
       setFormOptions(data);
 
       // => Also populate the More Options filter cache from the same fetch
-      // => So if modal opens first, More Options dropdowns are already ready
+      // => So if modal opens first, More Options dropdown is already ready
       if (!filterOptionsCache.current) {
-        const extracted = { branches: data.branches, sectors: data.sectors };
+        const extracted = { sectors: data.sectors };
         filterOptionsCache.current = extracted;
         setFilterOptions(extracted);
       }
@@ -235,7 +255,6 @@ export default function Classes() {
           ...classForm,
           // => Send as numbers, not strings
           course_id:                   Number(classForm.course_id),
-          branch_id:                   Number(classForm.branch_id),
           instructor_id:               classForm.instructor_id ? Number(classForm.instructor_id) : null,
           required_number_of_students: Number(classForm.required_number_of_students),
           max_students:                Number(classForm.max_students),
@@ -258,9 +277,17 @@ export default function Classes() {
   // => Determine what's currently displayed
   const isSearchMode = searchResults !== null;
 
-  // => Split default classes into two priority buckets
-  const ongoing = classes.filter(c => c.status === 'Ongoing');
-  const planned = classes.filter(c => c.status === 'Planned');
+  // => Applies type/status filters in memory only - no fetch, no API call
+  //    Mirrors Enrollments.jsx's applyFilters
+  const applyFilters = (rows) => rows.filter(r =>
+    (typeFilter === 'ALL'   || r.program_type === typeFilter) &&
+    (statusFilter === 'ALL' || r.status === statusFilter)
+  );
+
+  // => Split default classes into two priority buckets, then run them
+  //    through the client-side type/status filters
+  const ongoing = applyFilters(classes.filter(c => c.status === 'Ongoing'));
+  const pending = applyFilters(classes.filter(c => c.status === 'Pending'));
 
   return (
     <div className="adm-classes-page">
@@ -274,7 +301,7 @@ export default function Classes() {
           <p className="adm-classes-subtitle">
             {isSearchMode
               ? <>Showing search results - <strong>{searchResults.length}</strong> class{searchResults.length !== 1 ? 'es' : ''} found.</>
-              : <>Showing <strong>Ongoing</strong> and <strong>Planned</strong> classes.</>
+              : <>Showing <strong>Ongoing</strong> and <strong>Pending</strong> classes.</>
             }
           </p>
         </div>
@@ -328,66 +355,114 @@ export default function Classes() {
               if (next) fetchFilterOptions();
             }}
           >
-            More Options {moreOpen ? '▲' : '▼'}
+            More Options
+            <img
+              className={`adm-chevron ${moreOpen ? 'adm-chevron--up' : ''}`}
+              src={chevronIcon}
+              alt=""
+            />
           </button>
-
-          {/* => Clear search - only visible when in search mode */}
           {isSearchMode && (
             <button className="adm-clear-btn" onClick={handleClearSearch}>
-              ✕ Clear Search
+              <img className="adm-btn-icon" src={closeIcon} alt="" /> Clear Search
             </button>
           )}
         </div>
 
-        {/* => Collapsible More Options panel - filters based on classes table */}
+        {/* => Collapsible More Options panel - filters based on tesda_classes/shs_classes */}
         {moreOpen && (
           <div className="adm-more-panel">
             <div className="adm-more-grid">
 
+              {/* => Class Type comes first - it determines which fields below
+                     even show up. Switching type clears the other type's
+                     stale filter values so a leftover Track value doesn't
+                     silently apply once you're back on TESDA. */}
               <div className="adm-more-field">
-                <label className="adm-more-label">Branch</label>
+                <label className="adm-more-label">Class Type</label>
                 <select
                   className="adm-more-input"
-                  value={filters.branch_name}
-                  onChange={e => setFilters(f => ({ ...f, branch_name: e.target.value }))}
+                  value={filters.program_type}
+                  onChange={e => {
+                    const nextType = e.target.value;
+                    setFilters(f => ({
+                      ...f,
+                      program_type: nextType,
+                      instructor_name: '',
+                      sector: '',
+                      track: '',
+                      cluster: '',
+                    }));
+                  }}
                 >
                   <option value="">- Any -</option>
-                  {filterOptions.branches.map(b => (
-                    <option key={b.branch_id} value={b.branch_name}>
-                      {b.branch_name}
-                    </option>
-                  ))}
+                  <option value="TESDA">TESDA</option>
+                  <option value="SHS">SHS</option>
                 </select>
               </div>
 
-              <div className="adm-more-field">
-                <label className="adm-more-label">Instructor</label>
-                <input
-                  type="text"
-                  className="adm-more-input"
-                  placeholder="e.g. Juan dela Cruz"
-                  value={filters.instructor_name}
-                  onChange={e => setFilters(f => ({ ...f, instructor_name: e.target.value }))}
-                  onKeyDown={handleKeyDown}
-                />
-              </div>
+              {/* => TESDA-only fields - only shown once TESDA is selected */}
+              {filters.program_type === 'TESDA' && (
+                <>
+                  <div className="adm-more-field">
+                    <label className="adm-more-label">Instructor</label>
+                    <input
+                      type="text"
+                      className="adm-more-input"
+                      placeholder="e.g. Juan dela Cruz"
+                      value={filters.instructor_name}
+                      onChange={e => setFilters(f => ({ ...f, instructor_name: e.target.value }))}
+                      onKeyDown={handleKeyDown}
+                    />
+                  </div>
 
-              <div className="adm-more-field">
-                <label className="adm-more-label">Sector</label>
-                {/* => Dropdown pulled from sectors table, cached after first open */}
-                <select
-                  className="adm-more-input"
-                  value={filters.sector}
-                  onChange={e => setFilters(f => ({ ...f, sector: e.target.value }))}
-                >
-                  <option value="">- Any -</option>
-                  {filterOptions.sectors.map(s => (
-                    <option key={s.sector_id} value={s.sector}>
-                      {s.sector}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <div className="adm-more-field">
+                    <label className="adm-more-label">Sector</label>
+                    {/* => Dropdown pulled from sectors table, cached after first open */}
+                    <select
+                      className="adm-more-input"
+                      value={filters.sector}
+                      onChange={e => setFilters(f => ({ ...f, sector: e.target.value }))}
+                    >
+                      <option value="">- Any -</option>
+                      {filterOptions.sectors.map(s => (
+                        <option key={s.sector_id} value={s.sector}>
+                          {s.sector}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* => SHS-only fields - only shown once SHS is selected */}
+              {filters.program_type === 'SHS' && (
+                <>
+                  <div className="adm-more-field">
+                    <label className="adm-more-label">Track</label>
+                    <input
+                      type="text"
+                      className="adm-more-input"
+                      placeholder="e.g. Academic Track"
+                      value={filters.track}
+                      onChange={e => setFilters(f => ({ ...f, track: e.target.value }))}
+                      onKeyDown={handleKeyDown}
+                    />
+                  </div>
+
+                  <div className="adm-more-field">
+                    <label className="adm-more-label">Cluster</label>
+                    <input
+                      type="text"
+                      className="adm-more-input"
+                      placeholder="e.g. STEM"
+                      value={filters.cluster}
+                      onChange={e => setFilters(f => ({ ...f, cluster: e.target.value }))}
+                      onKeyDown={handleKeyDown}
+                    />
+                  </div>
+                </>
+              )}
 
               {/* => Status is a fixed set - dropdown is cleaner than free text */}
               <div className="adm-more-field">
@@ -398,7 +473,7 @@ export default function Classes() {
                   onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}
                 >
                   <option value="">- Any -</option>
-                  <option value="Planned">Planned</option>
+                  <option value="Pending">Pending</option>
                   <option value="Ongoing">Ongoing</option>
                   <option value="Concluded">Concluded</option>
                 </select>
@@ -430,8 +505,42 @@ export default function Classes() {
 
         {/* => Search error */}
         {searchError && (
-          <p className="adm-search-error">⚠ {searchError}</p>
+          <p className="adm-search-error"><img className="adm-inline-icon" src={warningIcon} alt="" /> {searchError}</p>
         )}
+      </div>
+
+      {/* ════════════════════════════════════
+          FILTER BUTTONS (type + status)
+          => Client-side only - toggling these never re-fetches, they just
+             re-filter classes/searchResults already sitting in state
+          ════════════════════════════════════ */}
+      <div className="adm-filter-wrap">
+        <div className="adm-filter-group">
+          <span className="adm-filter-label">Type</span>
+          {['ALL', 'TESDA', 'SHS'].map(t => (
+            <button
+              key={t}
+              className={`adm-filter-btn ${typeFilter === t ? 'adm-filter-btn--active' : ''}`}
+              onClick={() => setTypeFilter(t)}
+            >
+              {t === 'ALL' ? 'All' : t}
+            </button>
+          ))}
+        </div>
+
+        <div className="adm-filter-group">
+          <span className="adm-filter-label">Status</span>
+          <select
+            className="adm-filter-select"
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+          >
+            <option value="ALL">All</option>
+            {Object.keys(statusClass).map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* ════════════════════════════════════
@@ -453,16 +562,24 @@ export default function Classes() {
             </div>
           )}
 
-          {!searchLoading && searchResults.length > 0 && (
+          {/* => searchResults has rows, but the type/status filters narrowed it to 0 */}
+          {!searchLoading && searchResults.length > 0 && applyFilters(searchResults).length === 0 && (
+            <div className="adm-classes-state">
+              <span className="adm-state-icon"><img src={warningIcon} alt="" /></span>
+              <p>No classes match the current Type/Status filters.</p>
+            </div>
+          )}
+
+          {!searchLoading && applyFilters(searchResults).length > 0 && (
             <section className="adm-classes-section">
-              <ClassTable rows={searchResults} onRowClick={handleRowClick} />
+              <ClassTable rows={applyFilters(searchResults)} onRowClick={handleRowClick} />
             </section>
           )}
         </>
       )}
 
       {/* ════════════════════════════════════
-          DEFAULT MODE (Ongoing + Planned)
+          DEFAULT MODE (Ongoing + Pending)
           ════════════════════════════════════ */}
       {!isSearchMode && (
         <>
@@ -477,7 +594,7 @@ export default function Classes() {
           {/* Error state */}
           {!loading && error && (
             <div className="adm-classes-state adm-classes-state--error">
-              <span className="adm-state-icon">⚠</span>
+              <span className="adm-state-icon"><img src={warningIcon} alt="" /></span>
               <p>{error}</p>
             </div>
           )}
@@ -485,8 +602,16 @@ export default function Classes() {
           {/* Empty state */}
           {!loading && !error && classes.length === 0 && (
             <div className="adm-classes-state">
-              <span className="adm-state-icon">📋</span>
+              <span className="adm-state-icon"> <img src={emptyClassesIcon} alt="No classes" /> </span>
               <p>No active classes found. Add one using the + button below.</p>
+            </div>
+          )}
+
+          {/* => classes has rows, but type/status filters narrowed both buckets to 0 */}
+          {!loading && !error && classes.length > 0 && ongoing.length === 0 && pending.length === 0 && (
+            <div className="adm-classes-state">
+              <span className="adm-state-icon"><img src={warningIcon} alt="" /></span>
+              <p>No classes match the current Type/Status filters.</p>
             </div>
           )}
 
@@ -501,14 +626,14 @@ export default function Classes() {
             </section>
           )}
 
-          {/* => Planned group */}
-          {!loading && !error && planned.length > 0 && (
+          {/* => Pending group */}
+          {!loading && !error && pending.length > 0 && (
             <section className="adm-classes-section">
-              <h2 className="adm-section-label adm-section-label--planned">
-                Planned
-                <span className="adm-section-count">{planned.length}</span>
+              <h2 className="adm-section-label adm-section-label--pending">
+                Pending
+                <span className="adm-section-count">{pending.length}</span>
               </h2>
-              <ClassTable rows={planned} onRowClick={handleRowClick} />
+              <ClassTable rows={pending} onRowClick={handleRowClick} />
             </section>
           )}
         </>
@@ -538,7 +663,9 @@ export default function Classes() {
 
             <div className="adm-modal-header">
               <span className="adm-modal-title">Add New Class</span>
-              <button className="adm-modal-close" onClick={handleCloseModal} disabled={formSaving}>✕</button>
+              <button className="adm-modal-close" onClick={handleCloseModal} disabled={formSaving}>
+                <img src={closeIcon} alt="Close" />
+              </button>
             </div>
 
             <div className="adm-modal-body">
@@ -556,21 +683,6 @@ export default function Classes() {
                     <option key={c.course_id} value={c.course_id}>
                       {c.title}
                     </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* => Branch */}
-              <div className="adm-form-group">
-                <label className="adm-form-label">Branch <span className="adm-form-required">*</span></label>
-                <select
-                  className="adm-form-select"
-                  value={classForm.branch_id}
-                  onChange={e => setClassForm(f => ({ ...f, branch_id: e.target.value }))}
-                >
-                  <option value="">- Select a branch -</option>
-                  {formOptions.branches.map(b => (
-                    <option key={b.branch_id} value={b.branch_id}>{b.branch_name}</option>
                   ))}
                 </select>
               </div>
@@ -654,7 +766,7 @@ export default function Classes() {
 
               {/* => Form error */}
               {formError && (
-                <p className="adm-form-error">⚠ {formError}</p>
+                <p className="adm-form-error"><img className="adm-inline-icon" src={warningIcon} alt="" /> {formError}</p>
               )}
             </div>
 
@@ -681,6 +793,9 @@ export default function Classes() {
 
 
 // ClassTable - reusable table sub-component
+// => Course/Sector/Instructor columns are TESDA-only; Track/Cluster fill
+//    in for SHS rows (course_name/sector/instructor_name are NULL on the
+//    SHS side of the UNION ALL, and vice versa - see adminClassModel.js)
 
 function ClassTable({ rows, onRowClick }) {
   return (
@@ -688,9 +803,9 @@ function ClassTable({ rows, onRowClick }) {
       <table className="adm-table">
         <thead>
           <tr>
-            <th>Course</th>
-            <th>Sector</th>
-            <th>Branch</th>
+            <th>Type</th>
+            <th>Course / Track</th>
+            <th>Sector / Cluster</th>
             <th>Instructor</th>
             <th>Start Date</th>
             <th>End Date</th>
@@ -700,37 +815,47 @@ function ClassTable({ rows, onRowClick }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, idx) => (
-            <tr
-              key={row.public_id}
-              className="adm-table-row"
-              style={{ animationDelay: `${idx * 40}ms` }}
-              onClick={() => onRowClick(row.public_id)}
-            >
-              <td className="adm-td-course">
-                <span className="adm-course-name">{row.course_name ?? '-'}</span>
-              </td>
-              <td>{row.sector ?? '-'}</td>
-              <td>{row.branch_name ?? '-'}</td>
-              <td>{row.instructor_name ?? <span className="adm-td-unassigned">Unassigned</span>}</td>
-              <td className="adm-td-date">{formatDate(row.start_date)}</td>
-              <td className="adm-td-date">{formatDate(row.end_date)}</td>
-              <td className="adm-td-slots">
-                {/* => Show enrolled count vs max - highlights if full */}
-                <span className={row.enrolled_count >= row.max_students ? 'adm-slots-full' : ''}>
-                  {row.enrolled_count ?? 0}
-                </span>
-                <span className="adm-slots-sep"> / </span>
-                <span>{row.max_students}</span>
-              </td>
-              <td>
-                <span className={`adm-badge ${statusClass[row.status] || ''}`}>
-                  {row.status}
-                </span>
-              </td>
-              <td className="adm-td-arrow">›</td>
-            </tr>
-          ))}
+          {rows.map((row, idx) => {
+            const isShs = row.program_type === 'SHS';
+            return (
+              <tr
+                key={row.public_id}
+                className="adm-table-row"
+                style={{ animationDelay: `${idx * 40}ms`, cursor: isShs ? 'default' : 'pointer' }}
+                onClick={() => onRowClick(row.public_id, row.program_type)}
+                title={isShs ? 'SHS class detail view is not built yet' : 'View class detail'}
+              >
+                <td>
+                  <span className={`adm-type-badge adm-type-badge--${isShs ? 'shs' : 'tesda'}`}>
+                    {row.program_type}
+                  </span>
+                </td>
+                <td className="adm-td-course">
+                  <span className="adm-course-name">
+                    {isShs ? (row.track ?? '-') : (row.course_name ?? '-')}
+                  </span>
+                </td>
+                <td>{isShs ? (row.cluster ?? '-') : (row.sector ?? '-')}</td>
+                <td>{isShs ? '-' : (row.instructor_name ?? <span className="adm-td-unassigned">Unassigned</span>)}</td>
+                <td className="adm-td-date">{formatDate(row.start_date)}</td>
+                <td className="adm-td-date">{formatDate(row.end_date)}</td>
+                <td className="adm-td-slots">
+                  {/* => Show enrolled count vs max - highlights if full */}
+                  <span className={row.enrolled_count >= row.max_students ? 'adm-slots-full' : ''}>
+                    {row.enrolled_count ?? 0}
+                  </span>
+                  <span className="adm-slots-sep"> / </span>
+                  <span>{row.max_students}</span>
+                </td>
+                <td>
+                  <span className={`adm-badge ${statusClass[row.status] || ''}`}>
+                    {row.status}
+                  </span>
+                </td>
+                <td className="adm-td-arrow">{isShs ? null : <img src={arrowIcon} alt="" />}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

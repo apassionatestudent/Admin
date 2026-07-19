@@ -86,6 +86,12 @@
   line-height: 1;
 }
 
+.adm-state-icon img {
+  width: 48px;
+  height: 48px;
+  display: block;
+}
+
 /* Spinner */
 .adm-spinner {
   width: 36px;
@@ -123,7 +129,7 @@
   color: #065f46;
 }
 
-.adm-section-label--planned {
+.adm-section-label--pending {
   color: #1d4ed8;
 }
 
@@ -144,7 +150,7 @@
   color: #065f46;
 }
 
-.adm-section-label--planned .adm-section-count {
+.adm-section-label--pending .adm-section-count {
   background: #dbeafe;
   color: #1e40af;
 }
@@ -277,7 +283,7 @@
   white-space: nowrap;
 }
 
-.adm-badge.status--planned {
+.adm-badge.status--pending {
   background: #dbeafe;
   color: #1e40af;
 }
@@ -391,6 +397,49 @@
   background: #fecaca;
 }
 
+/* ════════════════════════════════════
+   IMAGE ICONS
+   => Supports the <img> icons that replaced text/emoji glyphs
+      (chevron toggle, close buttons, inline warning icons)
+   ════════════════════════════════════ */
+.adm-chevron {
+  width: 12px;
+  height: 12px;
+  margin-left: 4px;
+  vertical-align: middle;
+  transition: transform 0.15s;
+}
+
+.adm-chevron--up {
+  transform: rotate(180deg);
+}
+
+.adm-btn-icon {
+  width: 12px;
+  height: 12px;
+  vertical-align: middle;
+  margin-right: 2px;
+}
+
+.adm-inline-icon {
+  width: 14px;
+  height: 14px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.adm-modal-close img {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.adm-td-arrow img {
+  width: 14px;
+  height: 14px;
+  vertical-align: middle;
+}
+
 /* Collapsible More Options panel */
 .adm-more-panel {
   background: #f9fafb;
@@ -439,6 +488,99 @@
   font-size: 0.8125rem;
   color: #b91c1c;
   margin: 0;
+}
+
+/* ════════════════════════════════════
+   FILTER BUTTONS (type + status)
+   => Same structure as Enrollments.css - duplicated per project's
+      no-shared-abstraction policy between pages
+   ════════════════════════════════════ */
+.adm-filter-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 24px; /* => same rhythm as .adm-search-wrap above it */
+}
+
+.adm-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.adm-filter-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  margin-right: 2px;
+}
+
+.adm-filter-btn {
+  padding: 6px 14px;
+  background: #fff;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 999px; /* => pill shape distinguishes filters from the square search/more buttons */
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.adm-filter-btn:hover {
+  background: #f3f4f6;
+}
+
+.adm-filter-btn--active {
+  background: var(--sidebar-bg);
+  border-color: var(--sidebar-bg);
+  color: #fff;
+}
+
+.adm-filter-select {
+  padding: 6px 12px;
+  background: #fff;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 999px; /* => matches the pill radius of .adm-filter-btn for visual consistency */
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.adm-filter-select:focus {
+  outline: none;
+  border-color: #1a56db;
+}
+
+/* ════════════════════════════════════
+   TYPE BADGE (TESDA vs SHS)
+   ════════════════════════════════════ */
+.adm-type-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.adm-type-badge--tesda {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.adm-type-badge--shs {
+  background: #fce7f3;
+  color: #9d174d;
 }
 
 /* ════════════════════════════════════

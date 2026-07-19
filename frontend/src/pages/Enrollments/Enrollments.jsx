@@ -82,11 +82,10 @@ export default function Enrollments() {
   const [searchLoading,  setSearchLoading]  = useState(false);
   const [searchError,    setSearchError]    = useState(null);
 
-  // => Client-side ONLY filters (type + branch) - never trigger a re-fetch,
+  // => Client-side ONLY filters (type + status) - never trigger a re-fetch,
   //    they just filter whatever's already loaded in `enrollments` /
   //    `searchResults`
   const [typeFilter,   setTypeFilter]   = useState('ALL');   // => 'ALL' | 'TESDA' | 'SHS'
-  const [branchFilter, setBranchFilter] = useState('ALL');   // => 'ALL' | exact branch_name
   const [statusFilter, setStatusFilter] = useState('ALL');   // => 'ALL' | one of statusClass's keys
 
   // => Ref to abort stale search requests when a new one fires
@@ -134,20 +133,9 @@ export default function Enrollments() {
       .catch(err => console.error('Failed to fetch SHS lookups:', err));
   }, []);
 
-  // => Unique branch names pulled from whatever's currently loaded (default
-  //    list or search results) - avoids a dedicated /branches endpoint
-  //    since branch_name already rides along on every enrollment row.
-  //    Recomputes only when the underlying data changes, not on every render.
-  const availableBranches = useMemo(() => {
-    const source = searchResults !== null ? searchResults : enrollments;
-    const names = new Set(source.map(r => r.branch_name).filter(Boolean));
-    return Array.from(names).sort();
-  }, [enrollments, searchResults]);
-
-  // => Applies type/branch/status filters in memory only - no fetch, no API call
+  // => Applies type/status filters in memory only - no fetch, no API call
   const applyFilters = (rows) => rows.filter(r =>
     (typeFilter === 'ALL'   || r.enrollment_type === typeFilter) &&
-    (branchFilter === 'ALL' || r.branch_name === branchFilter) &&
     (statusFilter === 'ALL' || r.status === statusFilter)
   );
 
@@ -219,7 +207,7 @@ export default function Enrollments() {
   const isSearchMode = searchResults !== null;
 
   // => Split default enrollments into two priority buckets for visual grouping,
-  //    then run them through the client-side type/branch filters
+  //    then run them through the client-side type/status filters
   const needsClarification = applyFilters(enrollments.filter(e => e.status === 'Needs Clarification'));
   const pending            = applyFilters(enrollments.filter(e => e.status === 'Pending'));
 
@@ -364,7 +352,7 @@ export default function Enrollments() {
       </div>
 
       {/* ════════════════════════════════════
-          FILTER BUTTONS (type + branch)
+          FILTER BUTTONS (type)
           => Client-side only - toggling these never re-fetches, they just
              re-filter enrollments/searchResults already sitting in state
           ════════════════════════════════════ */}
@@ -381,28 +369,6 @@ export default function Enrollments() {
             </button>
           ))}
         </div>
-
-        {/* => Only render the branch group if there's actually branch data loaded */}
-        {availableBranches.length > 0 && (
-          <div className="adm-filter-group">
-            <span className="adm-filter-label">Branch</span>
-            <button
-              className={`adm-filter-btn ${branchFilter === 'ALL' ? 'adm-filter-btn--active' : ''}`}
-              onClick={() => setBranchFilter('ALL')}
-            >
-              All
-            </button>
-            {availableBranches.map(name => (
-              <button
-                key={name}
-                className={`adm-filter-btn ${branchFilter === name ? 'adm-filter-btn--active' : ''}`}
-                onClick={() => setBranchFilter(name)}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* => Status filter as a dropdown rather than pills - 7 possible
                values (from statusClass) is too many for a comfortable
@@ -442,7 +408,7 @@ export default function Enrollments() {
             </div>
           )}
 
-          {/* => searchResults has rows, but the type/branch filters narrowed it to 0 */}
+          {/* => searchResults has rows, but the type/status filters narrowed it to 0 */}
           {!searchLoading && searchResults.length > 0 && filteredSearchResults.length === 0 && (
             <div className="adm-enroll-state">
               <span className="adm-state-icon">🔍</span>
@@ -487,7 +453,7 @@ export default function Enrollments() {
             </div>
           )}
 
-          {/* => enrollments has rows, but type/branch filters narrowed both buckets to 0 */}
+          {/* => enrollments has rows, but type/status filters narrowed both buckets to 0 */}
           {!loading && !error && enrollments.length > 0 &&
             needsClarification.length === 0 && pending.length === 0 && (
             <div className="adm-enroll-state">
@@ -537,7 +503,6 @@ function EnrollmentTable({ rows, onRowClick, shsLookups }) {
             <th>Student</th>
             <th>Type</th>
             <th>Program</th>
-            <th>Branch</th>
             <th>Submitted</th>
             <th>Status</th>
             <th></th>
@@ -570,7 +535,6 @@ function EnrollmentTable({ rows, onRowClick, shsLookups }) {
                 </span>
               </td>
                <td>{programDisplay(row, shsLookups)}</td>
-              <td>{row.branch_name ?? '-'}</td>
               <td className="adm-td-date">{formatDate(row.submitted_at)}</td>
               <td>
                 <span className={`adm-badge ${statusClass[row.status] || ''}`}>

@@ -930,7 +930,6 @@ export default function StudentDetail() {
                 <thead>
                   <tr>
                     <th>Course</th>
-                    <th>Branch</th>
                     <th>Class Dates</th>
                     <th>Class Status</th>
                     <th>Enrollment Status</th>
@@ -947,7 +946,6 @@ export default function StudentDetail() {
                       title="View enrollment detail"
                     >
                       <td className="adm-td-course">{e.course_name ?? '-'}</td>
-                      <td className="adm-td-branch">{e.branch_name ?? '-'}</td>
                       <td className="adm-td-dates">
                         {e.start_date
                           ? `${String(e.start_date).slice(0,10)} – ${String(e.end_date).slice(0,10)}`

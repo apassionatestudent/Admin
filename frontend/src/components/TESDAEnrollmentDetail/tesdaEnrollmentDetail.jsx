@@ -9,7 +9,7 @@
 //    those tables no longer exist in the schema (confirmed dead, was on TODO).
 // => Edit Mode added: pencil icon per section, whole section becomes
 //    editable, one Save/Cancel per section. Nothing is field-locked.
-//    Course/Branch/Class reassignment stays read-only - deferred until a
+//    Course/Class reassignment stays read-only - deferred until a
 //    proper picker endpoint exists (matches earlier project decision).
 
 import React, { useState, useEffect } from 'react';
@@ -749,17 +749,17 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
   useEffect(() => {
     if (editingSection !== 'classAssign') return;
     const enr = data?.enrollment;
-    if (!enr?.branch_id || !enr?.course_id) { setClassOptions([]); return; }
+    if (!enr?.course_id) { setClassOptions([]); return; }
 
     setLoadingClassOptions(true);
-    const params = new URLSearchParams({ branch_id: enr.branch_id, course_id: enr.course_id });
+    const params = new URLSearchParams({ course_id: enr.course_id });
 
     fetch(`/api/admin/enrollments/tesda/classes/available?${params.toString()}`, { credentials: 'include' })
       .then(r => r.json())
       .then(d => setClassOptions(d.classes || []))
       .catch(err => console.error('Failed to fetch available classes:', err))
       .finally(() => setLoadingClassOptions(false));
-  }, [editingSection, data?.enrollment?.branch_id, data?.enrollment?.course_id]);
+  }, [editingSection, data?.enrollment?.course_id]);
 
   //  Fetch full enrollment detail on mount 
   useEffect(() => {
@@ -939,7 +939,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
   // => Each hits the same generic patchSection helper, then merges the
   //    response back into `data` by SPREADING over the existing object -
   //    the enrollment PATCH returns RETURNING * (raw columns only), which
-  //    does NOT include joined display fields like course_name/branch_name/
+  //    does NOT include joined display fields like course_name/
   //    sector/student_username/class period. Spreading preserves those
   //    instead of wiping them out.
   // 
@@ -1186,7 +1186,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               ════════════════════════════════════ */}
           <div className="adm-detail-hero">
             <div className="adm-hero-left">
-              <p className="adm-hero-course">{enrollment.course_name ?? '-'}</p>
+              <p className="adm-hero-course">{enrollment.course_name || '-'}</p>
               <h2 className="adm-hero-name">{fullName(profile)}</h2>
               <p className="adm-hero-email">{enrollment.student_username}</p>
             </div>
@@ -1280,8 +1280,8 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
 
           {/* ════════════════════════════════════
               ENROLLMENT INFORMATION
-              => Course/Sector/Branch/Date Submitted stay read-only - they're
-                 derived from joins (course_id/branch_id/class_id) and need
+              => Course/Sector/Date Submitted stay read-only - they're
+                 derived from joins (course_id/class_id) and need
                  a proper picker UI, deferred per earlier project decision.
                  ULI and Fee are direct columns and fully editable.
               ════════════════════════════════════ */}
@@ -1312,13 +1312,12 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                 </>
               ) : (
                 <>
-                  <InfoCard label="ULI" value={enrollment.uli ?? '-'} />
+                  <InfoCard label="ULI" value={enrollment.uli || '-'} />
                   <InfoCard label="Fee at Enrollment" value={feeDisplay} copyable={true} />
                 </>
               )}
-              <InfoCard label="Course" value={enrollment.course_name ?? '-'} />
-              <InfoCard label="Sector" value={enrollment.sector ?? '-'} />
-              <InfoCard label="Branch" value={enrollment.branch_name ?? '-'} />
+              <InfoCard label="Course" value={enrollment.course_name || '-'} />
+              <InfoCard label="Sector" value={enrollment.sector || '-'} />
               <InfoCard label="Date Submitted" value={formatDate(enrollment.submitted_at)} />
             </div>
           </section>
@@ -1371,7 +1370,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
             ) : (
               <div className="adm-info-grid adm-info-grid--halves">
                 <InfoCard label="Class Period" value={classPeriodDisplay} copyable={false} />
-                <InfoCard label="Groupchat Link" value={enrollment.groupchat_link ?? '-'} />
+                <InfoCard label="Groupchat Link" value={enrollment.groupchat_link || '-'} />
               </div>
             )}
           </section>
@@ -1422,8 +1421,8 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               ) : (
                 <>
                   <InfoCard label="NCAE Taken" value={enrollment.ncae_taken ? 'Yes' : 'No'} copyable={false} />
-                  <InfoCard label="Where Taken" value={enrollment.ncae_where ?? '-'} />
-                  <InfoCard label="When Taken"  value={enrollment.ncae_when ?? '-'} />
+                  <InfoCard label="Where Taken" value={enrollment.ncae_where || '-'} />
+                  <InfoCard label="When Taken"  value={enrollment.ncae_when || '-'} />
                 </>
               )}
             </div>
@@ -1475,8 +1474,8 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               ) : (
                 <>
                   <InfoCard label="TESDA Scholar" value={enrollment.is_tesda_scholar ? 'Yes' : 'No'} copyable={false} />
-                  <InfoCard label="Scholarship Type" value={enrollment.scholarship_type ?? '-'} />
-                  <InfoCard label="Other Scholarship" value={enrollment.other_scholarship ?? '-'} />
+                  <InfoCard label="Scholarship Type" value={enrollment.scholarship_type || '-'} />
+                  <InfoCard label="Other Scholarship" value={enrollment.other_scholarship || '-'} />
                 </>
               )}
             </div>
@@ -1650,15 +1649,15 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               ) : (
                 <>
                   <InfoCard label="Full Name"    value={fullName(profile)} />
-                  <InfoCard label="Email"        value={profile.email ?? '-'} />
-                  <InfoCard label="Contact No."  value={profile.contact_no ?? '-'} />
-                  <InfoCard label="Facebook"     value={profile.facebook_link ?? '-'} />
-                  <InfoCard label="Sex"          value={profile.sex ?? '-'} />
+                  <InfoCard label="Email"        value={profile.email || '-'} />
+                  <InfoCard label="Contact No."  value={profile.contact_no || '-'} />
+                  <InfoCard label="Facebook"     value={profile.facebook_link || '-'} />
+                  <InfoCard label="Sex"          value={profile.sex || '-'} />
                   <InfoCard label="Birthdate"    value={formatDate(profile.birth_date)} />
-                  <InfoCard label="Nationality"  value={profile.nationality ?? '-'} />
-                  <InfoCard label="Civil Status" value={profile.civil_status ?? '-'} />
-                  <InfoCard label="Employment"   value={profile.employment_status ?? '-'} />
-                  <InfoCard label="Education"    value={profile.highest_educ_attainment ?? '-'} />
+                  <InfoCard label="Nationality"  value={profile.nationality || '-'} />
+                  <InfoCard label="Civil Status" value={profile.civil_status || '-'} />
+                  <InfoCard label="Employment"   value={profile.employment_status || '-'} />
+                  <InfoCard label="Education"    value={profile.highest_educ_attainment || '-'} />
                   <InfoCard
                     label="Birthplace"
                     value={
@@ -1708,11 +1707,11 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               </div>
             ) : address && (
               <div className="adm-info-grid" style={{ marginTop: '12px' }}>
-                <InfoCard label="Street"   value={address.street ?? '-'} />
-                <InfoCard label="Region"   value={locationNames.region   ?? address.region_code   ?? '-'} />
-                <InfoCard label="Province" value={locationNames.province ?? address.province_code ?? '-'} />
-                <InfoCard label="City"     value={locationNames.city     ?? address.city_code     ?? '-'} />
-                <InfoCard label="Barangay" value={locationNames.barangay ?? address.barangay_code ?? '-'} />
+                <InfoCard label="Street"   value={address.street || '-'} />
+                <InfoCard label="Region"   value={(locationNames.region ?? address.region_code) || '-'} />
+                <InfoCard label="Province" value={(locationNames.province ?? address.province_code) || '-'} />
+                <InfoCard label="City"     value={(locationNames.city ?? address.city_code) || '-'} />
+                <InfoCard label="Barangay" value={(locationNames.barangay ?? address.barangay_code) || '-'} />
               </div>
             )}
           </section>
@@ -1758,9 +1757,9 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               </div>
             ) : guardian ? (
               <div className="adm-info-grid">
-                <InfoCard label="Guardian Name"    value={guardian.guardian_name ?? '-'} />
-                <InfoCard label="Guardian Address" value={guardian.guardian_address ?? '-'} />
-                <InfoCard label="Guardian Contact No." value={guardian.guardian_contact_no ?? '-'} />
+                <InfoCard label="Guardian Name"    value={guardian.guardian_name || '-'} />
+                <InfoCard label="Guardian Address" value={guardian.guardian_address || '-'} />
+                <InfoCard label="Guardian Contact No." value={guardian.guardian_contact_no || '-'} />
               </div>
             ) : (
               <p className="adm-empty-note">No guardian on file. Click the pencil to add one.</p>

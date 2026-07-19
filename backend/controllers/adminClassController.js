@@ -31,10 +31,10 @@ export const listActiveClasses = async (req, res) => {
 // => Must be registered BEFORE /:publicId in the router
 // 
 export const searchClassesController = async (req, res) => {
-  const { course_name, branch_name, instructor_name, status, sector, start_date_from, start_date_to } = req.query;
+  const { course_name, instructor_name, status, sector, program_type, track, cluster, start_date_from, start_date_to } = req.query;
   try {
     const results = await searchClassesService({
-      course_name, branch_name, instructor_name, status, sector, start_date_from, start_date_to,
+      course_name, instructor_name, status, sector, program_type, track, cluster, start_date_from, start_date_to,
     });
     return res.json({ classes: results });
   } catch (err) {
@@ -45,7 +45,7 @@ export const searchClassesController = async (req, res) => {
 
 // 
 // GET /api/admin/classes/form-options
-// => Returns courses, branches, instructors for the Add Class modal
+// => Returns courses, instructors for the Add Class modal
 // => Must be registered BEFORE /:publicId to avoid ambiguity
 // 
 export const getFormOptions = async (req, res) => {

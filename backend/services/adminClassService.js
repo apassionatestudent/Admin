@@ -37,7 +37,8 @@ export const fetchClassDetail = async (publicId) => {
 };
 
 // UPDATE CLASS STATUS
-const ALLOWED_CLASS_STATUSES = ['Planned', 'Ongoing', 'Concluded'];
+// => TESDA-only for now - see updateClassStatus in adminClassModel.js
+const ALLOWED_CLASS_STATUSES = ['Pending', 'Ongoing', 'Concluded'];
 
 export const changeClassStatus = async (publicId, newStatus) => {
   if (!ALLOWED_CLASS_STATUSES.includes(newStatus)) {
@@ -49,9 +50,8 @@ export const changeClassStatus = async (publicId, newStatus) => {
 // CREATE CLASS
 export const addClass = async (classData) => {
   // => Basic required field validation before hitting the DB
-  const { course_id, branch_id, start_date, end_date, required_number_of_students, max_students } = classData;
+  const { course_id, start_date, end_date, required_number_of_students, max_students } = classData;
   if (!course_id)                    throw new Error('course_id is required.');
-  if (!branch_id)                    throw new Error('branch_id is required.');
   if (!start_date)                   throw new Error('start_date is required.');
   if (!end_date)                     throw new Error('end_date is required.');
   if (!required_number_of_students)  throw new Error('required_number_of_students is required.');
