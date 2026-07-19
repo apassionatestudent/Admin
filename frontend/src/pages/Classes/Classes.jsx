@@ -34,14 +34,15 @@ const formatDate = (dateStr) => {
 };
 
 // => Empty search filters - used for reset
-// => program_type/track/cluster added for SHS; course_name/sector/instructor_name stay TESDA-only
+// => program_type/cluster added for SHS; course_name/sector/instructor_name stay TESDA-only
+// => No track filter - stakeholders only offer a single track, so it's not
+//    a meaningful thing to filter by
 const EMPTY_FILTERS = {
   course_name:     '',
   instructor_name: '',
   status:          '',
   sector:          '',
-  program_type:      '',
-  track:           '',
+  program_type:    '',
   cluster:         '',
   start_date_from: '',
   start_date_to:   '',
@@ -80,12 +81,12 @@ export default function Classes() {
   const [typeFilter,   setTypeFilter]   = useState('ALL'); // => 'ALL' | 'TESDA' | 'SHS'
   const [statusFilter, setStatusFilter] = useState('ALL'); // => 'ALL' | one of statusClass's keys
 
-  // => Cache for sector dropdown in More Options
+  // => Cache for sector/cluster dropdowns in More Options
   // => useRef so it survives re-renders without triggering one
   const filterOptionsCache = useRef(null);
-  const [filterOptions, setFilterOptions] = useState({ sectors: [] });
+  const [filterOptions, setFilterOptions] = useState({ sectors: [], clusters: [] });
 
-  // => Fetch sectors for the More Options dropdown
+  // => Fetch sectors and clusters for the More Options dropdowns
   // => Must live inside the component so it can access filterOptionsCache and setFilterOptions
   const fetchFilterOptions = async () => {
     if (filterOptionsCache.current) {
@@ -99,7 +100,7 @@ export default function Classes() {
       });
       if (!res.ok) return;
       const data = await res.json();
-      const extracted = { sectors: data.sectors };
+      const extracted = { sectors: data.sectors, clusters: data.clusters };
       // => Store in ref (persists without re-render) and state (drives the UI)
       filterOptionsCache.current = extracted;
       setFilterOptions(extracted);
@@ -224,9 +225,9 @@ export default function Classes() {
       setFormOptions(data);
 
       // => Also populate the More Options filter cache from the same fetch
-      // => So if modal opens first, More Options dropdown is already ready
+      // => So if modal opens first, More Options dropdowns are already ready
       if (!filterOptionsCache.current) {
-        const extracted = { sectors: data.sectors };
+        const extracted = { sectors: data.sectors, clusters: data.clusters };
         filterOptionsCache.current = extracted;
         setFilterOptions(extracted);
       }
@@ -376,7 +377,7 @@ export default function Classes() {
 
               {/* => Class Type comes first - it determines which fields below
                      even show up. Switching type clears the other type's
-                     stale filter values so a leftover Track value doesn't
+                     stale filter values so a leftover Cluster value doesn't
                      silently apply once you're back on TESDA. */}
               <div className="adm-more-field">
                 <label className="adm-more-label">Class Type</label>
@@ -390,7 +391,6 @@ export default function Classes() {
                       program_type: nextType,
                       instructor_name: '',
                       sector: '',
-                      track: '',
                       cluster: '',
                     }));
                   }}
@@ -436,32 +436,24 @@ export default function Classes() {
               )}
 
               {/* => SHS-only fields - only shown once SHS is selected */}
+              {/* => No Track field - stakeholders only offer a single track */}
               {filters.program_type === 'SHS' && (
-                <>
-                  <div className="adm-more-field">
-                    <label className="adm-more-label">Track</label>
-                    <input
-                      type="text"
-                      className="adm-more-input"
-                      placeholder="e.g. Academic Track"
-                      value={filters.track}
-                      onChange={e => setFilters(f => ({ ...f, track: e.target.value }))}
-                      onKeyDown={handleKeyDown}
-                    />
-                  </div>
-
-                  <div className="adm-more-field">
-                    <label className="adm-more-label">Cluster</label>
-                    <input
-                      type="text"
-                      className="adm-more-input"
-                      placeholder="e.g. STEM"
-                      value={filters.cluster}
-                      onChange={e => setFilters(f => ({ ...f, cluster: e.target.value }))}
-                      onKeyDown={handleKeyDown}
-                    />
-                  </div>
-                </>
+                <div className="adm-more-field">
+                  <label className="adm-more-label">Cluster</label>
+                  {/* => Dropdown pulled from shs_clusters, cached after first open */}
+                  <select
+                    className="adm-more-input"
+                    value={filters.cluster}
+                    onChange={e => setFilters(f => ({ ...f, cluster: e.target.value }))}
+                  >
+                    <option value="">- Any -</option>
+                    {filterOptions.clusters.map(c => (
+                      <option key={c.cluster_id} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               )}
 
               {/* => Status is a fixed set - dropdown is cleaner than free text */}

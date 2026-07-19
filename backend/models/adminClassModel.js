@@ -201,15 +201,16 @@ export const createClass = async (pool, {
 // SEARCH CLASSES
 // => Searches across all statuses, combining TESDA + SHS (mirrors
 //    adminEnrollmentModel.js's searchEnrollments UNION ALL pattern)
-// => Filters: course_name (TESDA), track/cluster (SHS), instructor_name
+// => Filters: course_name (TESDA), cluster (SHS), instructor_name
 //    (TESDA), status, sector (TESDA), program_type, start_date range
+// => Track dropped - stakeholders only offer a single track, so it's not
+//    a meaningful filter (shs_classes.track column itself is untouched)
 export const searchClasses = async (pool, {
   course_name,
   instructor_name,
   status,
   sector,
   program_type,
-  track,
   cluster,
   start_date_from,
   start_date_to,
@@ -277,8 +278,7 @@ export const searchClasses = async (pool, {
         LEFT JOIN shs_enrollments e ON e.class_id = cl.class_id
         WHERE
           ($1::text IS NULL OR $1 = 'TESDA')
-          AND ($8::text IS NULL OR cl.track   ILIKE '%' || $8 || '%')
-          AND ($9::text IS NULL OR cl.cluster ILIKE '%' || $9 || '%')
+          AND ($8::text IS NULL OR cl.cluster ILIKE '%' || $8 || '%')
           AND ($4::text IS NULL OR cl.status  = $4)
           AND ($6::date IS NULL OR cl.start_date >= $6::date)
           AND ($7::date IS NULL OR cl.start_date <= $7::date)
@@ -300,7 +300,6 @@ export const searchClasses = async (pool, {
       sector           || null,
       start_date_from  || null,
       start_date_to    || null,
-      track            || null,
       cluster          || null,
     ]);
     return rows.rows;
@@ -310,11 +309,13 @@ export const searchClasses = async (pool, {
 };
 
 // GET DROPDOWN DATA FOR ADD CLASS MODAL
-// => Returns all active courses and instructors
+// => Returns all active courses, instructors, sectors, and SHS clusters
 // => Used to populate the form selects
+// => TODO: if shs_clusters gets renamed (e.g. tpt_clusters) once shs_tracks
+//    is retired, update the table name below to match
 export const getClassFormOptions = async (pool) => {
-  // => Fetch courses, instructors, and sectors in parallel
-  const [courses, instructors, sectors] = await Promise.all([
+  // => Fetch courses, instructors, sectors, and SHS clusters in parallel
+  const [courses, instructors, sectors, clusters] = await Promise.all([
     pool.query(
       `SELECT course_id, title, hours
          FROM tesda_courses
@@ -331,11 +332,18 @@ export const getClassFormOptions = async (pool) => {
          FROM sectors
          ORDER BY sector ASC`
     ),
+    // => Clusters pulled from shs_clusters - used in the More Options Cluster dropdown
+    pool.query(
+      `SELECT cluster_id, name
+         FROM shs_clusters
+         ORDER BY name ASC`
+    ),
   ]);
 
   return {
     courses:     courses.rows,
     instructors: instructors.rows,
     sectors:     sectors.rows,
+    clusters:    clusters.rows,
   };
 };
