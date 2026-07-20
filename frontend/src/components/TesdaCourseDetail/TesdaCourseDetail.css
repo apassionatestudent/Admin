@@ -1,0 +1,585 @@
+/* => TesdaCourseDetail.css
+   => Uses your real index.css tokens (--text, --text-h, --border, --bg,
+   => --accent, --text-muted) instead of made-up fallbacks. Explicit color
+   => is set on every text-bearing element below rather than relying on
+   => inheritance - guards against invisible text if an ancestor container
+   => sets a different color (e.g. white, if this ever renders inside a
+   => dark-styled wrapper). */
+
+.course-detail-page {
+  padding: 32px;
+  max-width: 100%; /* => was 960px - that hard cap was leaving the big blank gap on the right; letting it fill the available layout width instead */
+  color: var(--text);
+  font-family: var(--font-body), sans-serif;
+}
+
+/* => Loading state, matches Courses.css's .courses-state/.courses-spinner
+   => exactly (same blue spinner accent, breaking from the maroon theme on
+   => purpose, same as that page) - was just a bare "Loading..." <p> before. */
+.detail-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 0;
+  color: var(--text-muted, var(--text));
+  font-size: 0.9375rem;
+}
+
+.detail-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: #1a56db;
+  border-radius: 50%;
+  animation: detail-spin 0.8s linear infinite;
+}
+
+@keyframes detail-spin {
+  to { transform: rotate(360deg); }
+}
+
+.course-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.course-detail-header h2 {
+  margin: 0;
+  color: var(--text-h);
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.status-toggle {
+  background: var(--code-bg, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+  font-family: var(--font-body), sans-serif; /* => buttons don't inherit font-family by default - was falling back to the browser's serif UA default */
+}
+
+.btn-delete {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: var(--font-body), sans-serif; /* => same fix - was inheriting the browser default instead of your body font */
+}
+
+.course-info-section,
+.competencies-section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 0.8125rem; /* => was unset, inheriting the browser's large default h3 - now matches the enrollment page's UPDATE STATUS/ENROLLMENT INFORMATION label style */
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, var(--text));
+}
+
+/* => "Competencies" sits directly in .competencies-section, not inside
+   => .section-header like the other titles - was inheriting the browser
+   => default h3 size, needs its own explicit small-caps rule. */
+.competencies-section > h3 {
+  margin: 0 0 16px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, var(--text));
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trash-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+/* => Simple pencil-only edit button, ported from tesdaEnrollmentDetail.css's
+   => .adm-section-edit-btn / .adm-pencil-icon. Replaces the old text-based
+   => as-is since it's still used by the competency row edit/delete links. */
+.section-edit-btn {
+  background: none;
+  border: 1.5px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.section-edit-btn:hover {
+  background: var(--sidebar-hover-bg, #262626); /* => swapped from enrollment page's #f3f4f6, matches your maroon/charcoal theme */
+  border-color: var(--accent-hover, #8a0d17); /* => was #1a56db blue on the enrollment page */
+}
+
+.section-edit-btn:hover .pencil-icon {
+  filter: brightness(0) invert(1); /* => keeps the pencil visible once the bg goes dark on hover */
+}
+
+.pencil-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.info-view-grid,
+.info-edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.info-view-grid .field-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted, var(--text));
+  margin-bottom: 4px;
+}
+
+.info-view-grid p {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.875rem; /* => was unset, inheriting the page's plain 16px default - now matches .publish-empty p's size */
+}
+
+.info-edit-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted, var(--text));
+}
+
+.required-mark {
+  color: var(--accent-hover, #8a0d17);
+}
+
+.field-error {
+  display: block;
+  color: #dc2626;
+  font-size: 11.5px;
+  line-height: 1.3;
+  margin-top: 4px;
+}
+
+.info-edit-grid .span-2 {
+  grid-column: span 2;
+}
+
+/* => Title takes ~80% of the row, National Certification Level takes ~20%,
+   => sitting on the same line. This div itself spans both columns of the
+   => outer info-edit-grid, then lays its two labels out with its own
+   => 4fr:1fr ratio - it doesn't need .span-2 on the labels inside it. */
+.title-cert-row {
+  grid-column: span 2;
+  display: grid;
+  grid-template-columns: 4fr 1fr;
+  gap: 16px;
+}
+
+.info-edit-grid input,
+.info-edit-grid select,
+.info-edit-grid textarea {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text);
+  background: var(--bg);
+  font-family: var(--font-body), sans-serif; /* => form elements don't inherit font-family - was falling back to the browser's default sans font, mismatching the serif labels beside them */
+}
+
+.edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-secondary {
+  background: var(--code-bg, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-body), sans-serif;
+}
+
+.btn-primary {
+  background: var(--accent-hover, #8a0d17); /* => was violet/blue fallback var(--accent, #2563eb) */
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  font-family: var(--font-body), sans-serif;
+}
+
+.btn-primary:hover {
+  background: var(--sidebar-hover-bg, #262626); /* => was missing a hover state entirely */
+}
+
+/* => Competency tables */
+
+.competency-block {
+  margin-bottom: 22px;
+}
+
+.competency-block:last-child {
+  margin-bottom: 0;
+}
+
+.competency-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.competency-block-header h4 {
+  margin: 0;
+  font-size: 0.875rem; /* => kept in normal title case (not uppercase) so it visually reads as tier-2, below the all-caps "COMPETENCIES" label above it */
+  font-weight: 700;
+  color: var(--text);
+}
+
+.btn-add-row {
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--accent-hover, #8a0d17); /* => was violet/blue fallback */
+  cursor: pointer;
+}
+
+.competency-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text);
+}
+
+.competency-table th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--text-muted, var(--text));
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.competency-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text);
+  vertical-align: middle; /* => explicit override in case a global reset sets td { vertical-align: top } elsewhere - that would push short content (Save/Cancel) to the top of a taller row while the input cells fill more of it, causing exactly this gap */
+}
+
+/* => Basic/Common/Core now render as rows within ONE shared <table> (see
+   => call site), so the browser's normal auto table-layout computes a
+   => single "Code" column width across all three sections combined -
+   => genuinely dynamic, no pixel guessing, and native border-collapse means
+   => row-divider lines are continuous without any extra work.
+   => Compound selectors here (not bare .col-code) so this reliably beats
+   => .competency-table td's own padding regardless of source order - a bare
+   => single-class .col-code rule silently lost that fight once before. */
+.competency-table th.col-code,
+.competency-table td.col-code {
+  padding-right: 140px;
+}
+
+/* => The section header ("Basic Competencies" + "+ Add Row") sits inside a
+   => single <td colSpan={3}> so it can interrupt the table's rows without
+   => breaking the table structure - no border/padding of its own, since
+   => .competency-block-header (reused from the Job Opportunities pattern)
+   => already handles its internal layout and spacing. */
+.section-header-row td {
+  padding: 0;
+  border-bottom: none;
+}
+
+.section-header-row:not(:first-child) td {
+  padding-top: 22px;
+}
+
+.competency-table input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.row-actions {
+  white-space: nowrap; /* => was display:flex, which overrides a <td>'s table-cell behavior and breaks its row-height/border alignment with sibling cells - that's what caused the line mismatch */
+  width: 1%; /* => combined with white-space:nowrap, forces this column to shrink to its content's minimum width instead of stretching - all remaining table width goes to the first column */
+  text-align: right; /* => pins content to the right edge of that shrunk column, so Save/Cancel lands in the exact same spot the pencil/trash icons sit in on non-editing rows */
+}
+
+.row-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 6px;
+  color: var(--accent-hover, #8a0d17); /* => was violet/blue fallback */
+}
+
+.row-actions button + button {
+  margin-left: 4px; /* => replaces the flex gap now that .row-actions is a normal table-cell again */
+}
+
+.competency-empty {
+  text-align: center;
+  color: var(--text-muted, var(--text));
+}
+
+/* => Publish section */
+
+.publish-section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.publish-section h3 {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, var(--text));
+}
+
+.publish-empty p {
+  color: var(--text-muted, var(--text));
+  margin-bottom: 12px;
+  font-size: 0.875rem;
+}
+
+.publish-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.publish-row .field-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted, var(--text));
+  margin-bottom: 6px;
+}
+
+.publish-row p {
+  margin: 0;
+  color: var(--text);
+}
+
+.form-error {
+  color: #dc2626;
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+
+.slug-view-row,
+.slug-edit-row,
+.publish-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.slug-view-row code {
+  background: var(--code-bg, var(--bg));
+  color: var(--text);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.slug-edit-row input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+
+/* => Status badge - referenced by ShsCourseDetail.jsx's Publish section
+   => (course.publicLink.is_published ? 'active' : 'inactive') but never
+   => defined here. Matches Courses.css's .status-badge exactly. */
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge.status-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.status-inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* => Audit Log - fresh CSS, not ported from tesdaEnrollmentDetail.css
+   => (wasn't available this round) - uses this page's own token/naming
+   => convention instead. */
+.audit-log-section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.audit-log-section .section-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, var(--text));
+}
+
+.section-count {
+  background: var(--code-bg, var(--bg));
+  border: 1px solid var(--border);
+  color: var(--text-muted, var(--text));
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+
+.log-empty {
+  color: var(--text-muted, var(--text));
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.log-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.log-item {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 16px;
+  position: relative;
+}
+
+.log-item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 12px;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+}
+
+.log-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent-hover, #8a0d17);
+  margin-top: 4px;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.log-content {
+  flex: 1;
+}
+
+.log-action {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.log-status-change {
+  font-weight: 400;
+  color: var(--text-muted, var(--text));
+}
+
+.log-meta {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted, var(--text));
+}
+
+.log-remarks {
+  margin: 4px 0 0;
+  font-size: 0.8125rem;
+  color: var(--text);
+}

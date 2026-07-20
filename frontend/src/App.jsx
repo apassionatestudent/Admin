@@ -23,6 +23,8 @@ import TESDAEnrollmentDetail from './components/TESDAEnrollmentDetail/tesdaEnrol
 import SHSEnrollmentDetail   from './components/SHSEnrollmentDetail/shsEnrollmentDetail.jsx';
 import ClassDetail from './components/ClassDetail/ClassDetail.jsx';
 import StudentDetail from './components/StudentDetail/StudentDetail.jsx';
+import TesdaCourseDetail from './components/TESDACourseDetail/TesdaCourseDetail.jsx';
+import ShsCourseDetail   from './components/ShsCourseDetail/ShsCourseDetail.jsx';
 
 import { Toaster } from "react-hot-toast";
 
@@ -64,6 +66,8 @@ function App() {
                     <Route path="reports"               element={<Reports />} />
                     <Route path="payments"              element={<Payments />} />
                     <Route path="courses"               element={<Courses />} />
+                    <Route path="courses/tesda/:adminUuid" element={<TesdaCourseDetail />} />
+                    <Route path="courses/shs/:adminUuid"   element={<ShsCourseDetail />} />
                     <Route path="pages"                 element={<Pages />} />
                     <Route path="logs"                  element={<Logs />} />
                     <Route path="chatbots"              element={<Chatbots />} />
