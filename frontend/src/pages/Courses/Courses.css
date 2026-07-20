@@ -1,0 +1,333 @@
+/* => Courses.css
+   => Uses your real tokens from index.css (--text, --text-h, --border, --bg,
+   => --text-muted, --accent, --accent-hover). I don't have your sidebar
+   => maroon / dashboard blue button tokens yet - swap --accent below for
+   => whichever variable defines that blue once you send that file over. */
+
+.courses-page {
+  padding: 32px;
+  color: var(--text);
+  font-family: var(--font-body), sans-serif; /* => matches sidebar's font-family */
+}
+
+.courses-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.courses-header h2 {
+  margin: 0 0 4px;
+  font-size: 1.75rem; /* => matches Enrollments.css's .adm-enroll-title exactly */
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-h); /* => kept as your token instead of Enrollments.css's hardcoded #0f1724, since Courses.css deliberately stays token-based - swap to #0f1724 directly if you want a byte-for-byte match instead */
+}
+
+.courses-subtitle {
+  font-size: 0.875rem; /* => matches Enrollments.css's .adm-enroll-subtitle exactly */
+  color: var(--text-muted, var(--text));
+  margin: 0;
+}
+
+.courses-subtitle strong {
+  color: var(--text);
+}
+
+.btn-create-course {
+  background: var(--accent-hover, #8a0d17);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: 600;
+  font-size: 0.875rem; /* => matches Enrollments.css's .adm-search-btn - buttons don't inherit page font-size by default */
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+}
+
+.btn-create-course:hover {
+  background: var(--sidebar-hover-bg, #262626); /* => now matches sidebar's selected-item color instead of violet */
+}
+
+.courses-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.courses-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 10px 18px;
+  font-weight: 600;
+  font-size: 0.8125rem; /* => matches Enrollments.css's .adm-more-btn / .adm-filter-btn size */
+  color: var(--text-muted, var(--text));
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-body), sans-serif;
+}
+
+.tab-btn.tab-active {
+  color: var(--accent-hover, #8a0d17); /* => was violet var(--accent) */
+  border-bottom: 2px solid var(--accent-hover, #8a0d17); /* => was violet var(--accent) */
+}
+
+/* => Active/Deleted toggle - sits to the right of the TESDA/SHS tabs */
+.view-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--code-bg, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+
+.view-toggle-btn {
+  background: none;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted, var(--text));
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+}
+
+.view-toggle-btn.view-toggle-active {
+  background: var(--accent-hover, #8a0d17);
+  color: #fff;
+}
+
+.courses-row-static {
+  cursor: default;
+}
+
+.courses-row-static:hover {
+  background: none;
+}
+
+.btn-restore {
+  background: none;
+  border: 1px solid var(--accent-hover, #8a0d17);
+  color: var(--accent-hover, #8a0d17);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+}
+
+.btn-restore:hover {
+  background: var(--accent-hover, #8a0d17);
+  color: #fff;
+}
+
+.courses-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  color: var(--text);
+}
+
+.courses-table th {
+  text-align: left;
+  padding: 12px 16px;
+  background: var(--sidebar-bg, #660911);
+  font-size: 0.75rem; /* => matches Enrollments.css's .adm-table th exactly */
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #fff;
+  border-bottom: 1px solid var(--border);
+}
+
+.courses-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.875rem; /* => matches Enrollments.css's .adm-table body text exactly */
+}
+
+.courses-row {
+  cursor: pointer;
+}
+
+.courses-row:hover {
+  background: rgba(102, 9, 17, 0.08); /* => light maroon tint (sidebar's #660911 at low opacity) so row text stays legible - bump the opacity up if you want a bolder hover */
+}
+
+.courses-empty {
+  text-align: center;
+  padding: 32px !important;
+  color: var(--text-muted, var(--text));
+}
+
+.courses-status-text {
+  color: var(--text-muted, var(--text));
+}
+
+.courses-status-text {
+  color: var(--text-muted, var(--text));
+}
+
+/* => Loading state with spinner, ported from Enrollments.css's
+   => .adm-enroll-state / .adm-spinner - accent color swapped from
+   => Enrollments.css's blue (#1a56db) to this page's maroon token. */
+.courses-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 0;
+  color: var(--text-muted, var(--text));
+  font-size: 0.9375rem;
+}
+
+.courses-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: #1a56db; /* => matches Enrollments.css's .adm-spinner blue exactly, per request - breaks from this page's maroon accent on purpose */
+  border-radius: 50%;
+  animation: courses-spin 0.8s linear infinite;
+}
+
+@keyframes courses-spin {
+  to { transform: rotate(360deg); }
+}
+
+.courses-status-block {
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.courses-status-error {
+  background: #fef2f2;
+}
+
+.courses-status-error p {
+  color: #b91c1c;
+  margin-bottom: 12px;
+}
+
+.btn-secondary {
+  background: var(--code-bg, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-body), sans-serif;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge.status-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.status-inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+
+.courses-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-outline-action {
+  background: transparent;
+  color: var(--accent-hover, #8a0d17);
+  border: 1px solid var(--accent-hover, #8a0d17);
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-weight: 600;
+  font-size: 0.875rem; /* => matches .btn-create-course */
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+}
+
+.btn-outline-action:hover {
+  background: var(--sidebar-hover-bg, #262626);
+  color: #fff;
+  border-color: var(--sidebar-hover-bg, #262626);
+}
+
+.courses-guidelines {
+  background: var(--code-bg, var(--bg));
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--sidebar-bg, #660911);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  font-size: 0.875rem; /* => matches Enrollments.css's .adm-enroll-subtitle */
+  color: var(--text-muted, var(--text));
+  font-family: var(--font-body), sans-serif;
+}
+
+.courses-guidelines strong {
+  color: var(--text-h);
+}
+
+/* => Guideline link chips - was a bare <a> with no class, inheriting
+   => default blue/underline browser styling that clashed with the theme. */
+.guideline-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.guideline-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg);
+  border: 1px solid var(--accent-hover, #8a0d17);
+  color: var(--accent-hover, #8a0d17);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.8125rem; /* => matches Enrollments.css's .adm-filter-btn pill sizing */
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.guideline-link:hover {
+  background: var(--sidebar-hover-bg, #262626);
+  border-color: var(--sidebar-hover-bg, #262626);
+  color: #fff;
+}
+
+.guideline-link-arrow {
+  font-size: 0.75rem;
+  line-height: 1;
+}

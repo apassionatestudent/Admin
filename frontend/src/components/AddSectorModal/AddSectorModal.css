@@ -1,0 +1,218 @@
+/* => AddSectorModal.css
+   => Identical structure to CreateTesdaCourseModal.css, scaled down for a
+   => single-field modal. Kept as its own full file per your duplication
+   => policy - no @import across component folders. */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px;
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.add-lookup-modal {
+  background: var(--bg);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  font-family: var(--font-body), sans-serif;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: var(--text-h);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text-muted, var(--text));
+}
+
+.add-lookup-modal label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted, var(--text));
+  margin-bottom: 20px;
+}
+
+.add-lookup-modal input {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  font-family: var(--font-body), sans-serif;
+}
+
+.form-error {
+  color: #dc2626;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.form-reminder {
+  background: var(--code-bg, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text-muted, var(--text));
+  margin-bottom: 16px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-secondary {
+  background: var(--code-bg, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-body), sans-serif;
+}
+
+.btn-primary {
+  background: var(--accent-hover, #8a0d17);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: var(--font-body), sans-serif;
+}
+
+.btn-primary:hover {
+  background: var(--sidebar-hover-bg, #262626);
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* => The Add form's own submit button sits right under the input instead of
+   => at the bottom of the whole modal, since the list below it now needs
+   => its own space and a final "Close" action underneath */
+.modal-actions-inline {
+  margin-top: -8px;
+  margin-bottom: 16px;
+}
+
+.lookup-list {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  margin-bottom: 16px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.lookup-list-status {
+  color: var(--text-muted, var(--text));
+  font-size: 13px;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.lookup-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--text);
+}
+
+.lookup-list-row:last-child {
+  border-bottom: none;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trash-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+/* => Active/Deleted toggle, sits above the list */
+.lookup-view-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--code-bg, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  width: fit-content;
+  margin-bottom: 12px;
+}
+
+.lookup-toggle-btn {
+  background: none;
+  border: none;
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted, var(--text));
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+}
+
+.lookup-toggle-btn.lookup-toggle-active {
+  background: var(--accent-hover, #8a0d17);
+  color: #fff;
+}
+
+.btn-restore {
+  background: none;
+  border: 1px solid var(--accent-hover, #8a0d17);
+  color: var(--accent-hover, #8a0d17);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+}
+
+.btn-restore:hover {
+  background: var(--accent-hover, #8a0d17);
+  color: #fff;
+}

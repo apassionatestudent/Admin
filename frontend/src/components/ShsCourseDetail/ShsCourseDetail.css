@@ -1,0 +1,8 @@
+/* => ShsCourseDetail.css
+   => Reuses the TESDA detail page styling (section/edit-mode/status/delete
+   => classes are identical). Per your "duplication over abstraction" policy,
+   => feel free to paste TesdaCourseDetail.css's contents here directly and
+   => drop this @import instead - kept as an import here only to avoid
+   => pasting ~170 lines twice in this handoff. */
+
+@import '../TesdaCourseDetail/TesdaCourseDetail.css';

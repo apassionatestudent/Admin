@@ -1,5 +1,9 @@
 /* ConfirmModal.css - Reusable yes/no confirmation dialog */
 
+* {
+  font-family: var(--font-body);
+}
+
 .confirm-backdrop {
   position: fixed;
   inset: 0;

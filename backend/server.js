@@ -10,9 +10,13 @@ import adminEnrollmentRouter from './routes/adminEnrollmentRoute.js';
 import adminAuthRouter from './routes/adminAuthRoute.js';
 // => Location router for resolving PSGC codes to readable names in EnrollmentDetail
 import locationRouter, { loadLocationCache } from './routes/locationRoutes.js';
+import tesdaCoursesRouter from './routes/tesdaCoursesRoutes.js';
+import shsCoursesRouter from './routes/shsCoursesRoutes.js';
 import adminClassRouter from './routes/adminClassRoute.js';
 import adminStudentRouter from './routes/adminStudentRoute.js';
 import nationalityRoutes from './routes/nationalityRoutes.js';
+import sectorClusterRoutes from './routes/sectorClusterRoutes.js';
+
 
 dotenv.config(); // => moved up - must run before any module reads process.env
 
@@ -39,12 +43,16 @@ app.use(csrfProtection);
 app.use('/api/admin-auth', adminAuthRouter);
 app.use('/api/admin/enrollments', adminEnrollmentRouter);
 
+app.use('/api/admin/tesda-courses', tesdaCoursesRouter);
+app.use('/api/admin/shs-courses', shsCoursesRouter);
+
 // => Location endpoints - used by EnrollmentDetail to resolve PSGC codes to readable names
 app.use('/api/location', locationRouter);
 
 app.use('/api/admin/classes', adminClassRouter);
 
 app.use('/api/admin/students', adminStudentRouter);
+app.use('/api/admin', sectorClusterRoutes);
 
 // => nationality routes 
 app.use('/api/reference', nationalityRoutes);
