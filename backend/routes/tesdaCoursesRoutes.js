@@ -24,9 +24,12 @@ import {
 
 const router = express.Router();
 
-// => Every route on this router requires a logged-in admin
-router.use(protectAdmin);
+// => Rate limit runs FIRST - if it ran after protectAdmin, every request
+// => (including ones about to get rejected for exceeding the limit) would
+// => still pay the cost of jwt.verify() before ever reaching the limiter,
+// => which defeats the purpose of rate-limiting an expensive check.
 router.use(adminApiRateLimit);
+router.use(protectAdmin);
 
 // => Sector list moved to sectorClusterRoutes.js (GET /api/admin/sectors)
 // => Static sub-paths BEFORE ':adminUuid', same reasoning as before
