@@ -1,0 +1,237 @@
+/* => components/Classes/FacilityDetail/FacilityDetail.css
+   => Reuses adm-form-* classes from the global admin form styles
+      (same ones AddFacilityModal relies on) - only page-specific and
+      checklist-specific rules live here. */
+
+.fd-page {
+  padding: 32px;
+  color: var(--text);
+  font-family: var(--font-body), sans-serif;
+}
+
+.fd-header {
+  margin: 16px 0 24px;
+}
+
+.fd-title {
+  margin: 0 0 4px;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-h);
+}
+
+.fd-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-muted, var(--text));
+  margin: 0;
+}
+
+.fd-form-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  width: 100%;
+}
+
+.fd-form-card .adm-form-group {
+  margin-bottom: 20px;
+}
+
+.fd-form-card .adm-form-row {
+  display: flex;
+  gap: 20px;
+}
+
+.fd-form-card .adm-form-row .adm-form-group {
+  flex: 1;
+}
+
+.fd-toggle-row {
+  margin: 4px 0 16px;
+}
+
+.fd-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.fd-checklist {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fd-check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.fd-empty-text,
+.fd-loading-text {
+  font-size: 0.8125rem;
+  color: var(--text-muted, var(--text));
+  margin: 4px 0;
+}
+
+.fd-save-success {
+  font-size: 0.8125rem;
+  color: #166534;
+  margin: 8px 0 0;
+}
+
+.fd-form-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.fd-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 0;
+  color: var(--text-muted, var(--text));
+  font-size: 0.9375rem;
+}
+
+.fd-state--error {
+  flex-direction: row;
+  justify-content: center;
+}
+
+.fd-inline-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.fd-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: #1a56db;
+  border-radius: 50%;
+  animation: fd-spin 0.8s linear infinite;
+}
+
+@keyframes fd-spin {
+  to { transform: rotate(360deg); }
+}
+
+
+/* => Section header with pencil-to-edit button, mirrors TesdaCourseDetail's
+      .section-header + .section-edit-btn pattern for read-only/edit
+      consistency across detail pages. */
+.fd-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.fd-section-title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, var(--text));
+}
+
+.fd-section-edit-btn {
+  background: none;
+  border: 1.5px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.fd-section-edit-btn:hover {
+  background: var(--sidebar-hover-bg, #262626);
+  border-color: var(--accent-hover, #8a0d17);
+}
+
+.fd-section-edit-btn:hover .fd-pencil-icon {
+  filter: brightness(0) invert(1); /* => keeps the pencil visible once the bg goes dark on hover */
+}
+
+.fd-pencil-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+/* => Read-only view grid, mirrors TesdaCourseDetail's .info-view-grid */
+.fd-info-view-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.fd-field-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted, var(--text));
+  margin-bottom: 4px;
+}
+
+.fd-view-value {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.875rem;
+}
+
+/* => Read-only course/cluster lists, shown in place of the checkboxes
+      while not editing */
+.fd-view-list {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 0.8125rem;
+  color: var(--text);
+}
+
+.fd-view-list li {
+  margin-bottom: 2px;
+}
+
+/* => Plain danger-styled trigger button for opening the delete
+      RemarksActionModal - replaces the old DeleteButton component on this
+      page specifically, since deletion here always needs a remarks modal
+      rather than DeleteButton's built-in plain ConfirmModal. */
+.fd-delete-btn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+  transition: background 0.12s;
+}
+
+.fd-delete-btn:hover {
+  background: #fee2e2;
+}

@@ -44,10 +44,10 @@ export const listPendingEnrollments = async (req, res) => {
 // => GET /api/admin/enrollments/search
 // => Searches across all statuses, combined TESDA + SHS
 export const searchEnrollmentsController = async (req, res) => {
-  const { email, first_name, middle_name, surname, name_extension } = req.query;
+  const { email, first_name, middle_name, last_name, name_extension } = req.query;
   try {
     const results = await searchEnrollmentsService({
-      email, first_name, middle_name, surname, name_extension,
+      email, first_name, middle_name, last_name, name_extension,
     });
     return res.json({ enrollments: results });
   } catch (err) {
@@ -398,12 +398,12 @@ export const deleteTesdaDocumentController = async (req, res) => {
 
 // SHS Classes
 export const getAvailableShsClassesController = async (req, res) => {
-  const { track, cluster } = req.query;
-  if (!track) {
-    return res.status(400).json({ error: 'track is required.' });
+  const { cluster } = req.query;
+  if (!cluster) {
+    return res.status(400).json({ error: 'cluster is required.' });
   }
   try {
-    const classes = await fetchAvailableShsClasses({ track, cluster });
+    const classes = await fetchAvailableShsClasses({ cluster });
     return res.status(200).json({ classes });
   } catch (err) {
     console.error('getAvailableShsClassesController error:', err);

@@ -39,22 +39,17 @@ const fullName = (row) => {
 const TYPE_LABEL = { TESDA: 'TESDA', SHS: 'SHS' };
 const TYPE_CLASS = { TESDA: 'adm-type-badge--tesda', SHS: 'adm-type-badge--shs' };
 
-// => Program column shows course name for TESDA rows, track - cluster for SHS
+// => Program column shows course name for TESDA rows, cluster name for SHS
 //    rows. shsLookups is passed in explicitly rather than closed over, since
 //    these are called from EnrollmentTable, a sibling component - not
 //    Enrollments() itself, where the actual state lives.
-const trackLabel = (value, shsLookups) =>
-  shsLookups.tracks.find(t => t.value === value)?.name ?? value;
-
+// => track removed - shs_tracks/track no longer exist in the schema
 const clusterLabel = (value, shsLookups) =>
   shsLookups.clusters.find(c => c.value === value)?.name ?? value;
 
 const programDisplay = (row, shsLookups) =>
   row.enrollment_type === 'SHS'
-    ? [
-        row.track && trackLabel(row.track, shsLookups),
-        row.cluster && clusterLabel(row.cluster, shsLookups),
-      ].filter(Boolean).join(' - ') || '-'
+    ? (row.cluster && clusterLabel(row.cluster, shsLookups)) || '-'
     : row.course_name ?? '-';
 
 
@@ -91,9 +86,9 @@ export default function Enrollments() {
   // => Ref to abort stale search requests when a new one fires
   const abortRef = useRef(null);
 
-  // => SHS track/cluster lookup data - used by EnrollmentTable via prop,
+  // => SHS cluster lookup data - used by EnrollmentTable via prop,
   //    since programDisplay lives outside this component
-  const [shsLookups, setShsLookups] = useState({ tracks: [], clusters: [] });
+  const [shsLookups, setShsLookups] = useState({ clusters: [] });
 
   // => Fetch default (Pending + Needs Clarification) enrollments on mount
   useEffect(() => {
@@ -117,7 +112,7 @@ export default function Enrollments() {
     fetchEnrollments();
   }, []);
 
-  // => SHS track/cluster labels, fetched once - used to show human-readable
+  // => SHS cluster labels, fetched once - used to show human-readable
   //    names in the Program column instead of raw DB values like 'tech_prof'
   useEffect(() => {
     fetch('/api/admin/enrollments/shs/lookups', { credentials: 'include' })
@@ -126,7 +121,7 @@ export default function Enrollments() {
         // => Only accept well-formed responses - an error body like
         //    {error: '...'} would otherwise corrupt state and crash
         //    programDisplay's .find() calls on the next render
-        if (Array.isArray(data?.tracks) && Array.isArray(data?.clusters)) {
+        if (Array.isArray(data?.clusters)) {
           setShsLookups(data);
         }
       })

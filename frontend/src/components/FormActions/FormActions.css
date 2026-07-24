@@ -1,0 +1,47 @@
+/* => components/FormActions/FormActions.css
+   => Styling ported 1:1 from TesdaCourseDetail.css's .edit-actions,
+      .btn-secondary, and .btn-primary rules. */
+
+.form-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-secondary {
+  background: var(--code-bg, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-body), sans-serif;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--accent-hover, #8a0d17);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  font-family: var(--font-body), sans-serif;
+}
+
+.btn-primary:hover {
+  background: var(--sidebar-hover-bg, #262626);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--accent-hover, #8a0d17);
+}

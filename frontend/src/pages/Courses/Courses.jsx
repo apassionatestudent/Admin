@@ -139,7 +139,7 @@ export default function Courses() {
             className={viewMode === 'active' ? 'view-toggle-btn view-toggle-active' : 'view-toggle-btn'}
             onClick={() => setViewMode('active')}
           >
-            Active
+            Active/Inactive
           </button>
           <button
             className={viewMode === 'deleted' ? 'view-toggle-btn view-toggle-active' : 'view-toggle-btn'}

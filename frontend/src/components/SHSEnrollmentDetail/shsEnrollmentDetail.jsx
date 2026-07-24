@@ -725,23 +725,22 @@ export default function SHSEnrollmentDetail() {
     resolve();
   }, [data]);
 
-  // => Fetch available shs_classes matching this enrollment's track/
-  //    cluster only when the Class/Batch section is opened for editing
+  // => Fetch available shs_batches matching this enrollment's cluster
+  //    only when the Class/Batch section is opened for editing
   useEffect(() => {
     if (editingSection !== 'classAssign') return;
     const enr = data?.enrollment;
-    if (!enr?.track) { setClassOptions([]); return; }
+    if (!enr?.cluster) { setClassOptions([]); return; }
 
     setLoadingClassOptions(true);
-    const params = new URLSearchParams({ track: enr.track });
-    if (enr.cluster) params.append('cluster', enr.cluster);
+    const params = new URLSearchParams({ cluster: enr.cluster });
 
     fetch(`/api/admin/enrollments/shs/classes/available?${params.toString()}`, { credentials: 'include' })
       .then(r => r.json())
       .then(d => setClassOptions(d.classes || []))
       .catch(err => console.error('Failed to fetch available classes:', err))
       .finally(() => setLoadingClassOptions(false));
-  }, [editingSection, data?.enrollment?.track, data?.enrollment?.cluster]);
+  }, [editingSection, data?.enrollment?.cluster]);
 
   // => Fetch nationalities for the profile
   useEffect(() => {
@@ -901,7 +900,7 @@ export default function SHSEnrollmentDetail() {
 
   const handleSaveClassAssign = async () => {
     try {
-      await patchSection('enrollment', { class_id: draft.class_id || null });
+      await patchSection('enrollment', { batch_id: draft.batch_id || null });
       await fetchDetail(); // => refetch to pick up the newly joined class period/groupchat
       cancelEdit();
     } catch { /* sectionError already set */ }
@@ -1139,7 +1138,6 @@ export default function SHSEnrollmentDetail() {
                 saving={sectionSaving}
                 onEdit={() => startEdit('enrollmentInfo', {
                   lrn: enrollment.lrn ?? '',
-                  track: enrollment.track ?? '',
                   cluster: enrollment.cluster ?? '',
                   electives: enrollment.electives ?? '',
                 })}
@@ -1154,11 +1152,6 @@ export default function SHSEnrollmentDetail() {
               {editingSection === 'enrollmentInfo' ? (
                 <>
                   <EditableField label="LRN" value={draft.lrn} onChange={v => updateDraft('lrn', v.replace(/\D/g, '').slice(0, 12))} />
-                  {/* => Track is locked from editing - same reasoning as Cluster
-                       below: it feeds directly into class/batch assignment, so
-                       changing it mid-enrollment risks orphaning the link.
-                       If it's wrong, reject + have the student resubmit instead. */}
-                  <InfoCard label="Track" value={enrollment.track || '-'} />
                   {/* => Cluster is locked from editing - it feeds directly into
                        class/batch assignment, so changing it mid-enrollment risks
                        orphaning the link. If it's wrong, reject + have the student
@@ -1174,7 +1167,6 @@ export default function SHSEnrollmentDetail() {
               ) : (
                 <>
                   <InfoCard label="LRN"            value={enrollment.lrn || '-'} />
-                  <InfoCard label="Track"          value={enrollment.track || '-'} />
                   <InfoCard label="Cluster"        value={enrollment.cluster || '-'} />
                   <InfoCard
                     label="Electives"
@@ -1276,7 +1268,7 @@ export default function SHSEnrollmentDetail() {
                 sectionKey="classAssign"
                 editingSection={editingSection}
                 saving={sectionSaving}
-                onEdit={() => startEdit('classAssign', { class_id: enrollment.class_id ?? '' })}
+                onEdit={() => startEdit('classAssign', { batch_id: enrollment.batch_id ?? '' })}
                 onSave={handleSaveClassAssign}
                 onCancel={cancelEdit}
               />
@@ -1290,19 +1282,19 @@ export default function SHSEnrollmentDetail() {
                   <p className="adm-info-label">Assign to Class</p>
                   <select
                     className="adm-edit-input"
-                    value={draft.class_id ?? ''}
+                    value={draft.batch_id ?? ''}
                     disabled={loadingClassOptions}
-                    onChange={e => updateDraft('class_id', e.target.value)}
+                    onChange={e => updateDraft('batch_id', e.target.value)}
                   >
                     <option value="">
                       {loadingClassOptions
                         ? 'Loading…'
                         : classOptions.length === 0
-                          ? 'No open classes for this track/cluster - leave unassigned'
+                          ? 'No open classes for this cluster - leave unassigned'
                           : 'Select a class'}
                     </option>
                     {classOptions.map(c => (
-                      <option key={c.class_id} value={c.class_id}>
+                      <option key={c.batch_id} value={c.batch_id}>
                         {formatDate(c.start_date)} – {formatDate(c.end_date)}
                       </option>
                     ))}

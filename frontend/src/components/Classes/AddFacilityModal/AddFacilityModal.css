@@ -1,0 +1,51 @@
+/* => components/Classes/AddFacilityModal/AddFacilityModal.css
+   => Only the parts unique to this modal - the adm-modal-* shell classes
+      (backdrop, box, header, body, footer, form-group, form-label,
+      form-input, etc.) are assumed global, defined once in Classes.css
+      and reused by the existing Add Class modal. If that assumption is
+      wrong, these need to be duplicated here instead of relying on cascade. */
+
+/* => Wraps the "general facility" checkbox + its label text */
+.facility-modal-toggle-row {
+  margin: 4px 0 16px;
+}
+
+.facility-modal-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* => Scrollable box holding the TESDA course / SHS cluster checkboxes -
+      capped height so a long course list doesn't blow out the modal */
+.facility-modal-checklist {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.facility-modal-check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* => Shown when a checklist has nothing to show yet (no courses/clusters
+      created) or while options are still being fetched */
+.facility-modal-empty-text,
+.facility-modal-loading-text {
+  font-size: 0.8125rem;
+  color: var(--text-muted, var(--text));
+  margin: 4px 0;
+}

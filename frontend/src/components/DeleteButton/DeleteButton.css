@@ -1,0 +1,47 @@
+/* => components/DeleteButton/DeleteButton.css
+   => Styling ported 1:1 from TesdaCourseDetail.css's .btn-delete and
+      .icon-btn/.trash-icon rules, so this component looks identical to
+      the buttons it's replacing - just centralized instead of duplicated
+      per detail page. */
+
+.btn-delete {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: var(--font-body), sans-serif;
+}
+
+.btn-delete:hover {
+  background: #fee2e2;
+}
+
+.btn-delete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.trash-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
