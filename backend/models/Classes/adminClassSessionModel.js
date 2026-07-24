@@ -1,0 +1,266 @@
+// => models/Classes/adminClassSessionModel.js
+// => Pure SQL layer for the Class Sessions feature - the scheduling side of
+//    the Classes page, distinct from adminFacilityModel.js which only
+//    handles facility CRUD. Every query takes `pool` as first param, same
+//    convention as adminFacilityModel.js.
+
+// => Facility picker list for the Class Sessions tab landing view - one row
+//    per active, non-deleted facility, with its allowed course titles
+//    already aggregated so the frontend doesn't need N+1 requests.
+// => ASSUMPTION: only status = 'active' facilities are offered here, since
+//    an inactive facility shouldn't be booked for a NEW session. Adjust the
+//    WHERE clause if inactive facilities should still be selectable.
+export const getFacilitiesForSessionPicker = async (pool) => {
+  const result = await pool.query(
+    `SELECT
+        f.facility_id,
+        f.public_id,
+        f.name,
+        f.capacity,
+        f.status,
+        f.allows_all_courses,
+        COALESCE(
+          ARRAY_AGG(DISTINCT tc.title) FILTER (WHERE tc.title IS NOT NULL),
+          ARRAY[]::text[]
+        ) AS tesda_course_titles,
+        COALESCE(
+          ARRAY_AGG(DISTINCT sc.title) FILTER (WHERE sc.title IS NOT NULL),
+          ARRAY[]::text[]
+        ) AS shs_course_titles
+       FROM facilities f
+       LEFT JOIN facility_tesda_courses ftc ON ftc.facility_id = f.facility_id
+       LEFT JOIN tesda_courses tc ON tc.course_id = ftc.course_id
+       LEFT JOIN facility_shs_courses fsc ON fsc.facility_id = f.facility_id
+       LEFT JOIN shs_courses sc ON sc.course_id = fsc.course_id
+      WHERE f.deleted_at IS NULL AND f.status = 'active'
+      GROUP BY f.facility_id
+      ORDER BY f.name ASC`
+  );
+  return result.rows;
+};
+
+// => Basic facility header info for the calendar page - name + its
+//    restriction ids, so the service layer can validate/filter batches
+//    against it. Keyed by public_id since that's what the frontend route holds.
+export const getFacilityForSessionPage = async (pool, facilityPublicId) => {
+  const facilityResult = await pool.query(
+    `SELECT facility_id, public_id, name, capacity, allows_all_courses, status
+       FROM facilities
+      WHERE public_id = $1 AND deleted_at IS NULL`,
+    [facilityPublicId]
+  );
+  if (facilityResult.rows.length === 0) return null;
+  const facility = facilityResult.rows[0];
+
+  const [tesdaRows, shsRows] = await Promise.all([
+    pool.query(`SELECT course_id FROM facility_tesda_courses WHERE facility_id = $1`, [facility.facility_id]),
+    pool.query(`SELECT course_id FROM facility_shs_courses WHERE facility_id = $1`, [facility.facility_id]),
+  ]);
+
+  return {
+    ...facility,
+    tesda_course_ids: tesdaRows.rows.map(r => r.course_id),
+    shs_course_ids: shsRows.rows.map(r => r.course_id),
+  };
+};
+
+// => Every TESDA batch that's currently Pending or Ongoing, with its
+//    course title and current trainer - unfiltered by facility here, the
+//    service layer filters against the facility's allowed course ids
+//    (or leaves it unfiltered for Mobile/Online sessions).
+export const getActiveTesdaBatches = async (pool) => {
+  const result = await pool.query(
+    `SELECT tb.batch_id, tb.public_id, tb.status, tb.course_id,
+            tc.title AS course_title, nct.certification_type,
+            tb.trainer_id, tr.trainer_full_name AS trainer_name
+       FROM tesda_batches tb
+       JOIN tesda_courses tc ON tc.course_id = tb.course_id
+       LEFT JOIN national_certification_types nct ON tc.certification_id = nct.certification_id
+       LEFT JOIN trainers tr ON tr.trainer_id = tb.trainer_id
+      WHERE tb.status IN ('Pending', 'Ongoing')
+      ORDER BY tc.title ASC, tb.batch_id ASC`
+  );
+  return result.rows;
+};
+
+// => Every SHS batch that's currently Pending or Ongoing, with its trainer
+//    slots resolved. Courses are fetched separately below and grouped in
+//    JS, since a cluster can hold more than one course per grade level -
+//    joining courses directly onto this query produced a cross-join
+//    duplicate row per Grade11-course x Grade12-course combination
+//    whenever a cluster had more than one course on either side.
+export const getActiveShsBatches = async (pool) => {
+  const batchesResult = await pool.query(
+    `SELECT sb.batch_id, sb.public_id, sb.status, sb.cluster, sb.school_year,
+            sb.grade11_completed,
+            cl.cluster_id, cl.name AS cluster_name,
+            sb.grade11_trainer_id, t11.trainer_full_name AS grade11_trainer_name,
+            sb.grade12_trainer_id, t12.trainer_full_name AS grade12_trainer_name
+       FROM shs_batches sb
+       JOIN shs_clusters cl ON cl.name = sb.cluster
+       LEFT JOIN trainers t11 ON t11.trainer_id = sb.grade11_trainer_id
+       LEFT JOIN trainers t12 ON t12.trainer_id = sb.grade12_trainer_id
+      WHERE sb.status IN ('Pending', 'Ongoing')
+      ORDER BY cl.name ASC, sb.batch_id ASC`
+  );
+  const batches = batchesResult.rows;
+  if (batches.length === 0) return [];
+
+  const clusterIds = [...new Set(batches.map(b => b.cluster_id))];
+  const coursesResult = await pool.query(
+    `SELECT course_id, cluster_id, grade_level, title
+       FROM shs_courses
+      WHERE cluster_id = ANY($1::int[])
+      ORDER BY title ASC`,
+    [clusterIds]
+  );
+
+  return batches.map(b => ({
+    ...b,
+    grade11_courses: coursesResult.rows.filter(c => c.cluster_id === b.cluster_id && c.grade_level === 'Grade 11'),
+    grade12_courses: coursesResult.rows.filter(c => c.cluster_id === b.cluster_id && c.grade_level === 'Grade 12'),
+  }));
+};
+
+// => All sessions booked at one facility within a date range - powers the
+//    calendar grid. Only ever Local sessions, since Mobile/Online have no
+//    facility_id to match against.
+export const getSessionsForFacility = async (pool, facilityId, startDate, endDate) => {
+  const result = await pool.query(
+    // => LOWER() here since the DB stores batch_type as 'TESDA'/'SHS' but
+    //    the rest of the app (frontend state, badge classes, eventPropGetter)
+    //    works with lowercase 'tesda'/'shs' - converted once here instead of
+    //    touching every consumer.
+    `SELECT cs.session_id, cs.public_id, LOWER(cs.batch_type) AS batch_type, cs.batch_id,
+            cs.session_type, cs.session_date, cs.start_time, cs.end_time,
+            cs.trainer_id, tr.trainer_full_name AS trainer_name,
+            cs.shs_course_id, cs.remarks
+       FROM class_sessions cs
+       LEFT JOIN trainers tr ON tr.trainer_id = cs.trainer_id
+      WHERE cs.facility_id = $1
+        AND cs.session_date BETWEEN $2 AND $3
+      ORDER BY cs.session_date ASC, cs.start_time ASC`,
+    [facilityId, startDate, endDate]
+  );
+  return result.rows;
+};
+
+// => NEW - every Mobile/Online session within a date range, for the
+//    "Mobile & Online" subsection table in Classes.jsx. No facility_id to
+//    filter on, this is a flat list across the whole institution.
+export const getRemoteSessions = async (pool, startDate, endDate) => {
+  const result = await pool.query(
+    `SELECT cs.session_id, cs.public_id, LOWER(cs.batch_type) AS batch_type, cs.batch_id,
+            cs.session_type, cs.session_date, cs.start_time, cs.end_time,
+            cs.trainer_id, tr.trainer_full_name AS trainer_name,
+            cs.shs_course_id, cs.mobile_location, cs.meeting_link, cs.remarks
+       FROM class_sessions cs
+       LEFT JOIN trainers tr ON tr.trainer_id = cs.trainer_id
+      WHERE cs.session_type IN ('Mobile', 'Online')
+        AND cs.session_date BETWEEN $1 AND $2
+      ORDER BY cs.session_date ASC, cs.start_time ASC`,
+    [startDate, endDate]
+  );
+  return result.rows;
+};
+
+// => Resolves a batch's integer batch_id from its public_id. Table name is
+//    interpolated, not parameterized, but batchType is validated against a
+//    fixed enum ('tesda' | 'shs') by the service before this ever runs, so
+//    it's never raw user input reaching the query string.
+export const getBatchIdFromPublicId = async (pool, batchType, batchPublicId) => {
+  const table = batchType === 'shs' ? 'shs_batches' : 'tesda_batches';
+  const result = await pool.query(`SELECT batch_id FROM ${table} WHERE public_id = $1`, [batchPublicId]);
+  return result.rows[0]?.batch_id ?? null;
+};
+
+// => Every session (Local, Mobile, or Online) booked for one specific
+//    batch, across all facilities - powers the Class Sessions section on
+//    the batch detail pages. facility_public_id is included so a Local
+//    row can link out to that facility's calendar page.
+export const getSessionsForBatch = async (pool, batchTypeUpper, batchId) => {
+  const result = await pool.query(
+    `SELECT cs.session_id, cs.public_id, cs.session_type, cs.session_date,
+            cs.start_time, cs.end_time, cs.remarks,
+            cs.trainer_id, tr.trainer_full_name AS trainer_name,
+            cs.facility_id, f.name AS facility_name, f.public_id AS facility_public_id,
+            cs.mobile_location, cs.meeting_link
+       FROM class_sessions cs
+       LEFT JOIN trainers tr ON tr.trainer_id = cs.trainer_id
+       LEFT JOIN facilities f ON f.facility_id = cs.facility_id
+      WHERE cs.batch_type = $1 AND cs.batch_id = $2
+      ORDER BY cs.session_date ASC, cs.start_time ASC`,
+    [batchTypeUpper, batchId]
+  );
+  return result.rows;
+};
+
+
+// => Course title lookup for a specific SHS course_id - used by the
+//    service layer to label an SHS session with "Grade 11" or "Grade 12"
+//    plus its course title.
+export const getShsCourseById = async (pool, courseId) => {
+  const result = await pool.query(
+    `SELECT course_id, title, grade_level, cluster_id FROM shs_courses WHERE course_id = $1`,
+    [courseId]
+  );
+  return result.rows[0] ?? null;
+};
+
+// => Facility overlap check - only meaningful for Local sessions, since
+//    those are the only ones with a non-null facility_id to collide on.
+export const findConflictingSession = async (pool, { facilityId, sessionDate, startTime, endTime, excludeSessionId }) => {
+  const result = await pool.query(
+    `SELECT session_id FROM class_sessions
+      WHERE facility_id = $1
+        AND session_date = $2
+        AND start_time < $4
+        AND end_time > $3
+        AND ($5::int IS NULL OR session_id != $5)`,
+    [facilityId, sessionDate, startTime, endTime, excludeSessionId ?? null]
+  );
+  return result.rows[0] ?? null;
+};
+
+// => NEW - trainer overlap check, universal across ALL session types
+//    (Local, Mobile, Online). Deliberately does NOT filter by facility_id -
+//    a trainer physically can't be in two sessions at once no matter where
+//    either one happens.
+export const findConflictingTrainerSession = async (pool, { trainerId, sessionDate, startTime, endTime, excludeSessionId }) => {
+  const result = await pool.query(
+    `SELECT session_id FROM class_sessions
+      WHERE trainer_id = $1
+        AND session_date = $2
+        AND start_time < $4
+        AND end_time > $3
+        AND ($5::int IS NULL OR session_id != $5)`,
+    [trainerId, sessionDate, startTime, endTime, excludeSessionId ?? null]
+  );
+  return result.rows[0] ?? null;
+};
+
+// => Plain insert - all validation (weekday/hour window, conflict checks,
+//    facility restriction check) already done by the service before this
+//    runs. facility_id/mobile_location/meeting_link are mutually exclusive
+//    depending on session_type, service passes null for whichever don't apply.
+export const insertClassSession = async (pool, {
+  batch_type, batch_id, session_type, facility_id, mobile_location, meeting_link,
+  session_date, start_time, end_time, trainer_id, shs_course_id, created_by, remarks,
+}) => {
+  const result = await pool.query(
+    // => batch_type.toUpperCase() converts the app's lowercase 'tesda'/'shs'
+    //    to whatever case the check constraint requires. RETURNING lowers it
+    //    straight back so the object handed back to the service/controller
+    //    still reads lowercase like everywhere else in the codebase.
+    `INSERT INTO class_sessions
+       (batch_type, batch_id, session_type, facility_id, mobile_location, meeting_link,
+        session_date, start_time, end_time, trainer_id, shs_course_id, created_by, remarks)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+     RETURNING session_id, public_id, LOWER(batch_type) AS batch_type, batch_id, session_type,
+               facility_id, mobile_location, meeting_link, session_date, start_time, end_time,
+               trainer_id, shs_course_id, remarks, created_at`,
+    [batch_type.toUpperCase(), batch_id, session_type, facility_id ?? null, mobile_location ?? null, meeting_link ?? null,
+     session_date, start_time, end_time, trainer_id ?? null, shs_course_id ?? null, created_by, remarks ?? null]
+  );
+  return result.rows[0];
+};

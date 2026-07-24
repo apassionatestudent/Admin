@@ -1,0 +1,51 @@
+// => components/Classes/AddTrainerModal/addTrainerModal.css
+   => Only the parts unique to this modal - the adm-modal-* shell classes
+      are assumed global, same assumption AddFacilityModal.css makes. */
+
+/* => Wraps the two program-type checkboxes (handles_tesda / handles_shs) */
+.trainer-modal-toggle-row {
+  margin: 4px 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trainer-modal-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* => Scrollable box holding the TESDA/SHS course checkboxes - capped
+      height so a long course list doesn't blow out the modal */
+.trainer-modal-checklist {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trainer-modal-check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* => Shown when a checklist has nothing to show yet (no courses created)
+      or while options are still being fetched */
+.trainer-modal-empty-text,
+.trainer-modal-loading-text {
+  font-size: 0.8125rem;
+  color: var(--text-muted, var(--text));
+  margin: 4px 0;
+}

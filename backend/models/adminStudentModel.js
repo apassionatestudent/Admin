@@ -215,7 +215,7 @@ export const getStudentEnrollmentHistory = async (pool, studentId) => {
         -- => Course info
         c.title               AS course_name
       FROM tesda_enrollments e
-      JOIN  tesda_classes cl ON e.class_id   = cl.class_id
+      JOIN  tesda_batches cl ON e.batch_id   = cl.batch_id
       LEFT JOIN tesda_courses c  ON cl.course_id  = c.course_id
       WHERE e.student_id = $1
       ORDER BY e.submitted_at DESC NULLS LAST`,

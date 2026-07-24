@@ -1,18 +1,16 @@
 /* =========================================================
-   ClassDetail.css - Admin class detail page
+   TesdaBatchDetail.css - Admin TESDA batch detail page
    Aesthetic: matches EnrollmentDetail.css - structured
    government-form utility with clear visual hierarchy
    ========================================================= */
 
-/* Page shell */
-.adm-class-detail-page {
+.adm-tesda-batch-detail-page {
   padding: 32px 40px 64px;
   min-height: 100vh;
   background: #f4f5f8;
   font-family: var(--font-body), sans-serif;
 }
 
-/* Back button */
 .adm-back-btn {
   display: inline-flex;
   align-items: center;
@@ -32,8 +30,7 @@
   color: #1a56db;
 }
 
-/* Loading / Error states */
-.adm-class-detail-state {
+.adm-batch-detail-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -43,12 +40,11 @@
   font-size: 0.9375rem;
 }
 
-.adm-class-detail-state--error {
+.adm-batch-detail-state--error {
   color: #b91c1c;
   font-size: 1.125rem;
 }
 
-/* Spinner */
 .adm-spinner {
   width: 36px;
   height: 36px;
@@ -62,17 +58,14 @@
   to { transform: rotate(360deg); }
 }
 
-/* Content body */
-.adm-class-detail-body {
+.adm-batch-detail-body {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
 
-/* ════════════════════════════════════
-   HERO HEADER
-   ════════════════════════════════════ */
-.adm-class-detail-hero {
+/* HERO HEADER */
+.adm-batch-detail-hero {
   background: var(--sidebar-bg);
   border-radius: 14px;
   padding: 28px 32px;
@@ -105,8 +98,6 @@
   letter-spacing: -0.02em;
 }
 
-
-/* Status badge on hero */
 .adm-hero-badge {
   display: inline-block;
   padding: 6px 16px;
@@ -118,56 +109,23 @@
   flex-shrink: 0;
 }
 
-/* ════════════════════════════════════
-   STATUS COLORS
-   => Used on hero badge and enrollment badges inside the student table
-   ════════════════════════════════════ */
-.status--planned {
-  background: #dbeafe;
-  color: #1e40af;
-}
-.status--ongoing {
-  background: #d1fae5;
-  color: #065f46;
-}
-.status--concluded {
-  background: #f3f4f6;
-  color: #374151;
-}
-/* => Enrollment status colors (reused from EnrollmentDetail.css) */
-.status--pending {
-  background: #fef3c7;
-  color: #92400e;
-}
-.status--approved {
-  background: #d1fae5;
-  color: #065f46;
-}
-.status--clarification {
-  background: #dbeafe;
-  color: #1e40af;
-}
-.status--rejected {
-  background: #fee2e2;
-  color: #991b1b;
-}
-.status--dropped {
-  background: #f3f4f6;
-  color: #374151;
-}
-.status--completed {
-  background: #ecfdf5;
-  color: #047857;
-}
-.status--reserved {
-  background: #ede9fe;
-  color: #5b21b6;
-}
+/* STATUS COLORS */
+.status--planned    { background: #dbeafe; color: #1e40af; }
+.status--ongoing    { background: #d1fae5; color: #065f46; }
+.status--concluded  { background: #f3f4f6; color: #374151; }
+/* => New: Dissolved - batch called off mid-enrollment, distinct dark-red
+      tone since it's a more final/negative state than Concluded */
+.status--dissolved  { background: #fee2e2; color: #7f1d1d; }
+.status--pending      { background: #fef3c7; color: #92400e; }
+.status--approved     { background: #d1fae5; color: #065f46; }
+.status--clarification{ background: #dbeafe; color: #1e40af; }
+.status--rejected     { background: #fee2e2; color: #991b1b; }
+.status--dropped      { background: #f3f4f6; color: #374151; }
+.status--completed    { background: #ecfdf5; color: #047857; }
+.status--reserved     { background: #ede9fe; color: #5b21b6; }
 
-/* ════════════════════════════════════
-   SECTION WRAPPER
-   ════════════════════════════════════ */
-.adm-class-section {
+/* SECTION WRAPPER */
+.adm-batch-section {
   background: #ffffff;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
@@ -207,9 +165,7 @@
   margin: 0;
 }
 
-/* ════════════════════════════════════
-   STATUS CHANGER
-   ════════════════════════════════════ */
+/* STATUS CHANGER */
 .adm-status-changer {
   display: flex;
   align-items: center;
@@ -233,6 +189,108 @@
 .adm-status-select:focus {
   outline: none;
   border-color: #1a56db;
+}
+
+/* => New: remarks input in the status changer row, required on every
+      status change - matches .adm-status-select sizing so the row lines
+      up cleanly */
+.adm-status-remarks-input {
+  padding: 9px 14px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #111827;
+  background: #fff;
+  flex: 1;
+  min-width: 220px;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+
+.adm-status-remarks-input:focus {
+  outline: none;
+  border-color: #1a56db;
+}
+
+/* => New: pencil-icon edit mode CSS, matches trainerDetail.css's
+      equivalent classes with the adm- prefix already used on this page */
+.adm-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.adm-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.adm-section-edit-btn {
+  background: none;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.adm-section-edit-btn:hover {
+  background: #f3f4f6;
+  border-color: #1a56db;
+}
+
+.adm-pencil-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.adm-section-save-btn {
+  padding: 7px 16px;
+  background: var(--sidebar-bg);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  font-family: inherit;
+}
+
+.adm-section-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.adm-section-cancel-btn {
+  padding: 7px 16px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.adm-section-cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.adm-form-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #b91c1c;
+  font-size: 0.8125rem;
+  margin: 0 0 14px;
 }
 
 .adm-status-btn {
@@ -262,17 +320,10 @@
   font-weight: 500;
 }
 
-.adm-save-msg--success {
-  color: #065f46;
-}
+.adm-save-msg--success { color: #065f46; }
+.adm-save-msg--error   { color: #b91c1c; }
 
-.adm-save-msg--error {
-  color: #b91c1c;
-}
-
-/* ════════════════════════════════════
-   INFO GRID
-   ════════════════════════════════════ */
+/* INFO GRID */
 .adm-info-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -303,14 +354,23 @@
   word-break: break-word;
 }
 
-/* => Remaining slots note inside enrolled card */
+/* => New: clickable link style for groupchat_link */
+.adm-info-link {
+  color: #1a56db;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.adm-info-link:hover {
+  text-decoration: underline;
+}
+
 .adm-slots-note {
   font-size: 0.8rem;
   color: #6b7280;
   font-weight: 400;
 }
 
-/* Remarks box */
 .adm-remarks-box {
   margin-top: 16px;
   background: #f9fafb;
@@ -327,9 +387,7 @@
   line-height: 1.6;
 }
 
-/* ════════════════════════════════════
-   ENROLLED STUDENTS TABLE
-   ════════════════════════════════════ */
+/* ENROLLED STUDENTS TABLE */
 .adm-sub-table-wrap {
   overflow-x: auto;
   border-radius: 8px;
@@ -370,7 +428,6 @@
   border-bottom: none;
 }
 
-/* => Clickable row to navigate to enrollment detail */
 .adm-sub-table-row {
   cursor: pointer;
   transition: background 0.12s;
@@ -380,33 +437,13 @@
   background: #f0f4ff;
 }
 
-.adm-td-student-name {
-  font-weight: 600;
-  color: #111827;
-}
+.adm-td-student-name { font-weight: 600; color: #111827; }
+.adm-td-email        { color: #6b7280; font-size: 0.8125rem; }
+.adm-td-date          { white-space: nowrap; color: #6b7280; }
+.adm-td-arrow          { color: #d1d5db; font-size: 1.1rem; text-align: right; padding-right: 14px; }
 
-.adm-td-email {
-  color: #6b7280;
-  font-size: 0.8125rem;
-}
+.adm-sub-table-row:hover .adm-td-arrow { color: #1a56db; }
 
-.adm-td-date {
-  white-space: nowrap;
-  color: #6b7280;
-}
-
-.adm-td-arrow {
-  color: #d1d5db;
-  font-size: 1.1rem;
-  text-align: right;
-  padding-right: 14px;
-}
-
-.adm-sub-table-row:hover .adm-td-arrow {
-  color: #1a56db;
-}
-
-/* Badge used inside student table */
 .adm-badge {
   display: inline-block;
   padding: 3px 10px;
@@ -417,25 +454,10 @@
   white-space: nowrap;
 }
 
-/* Responsive */
 @media (max-width: 640px) {
-  .adm-class-detail-page {
-    padding: 20px 16px 48px;
-  }
-
-  .adm-class-detail-hero {
-    padding: 20px;
-  }
-
-  .adm-hero-course-name {
-    font-size: 1.25rem;
-  }
-
-  .adm-class-section {
-    padding: 18px 16px;
-  }
-
-  .adm-info-grid {
-    grid-template-columns: 1fr 1fr;
-  }
+  .adm-tesda-batch-detail-page { padding: 20px 16px 48px; }
+  .adm-batch-detail-hero        { padding: 20px; }
+  .adm-hero-course-name         { font-size: 1.25rem; }
+  .adm-batch-section            { padding: 18px 16px; }
+  .adm-info-grid                { grid-template-columns: 1fr 1fr; }
 }

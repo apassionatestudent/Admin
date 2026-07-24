@@ -175,6 +175,55 @@
   min-width: 820px;
 }
 
+/* => New: fixed widths for Batch Name / Sector-Cluster, scoped only to the
+      Batches table (not Facilities/Trainers) - Ongoing and Pending render
+      as two separate <table> instances, so without fixed widths each one
+      auto-sizes independently and the columns don't line up between them */
+.adm-table-wrap--batches .adm-table {
+  table-layout: fixed;
+}
+
+.adm-table-wrap--batches .adm-th-course,
+.adm-table-wrap--batches .adm-td-course {
+  width: 300px;
+}
+
+.adm-table-wrap--batches .adm-th-sector,
+.adm-table-wrap--batches .adm-td-sector {
+  width: 220px;
+}
+
+/* => Fixes a header text collision ("ENROLLED / MAXSTATUS" running
+      together with no gap) - with table-layout: fixed, a header's nowrap
+      text overflows past its own column into the next one if the column
+      is too narrow. Giving Type/Trainer/dates/Enrolled-Max explicit
+      widths and letting headers wrap as a safety net fixes it. */
+.adm-table-wrap--batches .adm-table th {
+  white-space: normal;
+}
+
+.adm-table-wrap--batches th:first-child,
+.adm-table-wrap--batches td:first-child {
+  width: 90px;
+}
+
+.adm-table-wrap--batches th:nth-child(4),
+.adm-table-wrap--batches td:nth-child(4) {
+  width: 130px;
+}
+
+.adm-table-wrap--batches th:nth-child(5),
+.adm-table-wrap--batches td:nth-child(5),
+.adm-table-wrap--batches th:nth-child(6),
+.adm-table-wrap--batches td:nth-child(6) {
+  width: 110px;
+}
+
+.adm-table-wrap--batches th:nth-child(7),
+.adm-table-wrap--batches td:nth-child(7) {
+  width: 130px;
+}
+
 .adm-table thead tr {
   background: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
@@ -228,12 +277,6 @@
   color: #111827;
 }
 
-/* Unassigned instructor */
-.adm-td-unassigned {
-  color: #d1d5db;
-  font-style: italic;
-  font-size: 0.8125rem;
-}
 
 /* Date cell */
 .adm-td-date {
@@ -274,6 +317,7 @@
    STATUS BADGES
    ════════════════════════════════════ */
 .adm-badge {
+  text-transform: capitalize; /* => was showing raw DB values like "active" lowercase */
   display: inline-block;
   padding: 3px 10px;
   border-radius: 999px;
@@ -296,6 +340,28 @@
 .adm-badge.status--concluded {
   background: #f3f4f6;
   color: #374151;
+}
+
+/* => New: Dissolved - batch called off mid-enrollment */
+.adm-badge.status--dissolved {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+/* => Dedicated facility status colors - separate from the batch
+      status--pending/ongoing/concluded set above, since 'active'/'inactive'
+      is a different vocabulary and reusing status--ongoing rendered too
+      subtly to read as a colored pill */
+.adm-badge.adm-badge--facility-active {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.adm-badge.adm-badge--facility-inactive {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
 }
 
 /* ════════════════════════════════════
@@ -331,6 +397,15 @@
 .adm-search-input:focus {
   outline: none;
   border-color: #1a56db;
+}
+
+/* => New: shown next to the search input while the debounced autosearch
+      is in flight - replaces the removed Search button entirely */
+.adm-search-loading {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #6b7280;
+  white-space: nowrap;
 }
 
 .adm-search-btn {
@@ -448,6 +523,15 @@
   padding: 18px 20px;
 }
 
+/* => New: helper message shown in the More Options panel when Type is
+      All and neither the TESDA nor SHS field group has anything to show */
+.adm-more-empty-note {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  text-align: center;
+}
+
 .adm-more-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -518,6 +602,14 @@
   margin-right: 2px;
 }
 
+/* => New: wraps the TESDA/SHS pills inside the Add Batch modal - reuses
+      .adm-filter-btn styling as-is, just needs a flex row to sit them side
+      by side */
+.adm-modal-type-toggle {
+  display: flex;
+  gap: 8px;
+}
+
 .adm-filter-btn {
   padding: 6px 14px;
   background: #fff;
@@ -560,6 +652,26 @@
   border-color: #1a56db;
 }
 
+/* => New: date inputs moved into the filter row from the old More Options
+      panel - same visual weight as .adm-filter-select but a smaller radius,
+      a full pill shape clips the native date-picker icon awkwardly */
+.adm-filter-date {
+  padding: 5px 10px;
+  background: #fff;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.adm-filter-date:focus {
+  outline: none;
+  border-color: #1a56db;
+}
+
 /* ════════════════════════════════════
    TYPE BADGE (TESDA vs SHS)
    ════════════════════════════════════ */
@@ -581,6 +693,18 @@
 .adm-type-badge--shs {
   background: #fce7f3;
   color: #9d174d;
+}
+
+/* => NEW - session_type badges, distinct palette from TESDA/SHS above
+      since this is a different concept (session type, not program type) */
+.adm-type-badge--mobile {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.adm-type-badge--online {
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 /* ════════════════════════════════════
@@ -780,6 +904,21 @@
   min-height: 76px;
 }
 
+/* => New: read-only course list shown under the SHS Cluster dropdown,
+      split by grade level - replaces the removed School Year field */
+.adm-modal-course-list {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 0.8125rem;
+  color: #374151;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.adm-modal-course-list li {
+  margin-bottom: 3px;
+}
+
 .adm-form-error {
   font-size: 0.8125rem;
   color: #b91c1c;
@@ -853,4 +992,143 @@
     bottom: 24px;
     right: 20px;
   }
+}
+
+/* ════════════════════════════════════
+   MAIN TABS (Classes | Batches | Facilities | Trainers)
+   => Added for the four-tab restructure. Styled to match .tab-btn /
+      .tab-active from Courses.css so both pages feel consistent, but
+      kept as its own class name (adm-main-tab-btn) since Classes.css
+      and Courses.css are separate files with no shared import.
+   ════════════════════════════════════ */
+.adm-main-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.adm-main-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+/* => Active/Deleted toggle - same pill pattern as Courses.css's .view-toggle,
+      duplicated here since Classes.css and Courses.css don't share a stylesheet */
+.view-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--code-bg, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+
+.view-toggle-btn {
+  background: none;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted, var(--text));
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+}
+
+.view-toggle-btn.view-toggle-active {
+  background: var(--accent-hover, #8a0d17);
+  color: #fff;
+}
+
+.adm-main-tab-btn {
+  background: none;
+  border: none;
+  padding: 10px 18px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--text-muted, var(--text));
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-body), sans-serif;
+}
+
+.adm-main-tab-btn--active {
+  color: var(--accent-hover, #8a0d17);
+  border-bottom: 2px solid var(--accent-hover, #8a0d17);
+}
+
+
+/* => Restore button for the Facilities Deleted view - matches Courses.css's
+      .btn-restore pattern, duplicated here since the two CSS files aren't shared */
+.btn-restore {
+  background: none;
+  border: 1px solid var(--accent-hover, #8a0d17);
+  color: var(--accent-hover, #8a0d17);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+}
+
+.btn-restore:hover {
+  background: var(--accent-hover, #8a0d17);
+  color: #fff;
+}
+
+
+/* ════════════════════════════════════
+   MAROON TABLE VARIANT (Facilities & Trainers)
+   => Matches Courses.css's .courses-table styling (maroon header, maroon-
+      tinted row hover) for visual consistency with the Courses page.
+      Scoped to .adm-table-wrap--maroon so Class Sessions/Batches tables
+      keep their original styling untouched.
+   ════════════════════════════════════ */
+.adm-table-wrap--maroon .adm-table thead tr {
+  background: var(--sidebar-bg, #660911);
+  border-bottom: 1px solid var(--sidebar-bg, #660911);
+}
+
+.adm-table-wrap--maroon .adm-table th {
+  color: #fff;
+}
+
+.adm-table-wrap--maroon .adm-table-row:hover {
+  background: rgba(102, 9, 17, 0.08);
+}
+
+.adm-table-wrap--maroon .adm-table-row:hover .adm-td-arrow {
+  color: var(--accent-hover, #8a0d17);
+}
+/* => Class Sessions tab's facility picker table - course lists rendered as
+      actual <ul> bullets instead of one long comma-joined line, since a
+      restricted facility can allow half a dozen courses and a wall of
+      commas is hard to scan. Overrides the browser's default <ul> margin/
+      padding so it sits flush inside the table cell instead of floating
+      with extra whitespace above/below/left. */
+.cs-course-list {
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.cs-course-list li {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.cs-course-list li:not(:last-child) {
+  margin-bottom: 2px;
+}
+
+/* => TESDA/SHS column text needs to wrap normally rather than trying to
+      stay on one line, now that colgroup pins both columns to a fixed
+      width - without this, long course titles could overflow the column
+      instead of wrapping within it */
+.cs-sessions-table td {
+  white-space: normal;
 }

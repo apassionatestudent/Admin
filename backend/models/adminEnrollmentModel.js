@@ -25,13 +25,12 @@ export const getPendingEnrollments = async (pool) => {
         sp.last_name,
         sp.name_extension,
         c.title                                               AS course_name,
-        NULL::text                                            AS track,
         NULL::text                                            AS cluster
       FROM tesda_enrollments e
       JOIN  student_accounts sa    ON sa.student_id  = e.student_id
       LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
       LEFT JOIN tesda_courses c          ON c.course_id    = e.course_id
-      LEFT JOIN tesda_classes cl   ON cl.class_id    = e.class_id
+      LEFT JOIN tesda_batches cl   ON cl.batch_id    = e.batch_id
       WHERE e.status IN ('Pending', 'Needs Clarification')
 
       UNION ALL
@@ -47,12 +46,11 @@ export const getPendingEnrollments = async (pool) => {
         sp.last_name,
         sp.name_extension,
         NULL::text                                            AS course_name,
-        e.track,
         e.cluster
       FROM shs_enrollments e
       JOIN  student_accounts sa    ON sa.student_id  = e.student_id
       LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
-      LEFT JOIN shs_classes cl     ON cl.class_id    = e.class_id
+      LEFT JOIN shs_batches cl     ON cl.batch_id    = e.batch_id
       WHERE e.status IN ('Pending', 'Needs Clarification')
 
       ORDER BY submitted_at ASC`
@@ -81,13 +79,12 @@ export const searchEnrollments = async (pool, { email, first_name, middle_name, 
           sp.last_name,
           sp.name_extension,
           c.title                                               AS course_name,
-          NULL::text                                            AS track,
           NULL::text                                            AS cluster
         FROM tesda_enrollments e
         JOIN  student_accounts sa    ON sa.student_id  = e.student_id
         LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
         LEFT JOIN tesda_courses c          ON c.course_id    = e.course_id
-        LEFT JOIN tesda_classes cl   ON cl.class_id    = e.class_id
+        LEFT JOIN tesda_batches cl   ON cl.batch_id    = e.batch_id
         WHERE
           ($1::text IS NULL OR sa.username      ILIKE '%' || $1 || '%')
           AND ($2::text IS NULL OR sp.first_name    ILIKE '%' || $2 || '%')
@@ -108,12 +105,11 @@ export const searchEnrollments = async (pool, { email, first_name, middle_name, 
           sp.last_name,
           sp.name_extension,
           NULL::text                                            AS course_name,
-          e.track,
           e.cluster
         FROM shs_enrollments e
         JOIN  student_accounts sa    ON sa.student_id  = e.student_id
         LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
-        LEFT JOIN shs_classes cl     ON cl.class_id    = e.class_id
+        LEFT JOIN shs_batches cl     ON cl.batch_id    = e.batch_id
         WHERE
           ($1::text IS NULL OR sa.username      ILIKE '%' || $1 || '%')
           AND ($2::text IS NULL OR sp.first_name    ILIKE '%' || $2 || '%')
@@ -139,7 +135,7 @@ export const searchEnrollments = async (pool, { email, first_name, middle_name, 
 
 // 
 // TESDA DETAIL: enrollment row + course/sector (direct or via class)
-//   + class period/type/groupchat from the joined tesda_classes row
+//   + class period/type/groupchat from the joined tesda_batches row
 // 
 export const getTesdaEnrollmentDetailByPublicId = async (pool, publicId) => {
   const result = await pool.query(
@@ -148,7 +144,7 @@ export const getTesdaEnrollmentDetailByPublicId = async (pool, publicId) => {
         e.enrollment_id,
         e.student_id,
         e.course_id,
-        e.class_id,
+        e.batch_id,
         e.fee_at_enrollment,
         e.uli,
         e.ncae_taken,
@@ -173,7 +169,7 @@ export const getTesdaEnrollmentDetailByPublicId = async (pool, publicId) => {
       JOIN  student_accounts sa    ON sa.student_id = e.student_id
       LEFT JOIN tesda_courses c          ON c.course_id   = e.course_id
       LEFT JOIN sectors s          ON s.sector_id   = c.sector_id
-      LEFT JOIN tesda_classes cl   ON cl.class_id   = e.class_id
+      LEFT JOIN tesda_batches cl   ON cl.batch_id   = e.batch_id
       WHERE e.public_id = $1`,
     [publicId]
   );
@@ -182,7 +178,7 @@ export const getTesdaEnrollmentDetailByPublicId = async (pool, publicId) => {
 
 // 
 // SHS DETAIL: enrollment row + class period/groupchat from the joined
-//   shs_classes row
+//   shs_batches row
 // 
 export const getShsEnrollmentDetailByPublicId = async (pool, publicId) => {
   const result = await pool.query(
@@ -191,12 +187,11 @@ export const getShsEnrollmentDetailByPublicId = async (pool, publicId) => {
         e.enrollment_id,
         e.student_id,
         e.lrn,
-        e.class_id,
+        e.batch_id,
         e.last_school_attended,
         e.school_address,
         e.grade_level_completed,
         e.school_year_completed,
-        e.track,
         e.cluster,
         e.electives,
         e.emergency_name,
@@ -225,7 +220,7 @@ export const getShsEnrollmentDetailByPublicId = async (pool, publicId) => {
         sa.username                                          AS student_username
       FROM shs_enrollments e
       JOIN  student_accounts sa    ON sa.student_id = e.student_id
-      LEFT JOIN shs_classes cl     ON cl.class_id   = e.class_id
+      LEFT JOIN shs_batches cl     ON cl.batch_id   = e.batch_id
       WHERE e.public_id = $1`,
     [publicId]
   );
@@ -394,16 +389,16 @@ const ALLOWED_COLUMNS = {
     'district_code', 'region_code',
   ]),
   tesda_enrollments: new Set([
-    'uli', 'course_id', 'class_id', 'fee_at_enrollment',
+    'uli', 'course_id', 'batch_id', 'fee_at_enrollment',
     'ncae_taken', 'ncae_where', 'ncae_when',
     'is_tesda_scholar', 'scholarship_type', 'other_scholarship',
     'internal_remarks',
   ]),
   shs_enrollments: new Set([
-    'lrn', 'class_id',
+    'lrn', 'batch_id',
     'last_school_attended', 'school_address',
     'grade_level_completed', 'school_year_completed',
-    'track', 'cluster', 'electives',
+    'cluster', 'electives',
     'emergency_name', 'emergency_relationship', 'emergency_contact_no', 'emergency_address',
     'has_medical_condition', 'medical_condition_detail', 'allergies', 'maintenance_medication',
     'internal_remarks',
@@ -646,17 +641,16 @@ export const deleteTesdaDocument = async (pool, docPublicId) => {
   return { deleted: result.rows[0] };
 };
 
-// => shs_classes is filtered by track/cluster only, mirroring how the
+// => shs_batches is filtered by track/cluster only, mirroring how the
 //    student-side /api/shs-classes endpoint filters. Verify against your
 //    actual schema.
-export const getAvailableShsClasses = async (pool, { track, cluster }) => {
+export const getAvailableShsClasses = async (pool, { cluster }) => {
   const result = await pool.query(
-    `SELECT class_id, start_date, end_date, groupchat_link
-       FROM shs_classes
-       WHERE track = $1
-         AND ($2::text IS NULL OR cluster = $2)
+    `SELECT batch_id, start_date, end_date, groupchat_link
+       FROM shs_batches
+       WHERE cluster = $1
        ORDER BY start_date ASC`,
-    [track, cluster || null]
+    [cluster]
   );
   return result.rows;
 };
@@ -664,16 +658,10 @@ export const getAvailableShsClasses = async (pool, { track, cluster }) => {
 // => Returns SHS tracks and clusters together in one round trip - both are
 //    small, static-ish reference tables, so no pagination/filtering needed
 export const getShsTracksAndClusters = async (pool) => {
-  const [tracksResult, clustersResult] = await Promise.all([
-    pool.query(`SELECT track_id, value, name FROM shs_tracks ORDER BY track_id`),
-    pool.query(
-      `SELECT sc.cluster_id, sc.value, sc.name, st.value AS track_value
-         FROM shs_clusters sc
-         JOIN shs_tracks st ON st.track_id = sc.track_id
-         ORDER BY sc.cluster_id`
-    ),
-  ]);
-  return { tracks: tracksResult.rows, clusters: clustersResult.rows };
+  const clustersResult = await pool.query(
+    `SELECT cluster_id, value, name FROM shs_clusters ORDER BY cluster_id`
+  );
+  return { clusters: clustersResult.rows };
 };
 
 
@@ -681,8 +669,8 @@ export const getShsTracksAndClusters = async (pool) => {
 //    course only (Sector is derived from the course, not user-selectable)
 export const getAvailableTesdaClasses = async (pool, { courseId }) => {
   const result = await pool.query(
-    `SELECT class_id, start_date, end_date, groupchat_link
-       FROM tesda_classes
+    `SELECT batch_id, start_date, end_date, groupchat_link
+       FROM tesda_batches
        WHERE course_id = $1
        ORDER BY start_date ASC`,
     [courseId]

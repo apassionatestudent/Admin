@@ -1,0 +1,237 @@
+/* => components/Classes/TrainerDetail/trainerDetail.css
+   => Reuses adm-form-* classes from the global admin form styles
+      (same ones FacilityDetail.css relies on) - only page-specific and
+      checklist-specific rules live here. Mirrors FacilityDetail.css with
+      an trainer- prefix instead of fd-. */
+
+.trainer-page {
+  padding: 32px;
+  color: var(--text);
+  font-family: var(--font-body), sans-serif;
+}
+
+.trainer-header {
+  margin: 16px 0 24px;
+}
+
+.trainer-title {
+  margin: 0 0 4px;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-h);
+}
+
+.trainer-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-muted, var(--text));
+  margin: 0;
+}
+
+.trainer-form-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  width: 100%;
+}
+
+.trainer-form-card .adm-form-group {
+  margin-bottom: 20px;
+}
+
+.trainer-form-card .adm-form-row {
+  display: flex;
+  gap: 20px;
+}
+
+.trainer-form-card .adm-form-row .adm-form-group {
+  flex: 1;
+}
+
+/* => Wraps the two program-type checkboxes (handles_tesda / handles_shs) */
+.trainer-toggle-row {
+  margin: 4px 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trainer-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.trainer-checklist {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trainer-check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.trainer-empty-text,
+.trainer-loading-text {
+  font-size: 0.8125rem;
+  color: var(--text-muted, var(--text));
+  margin: 4px 0;
+}
+
+.trainer-save-success {
+  font-size: 0.8125rem;
+  color: #166534;
+  margin: 8px 0 0;
+}
+
+.trainer-form-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.trainer-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 0;
+  color: var(--text-muted, var(--text));
+  font-size: 0.9375rem;
+}
+
+.trainer-state--error {
+  flex-direction: row;
+  justify-content: center;
+}
+
+.trainer-inline-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.trainer-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: #1a56db;
+  border-radius: 50%;
+  animation: trainer-spin 0.8s linear infinite;
+}
+
+@keyframes trainer-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* => Section header with pencil-to-edit button, mirrors FacilityDetail's
+      .fd-section-header + .fd-section-edit-btn pattern */
+.trainer-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.trainer-section-title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, var(--text));
+}
+
+.trainer-section-edit-btn {
+  background: none;
+  border: 1.5px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.trainer-section-edit-btn:hover {
+  background: var(--sidebar-hover-bg, #262626);
+  border-color: var(--accent-hover, #8a0d17);
+}
+
+.trainer-section-edit-btn:hover .trainer-pencil-icon {
+  filter: brightness(0) invert(1); /* => keeps the pencil visible once the bg goes dark on hover */
+}
+
+.trainer-pencil-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+/* => Read-only view grid, mirrors FacilityDetail's .fd-info-view-grid */
+.trainer-info-view-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.trainer-field-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted, var(--text));
+  margin-bottom: 4px;
+}
+
+.trainer-view-value {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.875rem;
+}
+
+/* => Read-only course lists, shown in place of the checkboxes while not editing */
+.trainer-view-list {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 0.8125rem;
+  color: var(--text);
+}
+
+.trainer-view-list li {
+  margin-bottom: 2px;
+}
+
+/* => Plain danger-styled trigger button for opening the delete
+      RemarksActionModal, same role as FacilityDetail's .fd-delete-btn */
+.trainer-delete-btn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+  transition: background 0.12s;
+}
+
+.trainer-delete-btn:hover {
+  background: #fee2e2;
+}

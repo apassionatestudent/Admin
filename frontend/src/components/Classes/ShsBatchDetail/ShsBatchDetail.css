@@ -1,0 +1,482 @@
+/* =========================================================
+   ShsBatchDetail.css - Admin SHS batch detail page
+   Aesthetic: matches EnrollmentDetail.css - structured
+   government-form utility with clear visual hierarchy
+   ========================================================= */
+
+.adm-shs-batch-detail-page {
+  padding: 32px 40px 64px;
+  min-height: 100vh;
+  background: #f4f5f8;
+  font-family: var(--font-body), sans-serif;
+}
+
+.adm-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4b5563;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  margin-bottom: 24px;
+  transition: color 0.12s;
+}
+
+.adm-back-btn:hover {
+  color: #1a56db;
+}
+
+.adm-batch-detail-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 80px 0;
+  color: #6b7280;
+  font-size: 0.9375rem;
+}
+
+.adm-batch-detail-state--error {
+  color: #b91c1c;
+  font-size: 1.125rem;
+}
+
+.adm-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #1a56db;
+  border-radius: 50%;
+  animation: adm-spin 0.8s linear infinite;
+}
+
+@keyframes adm-spin {
+  to { transform: rotate(360deg); }
+}
+
+.adm-batch-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* HERO HEADER */
+.adm-batch-detail-hero {
+  background: var(--sidebar-bg);
+  border-radius: 14px;
+  padding: 28px 32px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.adm-hero-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.adm-hero-sector {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #f2e208;
+  margin: 0 0 6px;
+}
+
+.adm-hero-course-name {
+  font-size: 1.625rem;
+  font-weight: 700;
+  color: #f9fafb;
+  margin: 0 0 4px;
+  letter-spacing: -0.02em;
+}
+
+.adm-hero-badge {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* STATUS COLORS */
+.status--planned    { background: #dbeafe; color: #1e40af; }
+.status--ongoing    { background: #d1fae5; color: #065f46; }
+.status--concluded  { background: #f3f4f6; color: #374151; }
+/* => New: Dissolved - batch called off mid-enrollment, distinct dark-red
+      tone since it's a more final/negative state than Concluded */
+.status--dissolved  { background: #fee2e2; color: #7f1d1d; }
+.status--pending      { background: #fef3c7; color: #92400e; }
+.status--approved     { background: #d1fae5; color: #065f46; }
+.status--clarification{ background: #dbeafe; color: #1e40af; }
+.status--rejected     { background: #fee2e2; color: #991b1b; }
+.status--dropped      { background: #f3f4f6; color: #374151; }
+.status--completed    { background: #ecfdf5; color: #047857; }
+.status--reserved     { background: #ede9fe; color: #5b21b6; }
+
+/* SECTION WRAPPER */
+.adm-batch-section {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 24px 28px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.adm-section-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+  margin: 0 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.adm-section-count-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.adm-empty-note {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* STATUS CHANGER */
+.adm-status-changer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.adm-status-select {
+  padding: 9px 14px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #111827;
+  background: #fff;
+  cursor: pointer;
+  min-width: 200px;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+
+.adm-status-select:focus {
+  outline: none;
+  border-color: #1a56db;
+}
+
+/* => New: remarks input in the status changer row, required on every
+      status change - matches .adm-status-select sizing so the row lines
+      up cleanly */
+.adm-status-remarks-input {
+  padding: 9px 14px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #111827;
+  background: #fff;
+  flex: 1;
+  min-width: 220px;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+
+.adm-status-remarks-input:focus {
+  outline: none;
+  border-color: #1a56db;
+}
+
+/* => New: pencil-icon edit mode CSS, matches trainerDetail.css's
+      equivalent classes with the adm- prefix already used on this page */
+.adm-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.adm-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.adm-section-edit-btn {
+  background: none;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.adm-section-edit-btn:hover {
+  background: #f3f4f6;
+  border-color: #1a56db;
+}
+
+.adm-pencil-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.adm-section-save-btn {
+  padding: 7px 16px;
+  background: var(--sidebar-bg);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  font-family: inherit;
+}
+
+.adm-section-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.adm-section-cancel-btn {
+  padding: 7px 16px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.adm-section-cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.adm-form-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #b91c1c;
+  font-size: 0.8125rem;
+  margin: 0 0 14px;
+}
+
+/* => Matches .adm-info-value exactly - this list sits inside the same
+      info-card grid alongside plain-text values, so it needs to look
+      like part of the same content, not a visually distinct element */
+.adm-modal-course-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: inherit;
+  color: #111827;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.adm-modal-course-list li {
+  margin-bottom: 3px;
+  word-break: break-word;
+}
+
+.adm-status-btn {
+  padding: 9px 22px;
+  background: var(--sidebar-bg);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  font-family: inherit;
+}
+
+.adm-status-btn:hover:not(:disabled) {
+  background: #1648c0;
+}
+
+.adm-status-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.adm-save-msg {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.adm-save-msg--success { color: #065f46; }
+.adm-save-msg--error   { color: #b91c1c; }
+
+/* INFO GRID */
+.adm-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.adm-info-card {
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.adm-info-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #9ca3af;
+  margin: 0 0 4px;
+}
+
+.adm-info-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #111827;
+  margin: 0;
+  word-break: break-word;
+}
+
+/* => New: clickable link style for groupchat_link */
+.adm-info-link {
+  color: #1a56db;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.adm-info-link:hover {
+  text-decoration: underline;
+}
+
+.adm-slots-note {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.adm-remarks-box {
+  margin-top: 16px;
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.adm-remarks-text {
+  font-size: 0.875rem;
+  color: #374151;
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+/* ENROLLED STUDENTS TABLE */
+.adm-sub-table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.adm-sub-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8375rem;
+  color: #374151;
+  min-width: 560px;
+}
+
+.adm-sub-table thead tr {
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.adm-sub-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.adm-sub-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+
+.adm-sub-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.adm-sub-table-row {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.adm-sub-table-row:hover {
+  background: #f0f4ff;
+}
+
+.adm-td-student-name { font-weight: 600; color: #111827; }
+.adm-td-email        { color: #6b7280; font-size: 0.8125rem; }
+.adm-td-date          { white-space: nowrap; color: #6b7280; }
+.adm-td-arrow          { color: #d1d5db; font-size: 1.1rem; text-align: right; padding-right: 14px; }
+
+.adm-sub-table-row:hover .adm-td-arrow { color: #1a56db; }
+
+.adm-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .adm-shs-batch-detail-page   { padding: 20px 16px 48px; }
+  .adm-batch-detail-hero        { padding: 20px; }
+  .adm-hero-course-name         { font-size: 1.25rem; }
+  .adm-batch-section            { padding: 18px 16px; }
+  .adm-info-grid                { grid-template-columns: 1fr 1fr; }
+}

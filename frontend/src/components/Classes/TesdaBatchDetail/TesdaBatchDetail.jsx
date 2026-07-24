@@ -1,0 +1,877 @@
+// => admin/components/Classes/TesdaBatchDetail/TesdaBatchDetail.jsx
+// => Full detail view for a single TESDA batch
+// => Split from the old shared ClassDetail.jsx, following the same
+//    tesdaEnrollmentDetail.jsx / shsEnrollmentDetail.jsx split pattern
+// => Edit mode follows the exact same SectionEditControls pattern used on
+//    tesdaEnrollmentDetail.jsx: one section editable at a time, pencil
+//    toggles to Save/Cancel, draft state holds in-progress values.
+
+import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
+import { useParams, useNavigate } from 'react-router-dom';
+import axiosAdmin from '../../../api/axiosAdmin.js';
+import BackButton from '../../BackButton/BackButton.jsx';
+import ConfirmModal from '../../ConfirmModal/ConfirmModal.jsx';
+import pencilIcon from '../../../assets/icons/pencil.png';
+
+import './TesdaBatchDetail.css';
+
+// => Maps status to CSS modifier class
+const statusClass = {
+  'Pending':   'status--pending',
+  'Ongoing':   'status--ongoing',
+  'Concluded': 'status--concluded',
+  'Dissolved': 'status--dissolved',
+};
+
+// => Handles both plain DATE strings ('2026-06-01') and
+// => full ISO timestamps ('2026-06-01T00:00:00.000Z') from the pg driver
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-';
+  const datePart = String(dateStr).slice(0, 10);
+  const [year, month, day] = datePart.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('en-PH', {
+    year: 'numeric', month: 'long', day: 'numeric',
+  });
+};
+
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleDateString('en-PH', {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+};
+
+// => Same date-string form the date <input> expects - strips any time
+//    component off a stored DATE/TIMESTAMPTZ value
+const toDateInputValue = (dateStr) => {
+  if (!dateStr) return '';
+  return String(dateStr).slice(0, 10);
+};
+
+// => TIME columns come back as 'HH:MM:SS' - trims to 'HH:MM' for display
+const formatTime = (timeStr) => {
+  if (!timeStr) return '-';
+  return String(timeStr).slice(0, 5);
+};
+
+// => Tomorrow as YYYY-MM-DD - matches the backend's validateBatchDates:
+//    a start_date of today or earlier isn't allowed
+const getTomorrowDateString = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+};
+
+const getMinEndDate = (startDateValue) => {
+  if (!startDateValue) return getTomorrowDateString();
+  const d = new Date(startDateValue);
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+};
+
+// => Client-side mirror of the backend's date validation - this form isn't
+//    a native <form> submission so the date input's min attribute alone
+//    never blocks a typed-in bad value on save
+const validateDatesClient = (startDate, endDate) => {
+  if (startDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    if (start <= today) return 'Start date must be a future date - today or earlier is not allowed.';
+  }
+  if (startDate && endDate) {
+    if (new Date(endDate) <= new Date(startDate)) return 'End date must be after the start date.';
+  }
+  return null;
+};
+
+// => Derives full name from profile fields
+const fullName = (row) => {
+  const parts = [row.first_name, row.middle_name, row.last_name, row.name_extension]
+    .filter(v => v && v.trim().toUpperCase() !== 'N/A');
+  return parts.length ? parts.join(' ') : row.student_email ?? '-';
+};
+
+const enrollmentStatusClass = {
+  'Pending':             'status--pending',
+  'Approved':            'status--approved',
+  'Needs Clarification': 'status--clarification',
+  'Rejected':            'status--rejected',
+  'Dropped':             'status--dropped',
+  'Completed':           'status--completed',
+  'Reserved':            'status--reserved',
+};
+
+// => SectionEditControls - pencil / Save / Cancel row shown next to the
+//    section title, exact same pattern as tesdaEnrollmentDetail.jsx.
+//    isEditing is derived by comparing editingSection to this section's own key.
+function SectionEditControls({ sectionKey, editingSection, saving, onEdit, onSave, onCancel }) {
+  const isEditing = editingSection === sectionKey;
+  return (
+    <div className="adm-section-actions">
+      {isEditing ? (
+        <>
+          <button className="adm-section-save-btn" onClick={onSave} disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+          <button className="adm-section-cancel-btn" onClick={onCancel} disabled={saving}>
+            Cancel
+          </button>
+        </>
+      ) : (
+        <button className="adm-section-edit-btn" onClick={onEdit} title="Edit section">
+          <img src={pencilIcon} alt="Edit" className="adm-pencil-icon" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+export default function TesdaBatchDetail() {
+  const { publicId } = useParams();
+  const navigate      = useNavigate();
+
+  const [data,    setData]    = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(null);
+
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [statusRemarks,  setStatusRemarks]  = useState('');
+  const [statusSaving,   setStatusSaving]   = useState(false);
+
+  // => Gate for the Concluded status - admin must confirm they've already
+  //    talked to the trainer before the actual PATCH fires
+  const [showConcludeConfirm, setShowConcludeConfirm] = useState(false);
+
+  // => Only one section editable at a time - 'batchInfo' covers Batch
+  //    Information + Trainer together, since both save through the same
+  //    PATCH /api/admin/batches/tesda/:publicId endpoint anyway. course_id
+  //    is never part of the draft - it's permanently locked, shown as
+  //    plain text even while the rest of the section is in edit mode.
+  const [editingSection, setEditingSection] = useState(null);
+  const [draft,          setDraft]          = useState({});
+  const [sectionSaving,  setSectionSaving]  = useState(false);
+  const [sectionError,   setSectionError]   = useState(null);
+
+  // => Trainer dropdown options - lazy-loaded only once edit mode opens,
+  //    same pattern as tesdaEnrollmentDetail.jsx's classOptions fetch
+  const [trainerOptions, setTrainerOptions] = useState([]);
+  const [trainerTesdaCourses, setTrainerTesdaCourses] = useState([]);
+  const [loadingTrainers, setLoadingTrainers] = useState(false);
+
+  useEffect(() => {
+    if (editingSection !== 'batchInfo') return;
+    setLoadingTrainers(true);
+    fetch('/api/admin/batches/form-options', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        setTrainerOptions(d.trainers || []);
+        setTrainerTesdaCourses(d.trainerTesdaCourses || []);
+      })
+      .catch(err => console.error('Failed to fetch trainer options:', err))
+      .finally(() => setLoadingTrainers(false));
+  }, [editingSection]);
+
+  // => Activity log for this batch - status changes, edits, and the
+  //    automatic System-driven Ongoing promotion all show up here
+  const [logs,        setLogs]        = useState([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+
+  const fetchLogs = async () => {
+    setLogsLoading(true);
+    try {
+      const res = await fetch(`/api/admin/batches/tesda/${publicId}/logs`, {
+        credentials: 'include',
+      });
+      if (!res.ok) return;
+      const json = await res.json();
+      setLogs(json.logs || []);
+    } catch (err) {
+      console.error('Failed to fetch batch logs:', err);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  // => Every session booked for this batch, across all facilities and
+  //    types (Local/Mobile/Online) - resolved server-side from this page's
+  //    batch public_id, no need to wait for fetchDetail to know the
+  //    integer batch_id first
+  const [classSessions, setClassSessions] = useState([]);
+  const [classSessionsLoading, setClassSessionsLoading] = useState(false);
+
+  const fetchClassSessions = async () => {
+    setClassSessionsLoading(true);
+    try {
+      const res = await axiosAdmin.get(`/api/admin/class-sessions/batch/tesda/${publicId}`);
+      setClassSessions(res.data.sessions || []);
+    } catch (err) {
+      console.error('Failed to fetch class sessions:', err);
+    } finally {
+      setClassSessionsLoading(false);
+    }
+  };
+
+  // => silent=true skips the full-page loading spinner - used when
+  //    re-fetching after a save, where the page is already showing content
+  const fetchDetail = async (silent = false) => {
+    if (!silent) setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/batches/tesda/${publicId}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const body = await res.json();
+        throw new Error(body.error || 'Failed to fetch batch detail.');
+      }
+      const json = await res.json();
+      setData(json);
+      setSelectedStatus(json.batchRow.status);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDetail();
+    fetchLogs();
+    fetchClassSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publicId]);
+
+  const startEdit = (sectionKey, initialValues) => {
+    setEditingSection(sectionKey);
+    setDraft(initialValues);
+    setSectionError(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingSection(null);
+    setDraft({});
+    setSectionError(null);
+  };
+
+  const updateDraft = (field, value) => {
+    setDraft(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditBatchInfo = () => {
+    const { batchRow } = data;
+    startEdit('batchInfo', {
+      trainer_id:                  batchRow.trainer_id ?? '',
+      start_date:                  toDateInputValue(batchRow.start_date),
+      end_date:                    toDateInputValue(batchRow.end_date),
+      required_number_of_students: batchRow.required_number_of_students ?? '',
+      max_students:                batchRow.max_students ?? '',
+      class_type:                  batchRow.class_type ?? 'Regular',
+      groupchat_link:              batchRow.groupchat_link ?? '',
+    });
+  };
+
+  const handleSaveBatchInfo = async () => {
+    setSectionError(null);
+
+    if (!draft.required_number_of_students || !draft.max_students) {
+      setSectionError('Required Students and Max Students are both required.');
+      return;
+    }
+    if (Number(draft.required_number_of_students) > Number(draft.max_students)) {
+      setSectionError('Required Students cannot exceed Max Students.');
+      return;
+    }
+    const dateError = validateDatesClient(draft.start_date, draft.end_date);
+    if (dateError) {
+      setSectionError(dateError);
+      return;
+    }
+
+    setSectionSaving(true);
+    try {
+      await axiosAdmin.patch(`/api/admin/batches/tesda/${publicId}`, {
+        trainer_id:                  draft.trainer_id ? Number(draft.trainer_id) : null,
+        start_date:                  draft.start_date || null,
+        end_date:                    draft.end_date || null,
+        required_number_of_students: Number(draft.required_number_of_students),
+        max_students:                Number(draft.max_students),
+        class_type:                  draft.class_type,
+        groupchat_link:              draft.groupchat_link?.trim() || null,
+      });
+
+      // => Re-fetch instead of merging the PATCH response - UPDATE...RETURNING
+      //    only returns raw columns like trainer_id, not the joined
+      //    trainer_name/contact/email, so a merge left the old trainer info
+      //    showing until a manual page refresh
+      await fetchDetail(true);
+      await fetchLogs();
+      setEditingSection(null);
+      setDraft({});
+      toast.success('Batch updated successfully.');
+    } catch (err) {
+      setSectionError(err.response?.data?.error || 'Failed to save changes.');
+    } finally {
+      setSectionSaving(false);
+    }
+  };
+
+  // => Switched from plain fetch to axiosAdmin - fetch was silently
+  //    omitting the x-csrf-token header, same latent CSRF bug fixed
+  //    earlier in Facility/Instructor restore
+  // => Remarks are required on every status change, matching the same
+  //    convention Facility/Trainer already follow
+  // => Does the actual PATCH - split out so the Concluded confirm gate
+  //    below can call this after the admin says Yes, without duplicating
+  //    the request logic
+  const runStatusSave = async () => {
+    setStatusSaving(true);
+    try {
+      const res = await axiosAdmin.patch(`/api/admin/batches/tesda/${publicId}/status`, {
+        status: selectedStatus,
+        remarks: statusRemarks.trim(),
+      });
+
+      setData(prev => ({
+        ...prev,
+        batchRow: { ...prev.batchRow, status: res.data.updated.status, remarks: statusRemarks.trim() },
+      }));
+      await fetchLogs();
+      setStatusRemarks('');
+      toast.success('Status updated successfully.');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to update status.');
+    } finally {
+      setStatusSaving(false);
+    }
+  };
+
+  const handleSaveStatus = () => {
+    if (!selectedStatus || selectedStatus === data?.batchRow.status) return;
+
+    if (!statusRemarks.trim()) {
+      toast.error('Remarks are required when changing the batch status.');
+      return;
+    }
+
+    // => Concluded needs an extra confirmation step - the PATCH only
+    //    fires once the admin confirms they've consulted the trainer
+    if (selectedStatus === 'Concluded') {
+      setShowConcludeConfirm(true);
+      return;
+    }
+
+    runStatusSave();
+  };
+
+  const handleConfirmConclude = () => {
+    setShowConcludeConfirm(false);
+    runStatusSave();
+  };
+
+  if (loading) {
+    return (
+      <div className="adm-tesda-batch-detail-page">
+        <div className="adm-batch-detail-state">
+          <div className="adm-spinner" />
+          <p>Loading batch details…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="adm-tesda-batch-detail-page">
+        <BackButton destination="Classes" onClick={() => navigate('/dashboard/classes')} />
+        <div className="adm-batch-detail-state adm-batch-detail-state--error">
+          <span>⚠ {error}</span>
+        </div>
+      </div>
+    );
+  }
+
+  const { batchRow, enrolledStudents } = data;
+  const remainingSlots = batchRow.max_students - (enrolledStudents?.length ?? 0);
+  const isEditingBatchInfo = editingSection === 'batchInfo';
+
+  return (
+    <div className="adm-tesda-batch-detail-page">
+
+      <BackButton destination="Classes" onClick={() => navigate('/dashboard/classes')} />
+
+      <div className="adm-batch-detail-body">
+
+        {/* HERO HEADER */}
+        <div className="adm-batch-detail-hero">
+          <div className="adm-hero-left">
+            <p className="adm-hero-sector">TESDA Batch</p>
+            <h1 className="adm-hero-course-name">
+              {batchRow.course_name ?? '-'}
+              {batchRow.certification_type ? ` (${batchRow.certification_type})` : ''}
+              {' '}(Batch #{batchRow.batch_id})
+            </h1>
+          </div>
+
+          <span className={`adm-hero-badge ${statusClass[batchRow.status] || ''}`}>
+            {batchRow.status}
+          </span>
+        </div>
+
+        {/* STATUS CHANGER */}
+        <div className="adm-batch-section">
+          <p className="adm-section-title">Update Status</p>
+          <div className="adm-status-changer">
+            <select
+              className="adm-status-select"
+              value={selectedStatus}
+              onChange={e => setSelectedStatus(e.target.value)}
+            >
+              <option value="Pending">Pending</option>
+              <option value="Ongoing">Ongoing</option>
+              <option value="Concluded">Concluded</option>
+              <option value="Dissolved">Dissolved</option>
+            </select>
+
+            <input
+              type="text"
+              className="adm-status-remarks-input"
+              placeholder="Remarks (required)"
+              value={statusRemarks}
+              onChange={e => setStatusRemarks(e.target.value)}
+            />
+
+            <button
+              className="adm-status-btn"
+              onClick={handleSaveStatus}
+              disabled={statusSaving || selectedStatus === batchRow.status}
+            >
+              {statusSaving ? 'Saving…' : 'Save Status'}
+            </button>
+          </div>
+        </div>
+
+        {/* BATCH INFO + TRAINER - one editable section, since both save
+               through the same PATCH endpoint. Course is always plain
+               text, never part of the draft - permanently locked. */}
+        <div className="adm-batch-section">
+          <div className="adm-section-header">
+            <p className="adm-section-title">Batch Information</p>
+            <SectionEditControls
+              sectionKey="batchInfo"
+              editingSection={editingSection}
+              saving={sectionSaving}
+              onEdit={handleEditBatchInfo}
+              onSave={handleSaveBatchInfo}
+              onCancel={cancelEdit}
+            />
+          </div>
+
+          {isEditingBatchInfo && sectionError && (
+            <p className="adm-form-error">⚠ {sectionError}</p>
+          )}
+
+          {!isEditingBatchInfo ? (
+            <>
+              <div className="adm-info-grid">
+
+                <div className="adm-info-card">
+                  <p className="adm-info-label">Course</p>
+                  <p className="adm-info-value">
+                    {batchRow.course_name ?? '-'}
+                    {batchRow.certification_type ? ` (${batchRow.certification_type})` : ''}
+                  </p>
+                </div>
+
+                {batchRow.hours && (
+                  <div className="adm-info-card">
+                    <p className="adm-info-label">Duration</p>
+                    <p className="adm-info-value">{batchRow.hours} hours</p>
+                  </div>
+                )}
+
+                <div className="adm-info-card">
+                  <p className="adm-info-label">Sector</p>
+                  <p className="adm-info-value">{batchRow.sector ?? '-'}</p>
+                </div>
+
+                <div className="adm-info-card">
+                  <p className="adm-info-label">Batch Type</p>
+                  <p className="adm-info-value">{batchRow.class_type ?? '-'}</p>
+                </div>
+
+                {/* => Only shown for Regular batches - TESDA-Sponsored is
+                       paid by TESDA, not the enrollee, so a fee isn't
+                       relevant to show there */}
+                {batchRow.class_type === 'Regular' && (
+                  <div className="adm-info-card">
+                    <p className="adm-info-label">Amount</p>
+                    <p className="adm-info-value">
+                      {batchRow.amount != null
+                        ? `₱${Number(batchRow.amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
+                        : '-'}
+                    </p>
+                  </div>
+                )}
+
+                <div className="adm-info-card">
+                  <p className="adm-info-label">Trainer</p>
+                  <p className="adm-info-value">{batchRow.trainer_name ?? '-'}</p>
+                </div>
+
+                {batchRow.trainer_contact && (
+                  <div className="adm-info-card">
+                    <p className="adm-info-label">Trainer Contact</p>
+                    <p className="adm-info-value">{batchRow.trainer_contact}</p>
+                  </div>
+                )}
+
+                {batchRow.trainer_email && (
+                  <div className="adm-info-card">
+                    <p className="adm-info-label">Trainer Email</p>
+                    <p className="adm-info-value">{batchRow.trainer_email}</p>
+                  </div>
+                )}
+
+                <div className="adm-info-card">
+                  <p className="adm-info-label">Start Date</p>
+                  <p className="adm-info-value">{formatDate(batchRow.start_date)}</p>
+                </div>
+
+                <div className="adm-info-card">
+                  <p className="adm-info-label">End Date</p>
+                  <p className="adm-info-value">{formatDate(batchRow.end_date)}</p>
+                </div>
+
+                <div className="adm-info-card">
+                  <p className="adm-info-label">Required Students</p>
+                  <p className="adm-info-value">{batchRow.required_number_of_students ?? '-'}</p>
+                </div>
+
+                <div className="adm-info-card">
+                  <p className="adm-info-label">Max Students</p>
+                  <p className="adm-info-value">{batchRow.max_students ?? '-'}</p>
+                </div>
+
+                <div className="adm-info-card">
+                  <p className="adm-info-label">Enrolled</p>
+                  <p className="adm-info-value">
+                    {enrolledStudents?.length ?? 0}
+                    {' '}
+                    <span className="adm-slots-note">
+                      ({remainingSlots > 0 ? `${remainingSlots} slot${remainingSlots !== 1 ? 's' : ''} remaining` : 'Full'})
+                    </span>
+                  </p>
+                </div>
+
+                {batchRow.groupchat_link && (
+                  <div className="adm-info-card">
+                    <p className="adm-info-label">Groupchat</p>
+                    <p className="adm-info-value">
+                      <a href={batchRow.groupchat_link} target="_blank" rel="noopener noreferrer" className="adm-info-link">
+                        Open Groupchat
+                      </a>
+                    </p>
+                  </div>
+                )}
+
+                <div className="adm-info-card">
+                  <p className="adm-info-label">Last Updated</p>
+                  <p className="adm-info-value">{formatDateTime(batchRow.updated_at)}</p>
+                </div>
+
+                {batchRow.created_by_name && (
+                  <div className="adm-info-card">
+                    <p className="adm-info-label">Created By</p>
+                    <p className="adm-info-value">{batchRow.created_by_name}</p>
+                  </div>
+                )}
+
+              </div>
+            </>
+          ) : (
+            <div className="adm-info-grid">
+
+              {/* => Course - always plain text, never editable, even here */}
+              <div className="adm-info-card">
+                <p className="adm-info-label">Course</p>
+                <p className="adm-info-value">
+                  {batchRow.course_name ?? '-'}
+                  {batchRow.certification_type ? ` (${batchRow.certification_type})` : ''}
+                </p>
+              </div>
+
+              <div className="adm-form-group">
+                <label className="adm-form-label">Trainer</label>
+                {loadingTrainers ? (
+                  <p className="adm-empty-note">Loading trainers…</p>
+                ) : (
+                  <select
+                    className="adm-form-select"
+                    value={draft.trainer_id}
+                    onChange={e => updateDraft('trainer_id', e.target.value)}
+                  >
+                    <option value="">- Unassigned -</option>
+                    {trainerOptions
+                      .filter(t => t.handles_tesda && trainerTesdaCourses.some(
+                        tc => tc.trainer_id === t.trainer_id && tc.course_id === batchRow.course_id
+                      ))
+                      .map(t => (
+                      <option key={t.trainer_id} value={t.trainer_id}>{t.trainer_full_name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div className="adm-form-group">
+                <label className="adm-form-label">Batch Type</label>
+                <select
+                  className="adm-form-select"
+                  value={draft.class_type}
+                  onChange={e => updateDraft('class_type', e.target.value)}
+                >
+                  <option value="Regular">Regular</option>
+                  <option value="TESDA-Sponsored">TESDA-Sponsored</option>
+                </select>
+              </div>
+
+              <div className="adm-form-group">
+                <label className="adm-form-label">Start Date</label>
+                <input
+                  type="date"
+                  className="adm-form-input"
+                  min={getTomorrowDateString()}
+                  value={draft.start_date}
+                  onChange={e => updateDraft('start_date', e.target.value)}
+                />
+              </div>
+
+              <div className="adm-form-group">
+                <label className="adm-form-label">End Date</label>
+                <input
+                  type="date"
+                  className="adm-form-input"
+                  min={getMinEndDate(draft.start_date)}
+                  value={draft.end_date}
+                  onChange={e => updateDraft('end_date', e.target.value)}
+                />
+              </div>
+
+              <div className="adm-form-group">
+                <label className="adm-form-label">Required Students <span className="adm-form-required">*</span></label>
+                <input
+                  type="number"
+                  className="adm-form-input"
+                  min="1"
+                  value={draft.required_number_of_students}
+                  onChange={e => updateDraft('required_number_of_students', e.target.value)}
+                />
+              </div>
+
+              <div className="adm-form-group">
+                <label className="adm-form-label">Max Students <span className="adm-form-required">*</span></label>
+                <input
+                  type="number"
+                  className="adm-form-input"
+                  min="1"
+                  value={draft.max_students}
+                  onChange={e => updateDraft('max_students', e.target.value)}
+                />
+              </div>
+
+              <div className="adm-form-group">
+                <label className="adm-form-label">Groupchat Link <span className="adm-form-optional">(optional)</span></label>
+                <input
+                  type="text"
+                  className="adm-form-input"
+                  placeholder="https://m.me/..."
+                  value={draft.groupchat_link}
+                  onChange={e => updateDraft('groupchat_link', e.target.value)}
+                />
+              </div>
+
+            </div>
+          )}
+        </div>
+
+        {/* ENROLLED STUDENTS TABLE */}
+        <div className="adm-batch-section">
+          <p className="adm-section-title">
+            Enrolled Students
+            <span className="adm-section-count-inline">{enrolledStudents?.length ?? 0}</span>
+          </p>
+
+          {!enrolledStudents || enrolledStudents.length === 0 ? (
+            <p className="adm-empty-note">No students enrolled in this batch yet.</p>
+          ) : (
+            <div className="adm-sub-table-wrap">
+              <table className="adm-sub-table">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Email</th>
+                    <th>Enrollment Status</th>
+                    <th>Submitted</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {enrolledStudents.map((s) => (
+                    <tr
+                      key={s.enrollment_public_id}
+                      className="adm-sub-table-row"
+                      onClick={() => navigate(`/dashboard/enrollments/${s.enrollment_public_id}`)}
+                      title="View enrollment detail"
+                    >
+                      <td className="adm-td-student-name">{fullName(s)}</td>
+                      <td className="adm-td-email">{s.student_email}</td>
+                      <td>
+                        <span className={`adm-badge ${enrollmentStatusClass[s.enrollment_status] || ''}`}>
+                          {s.enrollment_status}
+                        </span>
+                      </td>
+                      <td className="adm-td-date">
+                        {s.submitted_at
+                          ? new Date(s.submitted_at).toLocaleDateString('en-PH', {
+                              year: 'numeric', month: 'short', day: 'numeric',
+                            })
+                          : '-'}
+                      </td>
+                      <td className="adm-td-arrow">›</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* CLASS SESSIONS - every booked session for this batch, across
+               all facilities and types */}
+        <div className="adm-batch-section">
+          <p className="adm-section-title">
+            Class Sessions
+            <span className="adm-section-count-inline">{classSessions.length}</span>
+          </p>
+
+          {classSessionsLoading && <p className="adm-empty-note">Loading sessions…</p>}
+
+          {!classSessionsLoading && classSessions.length === 0 && (
+            <p className="adm-empty-note">No sessions scheduled yet.</p>
+          )}
+
+          {!classSessionsLoading && classSessions.length > 0 && (
+            <div className="adm-sub-table-wrap">
+              <table className="adm-sub-table">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Location / Link</th>
+                    <th>Trainer</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {classSessions.map((s) => (
+                    <tr
+                      key={s.public_id}
+                      className="adm-sub-table-row"
+                      style={{ cursor: s.session_type === 'Local' && s.facility_public_id ? 'pointer' : 'default' }}
+                      onClick={
+                        s.session_type === 'Local' && s.facility_public_id
+                          ? () => navigate(`/dashboard/classes/sessions/${s.facility_public_id}`)
+                          : undefined
+                      }
+                      title={s.session_type === 'Local' ? 'View facility calendar' : undefined}
+                    >
+                      <td>{s.session_type}</td>
+                      <td className="adm-td-date">{formatDate(s.session_date)}</td>
+                      <td>{formatTime(s.start_time)} - {formatTime(s.end_time)}</td>
+                      <td>
+                        {s.session_type === 'Local'
+                          ? (s.facility_name || '-')
+                          : s.session_type === 'Mobile'
+                          ? (s.mobile_location || '-')
+                          : (s.meeting_link || '-')}
+                      </td>
+                      <td>{s.trainer_name ?? '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* ACTIVITY LOGS - audit trail for this batch, newest first.
+               System-actor entries (e.g. the automatic Pending -> Ongoing
+               promotion) get a distinct badge so they read differently
+               from admin-initiated changes at a glance. */}
+        <div className="adm-batch-section">
+          <p className="adm-section-title">
+            Activity Logs
+            <span className="adm-section-count-inline">{logs.length}</span>
+          </p>
+
+          {logsLoading && <p className="adm-empty-note">Loading logs…</p>}
+
+          {!logsLoading && logs.length === 0 && (
+            <p className="adm-empty-note">No activity recorded for this batch yet.</p>
+          )}
+
+          {!logsLoading && logs.length > 0 && (
+            <div className="adm-sub-table-wrap">
+              <table className="adm-sub-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Actor</th>
+                    <th>Action</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map(log => (
+                    <tr key={log.log_id}>
+                      <td className="adm-td-date">
+                        {new Date(log.created_at).toLocaleString('en-PH', {
+                          year: 'numeric', month: 'short', day: 'numeric',
+                          hour: 'numeric', minute: '2-digit',
+                        })}
+                      </td>
+                      <td>
+                        {log.actor_type === 'System' ? (
+                          <span className="adm-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>
+                            System
+                          </span>
+                        ) : (
+                          log.actor_name
+                        )}
+                      </td>
+                      <td>{log.action}</td>
+                      <td className="adm-td-email">{log.action_detail || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* => Concluded status change is gated behind this confirmation -
+             the actual PATCH only fires once the admin confirms */}
+      <ConfirmModal
+        isOpen={showConcludeConfirm}
+        message="Have you already consulted the trainer about concluding this batch?"
+        onConfirm={handleConfirmConclude}
+        onCancel={() => setShowConcludeConfirm(false)}
+      />
+    </div>
+  );
+}

@@ -1063,7 +1063,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
 
   const handleSaveClassAssign = async () => {
     try {
-      await patchSection('enrollment', { class_id: draft.class_id || null });
+      await patchSection('enrollment', { batch_id: draft.batch_id || null });
       await fetchDetail();
       cancelEdit();
     } catch { /* sectionError already set */ }
@@ -1281,7 +1281,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
           {/* ════════════════════════════════════
               ENROLLMENT INFORMATION
               => Course/Sector/Date Submitted stay read-only - they're
-                 derived from joins (course_id/class_id) and need
+                 derived from joins (course_id/batch_id) and need
                  a proper picker UI, deferred per earlier project decision.
                  ULI and Fee are direct columns and fully editable.
               ════════════════════════════════════ */}
@@ -1334,7 +1334,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                 sectionKey="classAssign"
                 editingSection={editingSection}
                 saving={sectionSaving}
-                onEdit={() => startEdit('classAssign', { class_id: enrollment.class_id ?? '' })}
+                onEdit={() => startEdit('classAssign', { batch_id: enrollment.batch_id ?? '' })}
                 onSave={handleSaveClassAssign}
                 onCancel={cancelEdit}
               />
@@ -1348,9 +1348,9 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                   <p className="adm-info-label">Assign to Class</p>
                   <select
                     className="adm-edit-input"
-                    value={draft.class_id ?? ''}
+                    value={draft.batch_id ?? ''}
                     disabled={loadingClassOptions}
-                    onChange={e => updateDraft('class_id', e.target.value)}
+                    onChange={e => updateDraft('batch_id', e.target.value)}
                   >
                     <option value="">
                       {loadingClassOptions
@@ -1360,7 +1360,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                           : 'Select a class'}
                     </option>
                     {classOptions.map(c => (
-                      <option key={c.class_id} value={c.class_id}>
+                      <option key={c.batch_id} value={c.batch_id}>
                         {formatDate(c.start_date)} – {formatDate(c.end_date)}
                       </option>
                     ))}

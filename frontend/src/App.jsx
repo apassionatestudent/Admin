@@ -21,10 +21,14 @@ import Admins        from './pages/Admins/Admins.jsx';
 // import EnrollmentDetail from './components/EnrollmentDetail/EnrollmentDetail.jsx';
 import TESDAEnrollmentDetail from './components/TESDAEnrollmentDetail/tesdaEnrollmentDetail.jsx';
 import SHSEnrollmentDetail   from './components/SHSEnrollmentDetail/shsEnrollmentDetail.jsx';
-import ClassDetail from './components/ClassDetail/ClassDetail.jsx';
+import TesdaBatchDetail from './components/Classes/TesdaBatchDetail/TesdaBatchDetail.jsx';
+import ShsBatchDetail   from './components/Classes/ShsBatchDetail/ShsBatchDetail.jsx';
 import StudentDetail from './components/StudentDetail/StudentDetail.jsx';
 import TesdaCourseDetail from './components/TESDACourseDetail/TesdaCourseDetail.jsx';
 import ShsCourseDetail   from './components/ShsCourseDetail/ShsCourseDetail.jsx';
+import FacilityDetail    from './components/Classes/FacilityDetail/FacilityDetail.jsx';
+import FacilitySessionCalendar from './components/Classes/FacilitySessionCalendar/facilitySessionCalendar.jsx';
+import TrainerDetail  from './components/Classes/TrainerDetail/trainerDetail.jsx';
 
 import { Toaster } from "react-hot-toast";
 
@@ -35,7 +39,7 @@ function App() {
     return (
         <div>
 
-        {/* <Toaster />  */}
+        <Toaster /> 
         {/* // => BrowserRouter provides the routing context required by useNavigate, useLocation, etc. */}
         <BrowserRouter>
             <Routes>
@@ -55,8 +59,12 @@ function App() {
                     <Route path="enrollments/tesda/:publicId" element={<TESDAEnrollmentDetail />} />
                     <Route path="enrollments/shs/:publicId"   element={<SHSEnrollmentDetail />} />  
 
-                    <Route path="classes"               element={<Classes />} />
-                    <Route path="classes/:publicId"     element={<ClassDetail />} />
+                    <Route path="classes"                 element={<Classes />} />
+                    <Route path="classes/tesda/:publicId" element={<TesdaBatchDetail />} />
+                    <Route path="classes/shs/:publicId"   element={<ShsBatchDetail />} />
+                    <Route path="classes/sessions/:facilityPublicId" element={<FacilitySessionCalendar />} />
+                    <Route path="facilities/:publicId"  element={<FacilityDetail />} />
+                    <Route path="trainers/:publicId" element={<TrainerDetail />} />
 
                     <Route path="support-tickets"       element={<SupportTickets />} />
 

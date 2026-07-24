@@ -1,3 +1,5 @@
+// admin server.js
+
 import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -12,11 +14,19 @@ import adminAuthRouter from './routes/adminAuthRoute.js';
 import locationRouter, { loadLocationCache } from './routes/locationRoutes.js';
 import tesdaCoursesRouter from './routes/tesdaCoursesRoutes.js';
 import shsCoursesRouter from './routes/shsCoursesRoutes.js';
-import adminClassRouter from './routes/adminClassRoute.js';
+import adminBatchRouter from './routes/Classes/adminBatchRoutes.js';
 import adminStudentRouter from './routes/adminStudentRoute.js';
 import nationalityRoutes from './routes/nationalityRoutes.js';
 import sectorClusterRoutes from './routes/sectorClusterRoutes.js';
 
+// Page: Classes 
+import adminFacilityRouter from './routes/Classes/adminFacilityRoutes.js';
+import adminTrainerRouter from './routes/Classes/adminTrainerRoutes.js';
+import adminClassSessionRouter from './routes/Classes/adminClassSessionRoutes.js';
+
+// cron jobs => check dates for Pending => Ongoing Classes 
+import cron from 'node-cron';
+import { runAutoPromoteBatches } from './jobs/batchAutoPromoteJob.js';
 
 dotenv.config(); // => moved up - must run before any module reads process.env
 
@@ -49,13 +59,17 @@ app.use('/api/admin/shs-courses', shsCoursesRouter);
 // => Location endpoints - used by EnrollmentDetail to resolve PSGC codes to readable names
 app.use('/api/location', locationRouter);
 
-app.use('/api/admin/classes', adminClassRouter);
+app.use('/api/admin/batches', adminBatchRouter);
 
 app.use('/api/admin/students', adminStudentRouter);
 app.use('/api/admin', sectorClusterRoutes);
 
 // => nationality routes 
 app.use('/api/reference', nationalityRoutes);
+
+app.use('/api/admin/facilities', adminFacilityRouter);
+app.use('/api/admin/trainers', adminTrainerRouter);
+app.use('/api/admin/class-sessions', adminClassSessionRouter);
 
 
 // => Initialize DB tables that the admin backend needs
@@ -121,6 +135,14 @@ async function initDB() {
     // => Pre-load regions into memory before accepting requests
     // => Without this, /api/location/regions returns [] and all code-to-name resolution fails
     await loadLocationCache();
+
+    // => Auto-promotes eligible Pending batches to Ongoing once a day at
+    //    1:00 AM. Also runs once immediately on startup so a restart doesn't
+    //    leave a 24-hour gap before the first check.
+    cron.schedule('0 1 * * *', () => {
+    runAutoPromoteBatches().catch(err => console.error('[autoPromoteBatches] cron run failed:', err));
+    });
+    runAutoPromoteBatches().catch(err => console.error('[autoPromoteBatches] initial run failed:', err));
 
     app.listen(PORT, () => {
         console.log(`Admin server running on port ${PORT}`);
