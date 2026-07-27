@@ -1150,11 +1150,15 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
     ? 'Free (TESDA Scholar)'
     : formatCurrency(enrollment.fee_at_enrollment);
 
-  const classPeriodDisplay = !enrollment.start_date
+  // => Based on batch_id now, not start_date - a batch can be assigned
+  // => with no dates set yet, which used to wrongly show "Not yet assigned"
+  const classPeriodDisplay = !enrollment.batch_id
     ? 'Not yet assigned'
-    : !enrollment.end_date
-      ? `${formatDate(enrollment.start_date)} – Ongoing`
-      : `${formatDate(enrollment.start_date)} – ${formatDate(enrollment.end_date)}`;
+    : !enrollment.start_date
+      ? `${enrollment.batch_name} (dates TBA)`
+      : !enrollment.end_date
+        ? `${enrollment.batch_name} – ${formatDate(enrollment.start_date)} – Ongoing`
+        : `${enrollment.batch_name} – ${formatDate(enrollment.start_date)} – ${formatDate(enrollment.end_date)}`;
 
   const selectedClassifications = classifications.map(c => c.classification_value);
   const othersRow = classifications.find(c => c.classification_value === 'others');
@@ -1361,7 +1365,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                     </option>
                     {classOptions.map(c => (
                       <option key={c.batch_id} value={c.batch_id}>
-                        {formatDate(c.start_date)} – {formatDate(c.end_date)}
+                        {c.batch_name}
                       </option>
                     ))}
                   </select>

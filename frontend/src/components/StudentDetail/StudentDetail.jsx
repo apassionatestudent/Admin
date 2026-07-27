@@ -122,7 +122,7 @@ const validateFacebookLink = (value) => {
 };
 
 // => Generic "this can't be blank" check, for plain required text fields
-// => that don't need a format check (Surname, First Name)
+// => that don't need a format check (Last Name, First Name)
 const validateRequiredText = (label) => (value) => {
   if (!value || !value.trim()) return `${label} is required.`;
   return null;
@@ -576,7 +576,7 @@ export default function StudentDetail() {
     const errors = {
       contact_no:     validateMobile(draft.contact_no),
       birth_date:     validateAge(draft.birth_date),
-      last_name:      validateRequiredText('Surname')(draft.last_name),
+      last_name:      validateRequiredText('Last Name')(draft.last_name),
       first_name:     validateRequiredText('First Name')(draft.first_name),
       email:          validateEmail(draft.email),
       facebook_link:  validateFacebookLink(draft.facebook_link),
@@ -788,13 +788,13 @@ export default function StudentDetail() {
 
                   {/* Profile fields */}
                   <EditableField
-                    label="Surname"
+                    label="Last Name"
                     value={draft.last_name}
                     error={fieldErrors.last_name}
                     required
                     onChange={v => {
                       updateDraft('last_name', v);
-                      setFieldErrors(prev => ({ ...prev, last_name: validateRequiredText('Surname')(v) }));
+                      setFieldErrors(prev => ({ ...prev, last_name: validateRequiredText('Last Name')(v) }));
                     }}
                   />
                   <EditableField
@@ -889,7 +889,7 @@ export default function StudentDetail() {
                   <InfoCard label="Email / Username" value={studentRow.username ?? '-'} />
 
                   {/* Profile fields */}
-                  <InfoCard label="Surname" value={studentRow.last_name ?? '-'} />
+                  <InfoCard label="Last Name" value={studentRow.last_name ?? '-'} />
                   <InfoCard label="First Name" value={studentRow.first_name ?? '-'} />
                   <InfoCard label="Middle Name" value={studentRow.middle_name ?? '-'} />
                   <InfoCard label="Name Extension" value={studentRow.name_extension ?? '-'} />

@@ -428,9 +428,9 @@ export default function ShsBatchDetail() {
   //    School Year entirely. cluster is fixed for this batch (locked, no
   //    dropdown needed here unlike the Add Batch modal), so this is just a
   //    straight lookup rather than reacting to a selection change.
-  const matchingCluster = clusterCourseData.clusters.find(c => c.name === batchRow.cluster);
-  const clusterCourses = matchingCluster
-    ? clusterCourseData.shsCourses.filter(c => c.cluster_id === matchingCluster.cluster_id)
+  // => No more name-matching needed - batchRow.cluster_id is a real FK now
+  const clusterCourses = batchRow.cluster_id
+    ? clusterCourseData.shsCourses.filter(c => c.cluster_id === batchRow.cluster_id)
     : [];
   const grade11Courses = clusterCourses.filter(c => c.grade_level === 'Grade 11');
   const grade12Courses = clusterCourses.filter(c => c.grade_level === 'Grade 12');

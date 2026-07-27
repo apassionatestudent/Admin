@@ -730,17 +730,17 @@ export default function SHSEnrollmentDetail() {
   useEffect(() => {
     if (editingSection !== 'classAssign') return;
     const enr = data?.enrollment;
-    if (!enr?.cluster) { setClassOptions([]); return; }
+    if (!enr?.cluster_id) { setClassOptions([]); return; }
 
     setLoadingClassOptions(true);
-    const params = new URLSearchParams({ cluster: enr.cluster });
+    const params = new URLSearchParams({ cluster_id: enr.cluster_id });
 
     fetch(`/api/admin/enrollments/shs/classes/available?${params.toString()}`, { credentials: 'include' })
       .then(r => r.json())
       .then(d => setClassOptions(d.classes || []))
       .catch(err => console.error('Failed to fetch available classes:', err))
       .finally(() => setLoadingClassOptions(false));
-  }, [editingSection, data?.enrollment?.cluster]);
+  }, [editingSection, data?.enrollment?.cluster_id]);
 
   // => Fetch nationalities for the profile
   useEffect(() => {
@@ -1000,11 +1000,15 @@ export default function SHSEnrollmentDetail() {
   //    it's meaningless/redundant for Father/Mother rows.
   const hasGuardianRow = sortedFamily.some(f => f.role === 'Guardian');
 
-  const classPeriodDisplay = !enrollment.start_date
+  // => Based on batch_id now, not start_date - a batch can be assigned
+  // => with no dates set yet, which used to wrongly show "Not yet assigned"
+  const classPeriodDisplay = !enrollment.batch_id
     ? 'Not yet assigned'
-    : !enrollment.end_date
-      ? `${formatDate(enrollment.start_date)} – Ongoing`
-      : `${formatDate(enrollment.start_date)} – ${formatDate(enrollment.end_date)}`;  
+    : !enrollment.start_date
+      ? `${enrollment.batch_name} (dates TBA)`
+      : !enrollment.end_date
+        ? `${enrollment.batch_name} – ${formatDate(enrollment.start_date)} – Ongoing`
+        : `${enrollment.batch_name} – ${formatDate(enrollment.start_date)} – ${formatDate(enrollment.end_date)}`;  
 
   return (
     <div className="adm-detail-page">
@@ -1295,7 +1299,7 @@ export default function SHSEnrollmentDetail() {
                     </option>
                     {classOptions.map(c => (
                       <option key={c.batch_id} value={c.batch_id}>
-                        {formatDate(c.start_date)} – {formatDate(c.end_date)}
+                        {c.batch_name}
                       </option>
                     ))}
                   </select>

@@ -239,11 +239,11 @@ export const addTesdaBatch = async (batchData) => {
 //    the Trainers page first, not overriding it here.
 export const addShsBatch = async (batchData) => {
   const {
-    cluster, school_year, required_number_of_students, max_students,
+    cluster_id, school_year, required_number_of_students, max_students,
     grade11_trainer_id, grade12_trainer_id,
   } = batchData;
 
-  if (!cluster)       throw new Error('cluster is required.');
+  if (!cluster_id)    throw new Error('cluster_id is required.');
   if (!required_number_of_students) throw new Error('required_number_of_students is required.');
   if (!max_students) throw new Error('max_students is required.');
 
@@ -262,13 +262,13 @@ export const addShsBatch = async (batchData) => {
   validateBatchDates(batchData.start_date, batchData.end_date);
 
   if (grade11_trainer_id) {
-    const qualified = await isTrainerQualifiedForShsGrade(pool, grade11_trainer_id, cluster, 'Grade 11');
+    const qualified = await isTrainerQualifiedForShsGrade(pool, grade11_trainer_id, cluster_id, 'Grade 11');
     if (!qualified) {
       throw new Error('This trainer is not qualified for Grade 11 under this cluster. Assign a qualified trainer, or leave the field blank for now.');
     }
   }
   if (grade12_trainer_id) {
-    const qualified = await isTrainerQualifiedForShsGrade(pool, grade12_trainer_id, cluster, 'Grade 12');
+    const qualified = await isTrainerQualifiedForShsGrade(pool, grade12_trainer_id, cluster_id, 'Grade 12');
     if (!qualified) {
       throw new Error('This trainer is not qualified for Grade 12 under this cluster. Assign a qualified trainer, or leave the field blank for now.');
     }
@@ -328,7 +328,7 @@ export const editTesdaBatchDetails = async (publicId, batchData, existingCourseI
 // => SHS trainer qualification keeps the same soft-confirm flow as creation
 // => SHS trainer qualification is now a HARD block on edit too, matching
 //    creation and TESDA - no more substitute confirm path
-export const editShsBatchDetails = async (publicId, batchData, existingCluster, adminId, batchId) => {
+export const editShsBatchDetails = async (publicId, batchData, existingClusterId, adminId, batchId) => {
   const {
     school_year, start_date, end_date, required_number_of_students, max_students,
     grade11_trainer_id, grade12_trainer_id,
@@ -344,13 +344,13 @@ export const editShsBatchDetails = async (publicId, batchData, existingCluster, 
   }
 
   if (grade11_trainer_id) {
-    const qualified = await isTrainerQualifiedForShsGrade(pool, grade11_trainer_id, existingCluster, 'Grade 11');
+    const qualified = await isTrainerQualifiedForShsGrade(pool, grade11_trainer_id, existingClusterId, 'Grade 11');
     if (!qualified) {
       throw new Error('This trainer is not qualified for Grade 11 under this cluster. Assign a qualified trainer, or leave the field blank for now.');
     }
   }
   if (grade12_trainer_id) {
-    const qualified = await isTrainerQualifiedForShsGrade(pool, grade12_trainer_id, existingCluster, 'Grade 12');
+    const qualified = await isTrainerQualifiedForShsGrade(pool, grade12_trainer_id, existingClusterId, 'Grade 12');
     if (!qualified) {
       throw new Error('This trainer is not qualified for Grade 12 under this cluster. Assign a qualified trainer, or leave the field blank for now.');
     }
@@ -432,7 +432,7 @@ export const assignShsEnrollment = async (enrollmentPublicId, batchPublicId) => 
   if (!ctx || !ctx.batch_id) {
     throw new Error('Enrollment or batch not found.');
   }
-  if (ctx.enrollment_cluster && ctx.enrollment_cluster !== ctx.batch_cluster) {
+  if (ctx.enrollment_cluster_id && ctx.enrollment_cluster_id !== ctx.batch_cluster_id) {
     throw new Error("This batch does not match the student's cluster.");
   }
   if (ctx.current_batch_count >= ctx.max_students) {
