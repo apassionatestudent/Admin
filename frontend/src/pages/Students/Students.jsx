@@ -61,7 +61,7 @@ export default function Students() {
   const [q, setQ] = useState('');
 
   // => More Options fields
-  const [filterSurname,       setFilterSurname]       = useState('');
+  const [filterLastName,      setFilterLastName]      = useState('');
   const [filterFirstName,     setFilterFirstName]     = useState('');
   const [filterMiddleName,    setFilterMiddleName]    = useState('');
   // => Name extension is a dropdown - default empty string means "any"
@@ -151,7 +151,7 @@ export default function Students() {
     // => Always collect all fields regardless of whether More Options is open
     const builtFilters = {
       q:              q.trim(),
-      surname:        filterSurname,
+      last_name:      filterLastName,
       first_name:     filterFirstName,
       middle_name:    filterMiddleName,
       // => Only included if admin picked a real option (not blank "Any")
@@ -173,7 +173,7 @@ export default function Students() {
 
   const handleClear = () => {
     setQ('');
-    setFilterSurname('');
+    setFilterLastName('');
     setFilterFirstName('');
     setFilterMiddleName('');
     setFilterNameExtension('');
@@ -310,13 +310,13 @@ export default function Students() {
           <div className="adm-more-panel">
             <div className="adm-more-grid">
               <div className="adm-more-field">
-                <label className="adm-more-label">Surname</label>
+                <label className="adm-more-label">Last Name</label>
                 <input
                   className="adm-more-input"
                   type="text"
                   placeholder="e.g. dela Cruz"
-                  value={filterSurname}
-                  onChange={e => setFilterSurname(e.target.value)}
+                  value={filterLastName}
+                  onChange={e => setFilterLastName(e.target.value)}
                 />
               </div>
               <div className="adm-more-field">

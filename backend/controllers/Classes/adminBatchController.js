@@ -224,7 +224,7 @@ export const updateShsBatchController = async (req, res) => {
     const updated = await editShsBatchDetails(
       publicId,
       req.body,
-      existing.batchRow.cluster,
+      existing.batchRow.cluster_id,
       req.admin?.admin_id ?? null,
       existing.batchRow.batch_id
     );

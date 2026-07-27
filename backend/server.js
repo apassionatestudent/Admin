@@ -8,7 +8,11 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { sql } from './config/db.js';
 
-import adminEnrollmentRouter from './routes/adminEnrollmentRoute.js';
+// => Enrollment routes split into shared (combined list/search/doc proxy),
+//    tesda-only, and shs-only routers - see routes/Enrollments/
+import sharedEnrollmentRouter from './routes/Enrollments/sharedEnrollmentRoute.js';
+import tesdaEnrollmentRouter from './routes/Enrollments/tesdaEnrollmentRoute.js';
+import shsEnrollmentRouter from './routes/Enrollments/shsEnrollmentRoute.js';
 import adminAuthRouter from './routes/adminAuthRoute.js';
 // => Location router for resolving PSGC codes to readable names in EnrollmentDetail
 import locationRouter, { loadLocationCache } from './routes/locationRoutes.js';
@@ -51,7 +55,14 @@ app.use(csrfProtection);
 
 // => Routes
 app.use('/api/admin-auth', adminAuthRouter);
-app.use('/api/admin/enrollments', adminEnrollmentRouter);
+// => Shared router handles GET / (combined list), GET /search (combined
+//    search), and GET /docs/:documentKey (generic R2 proxy for both types)
+app.use('/api/admin/enrollments', sharedEnrollmentRouter);
+// => Type-specific routers mounted under their own path segment - this
+//    preserves the exact same final URLs the frontend already calls
+//    (e.g. /api/admin/enrollments/tesda/:publicId still resolves the same)
+app.use('/api/admin/enrollments/tesda', tesdaEnrollmentRouter);
+app.use('/api/admin/enrollments/shs', shsEnrollmentRouter);
 
 app.use('/api/admin/tesda-courses', tesdaCoursesRouter);
 app.use('/api/admin/shs-courses', shsCoursesRouter);

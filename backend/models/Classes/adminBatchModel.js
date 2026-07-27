@@ -64,7 +64,7 @@ export const getActiveBatches = async (pool) => {
         NULL::text                 AS course_name,
         NULL::text                 AS certification_type,
         NULL::text                 AS sector,
-        b.cluster,
+        sc.name                    AS cluster,
         -- => No single trainer_name for SHS - two slots don't collapse
         --    into one column cleanly, list view leaves it blank same as before
         NULL::text                 AS trainer_name,
@@ -72,12 +72,13 @@ export const getActiveBatches = async (pool) => {
           WHERE e.status NOT IN ('Rejected', 'Dropped')
         )::int                    AS enrolled_count
       FROM shs_batches b
+      LEFT JOIN shs_clusters sc   ON sc.cluster_id = b.cluster_id
       LEFT JOIN shs_enrollments e ON e.batch_id = b.batch_id
       WHERE b.status IN ('Ongoing', 'Pending')
       GROUP BY
         b.public_id, b.batch_id, b.status,
         b.start_date, b.end_date, b.required_number_of_students,
-        b.max_students, b.remarks, b.cluster
+        b.max_students, b.remarks, sc.name
     ) combined
       ORDER BY
         -- => CASE in ORDER BY isn't allowed directly after a UNION -
@@ -169,12 +170,13 @@ export const searchBatches = async (pool, {
           NULL::text                 AS course_name,
           NULL::text                 AS certification_type,
           NULL::text                 AS sector,
-          b.cluster,
+          sc.name                    AS cluster,
           NULL::text                 AS trainer_name,
           COUNT(e.enrollment_id) FILTER (
             WHERE e.status NOT IN ('Rejected', 'Dropped')
           )::int                    AS enrolled_count
         FROM shs_batches b
+        LEFT JOIN shs_clusters sc   ON sc.cluster_id = b.cluster_id
         LEFT JOIN shs_enrollments e ON e.batch_id = b.batch_id
         WHERE
           -- => Was inverted, same bug as the TESDA branch above - now
@@ -183,10 +185,10 @@ export const searchBatches = async (pool, {
           ($1::text IS NULL OR $1 = 'SHS')
           -- => The Batch Name search box now also matches SHS batches by
           --    cluster name, sharing the same $2 param as TESDA's course
-          --    title - previously typing anything into the search box did
-          --    nothing at all for SHS results
-          AND ($2::text IS NULL OR b.cluster ILIKE '%' || $2 || '%')
-          AND ($8::text IS NULL OR b.cluster ILIKE '%' || $8 || '%')
+          --    title - matched against the joined shs_clusters.name now
+          --    instead of the old denormalized text column
+          AND ($2::text IS NULL OR sc.name ILIKE '%' || $2 || '%')
+          AND ($8::text IS NULL OR sc.name ILIKE '%' || $8 || '%')
           AND ($4::text IS NULL OR b.status  = $4)
           AND ($6::date IS NULL OR b.start_date >= $6::date)
           AND ($7::date IS NULL OR b.start_date <= $7::date)
@@ -200,7 +202,7 @@ export const searchBatches = async (pool, {
           ))
         GROUP BY
           b.public_id, b.batch_id, b.status,
-          b.start_date, b.end_date, b.required_number_of_students, b.max_students, b.cluster
+          b.start_date, b.end_date, b.required_number_of_students, b.max_students, sc.name
       ) combined
       ORDER BY
         CASE status WHEN 'Ongoing' THEN 1 WHEN 'Pending' THEN 2 ELSE 3 END,
@@ -316,17 +318,16 @@ export const isTrainerQualifiedForTesdaCourse = async (pool, trainerId, courseId
 };
 
 // => Returns true if the trainer has a row in trainer_shs_courses for a
-//    course under this cluster AND at this specific grade level - matches
-//    cluster by name since shs_batches.cluster/shs_clusters.name aren't
-//    FK-linked yet (see the Track/Cluster normalization item on the roadmap)
-export const isTrainerQualifiedForShsGrade = async (pool, trainerId, clusterName, gradeLevel) => {
+//    course under this cluster AND at this specific grade level - matched
+//    directly on cluster_id now that shs_batches/shs_enrollments are
+//    FK-linked to shs_clusters, no more name matching needed
+export const isTrainerQualifiedForShsGrade = async (pool, trainerId, clusterId, gradeLevel) => {
   if (!trainerId) return true; // => No trainer assigned yet - nothing to check
   const result = await pool.query(
     `SELECT 1 FROM trainer_shs_courses tsc
-       JOIN shs_courses sc   ON tsc.course_id = sc.course_id
-       JOIN shs_clusters scl ON sc.cluster_id  = scl.cluster_id
-      WHERE tsc.trainer_id = $1 AND scl.name = $2 AND sc.grade_level = $3`,
-    [trainerId, clusterName, gradeLevel]
+       JOIN shs_courses sc ON tsc.course_id = sc.course_id
+      WHERE tsc.trainer_id = $1 AND sc.cluster_id = $2 AND sc.grade_level = $3`,
+    [trainerId, clusterId, gradeLevel]
   );
   return result.rows.length > 0;
 };
@@ -497,7 +498,8 @@ export const getShsBatchByPublicId = async (pool, publicId) => {
         b.public_id,
         b.batch_id,
         b.status,
-        b.cluster,
+        b.cluster_id,
+        sc.name                  AS cluster,
         b.school_year,
         b.start_date,
         b.end_date,
@@ -518,6 +520,7 @@ export const getShsBatchByPublicId = async (pool, publicId) => {
         a.full_name  AS created_by_name,
         b.created_by AS created_by_id
       FROM shs_batches b
+      LEFT JOIN shs_clusters sc ON sc.cluster_id = b.cluster_id
       LEFT JOIN trainers t11 ON b.grade11_trainer_id = t11.trainer_id
       LEFT JOIN trainers t12 ON b.grade12_trainer_id = t12.trainer_id
       LEFT JOIN admins a ON b.created_by = a.admin_id
@@ -566,8 +569,14 @@ export const updateShsBatchStatus = async (pool, publicId, newStatus, remarks) =
   return result.rows[0] ?? null;
 };
 
+// => batch_name is generated here, not passed in - {cluster name} Batch {N},
+//    N scoped per cluster_id and never reused, for audit purposes. Wrapped
+//    in a transaction with an advisory lock keyed by cluster_id so two
+//    concurrent creates for the same cluster can't grab the same sequence.
+// => cluster text is still written alongside cluster_id, kept in sync until
+//    the old denormalized column is dropped in a later cleanup pass
 export const createShsBatch = async (pool, {
-  cluster,
+  cluster_id,
   school_year,
   start_date,
   end_date,
@@ -578,26 +587,59 @@ export const createShsBatch = async (pool, {
   remarks,
   created_by,
 }) => {
-  const result = await pool.query(
-    `INSERT INTO shs_batches
-        (cluster, school_year, start_date, end_date, required_number_of_students, max_students,
-         grade11_trainer_id, grade12_trainer_id, remarks, created_by, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Pending')
-      RETURNING public_id, batch_id, status, start_date, end_date`,
-    [
-      cluster || null,
-      school_year || null,
-      start_date || null,
-      end_date || null,
-      required_number_of_students,
-      max_students,
-      grade11_trainer_id || null,
-      grade12_trainer_id || null,
-      remarks || null,
-      created_by || null,
-    ]
-  );
-  return result.rows[0];
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // => Released automatically at COMMIT/ROLLBACK - serializes only
+    //    creates for this same cluster_id, other clusters are unaffected
+    await client.query('SELECT pg_advisory_xact_lock($1)', [cluster_id]);
+
+    const clusterResult = await client.query(
+      `SELECT name FROM shs_clusters WHERE cluster_id = $1`,
+      [cluster_id]
+    );
+    const clusterName = clusterResult.rows[0]?.name ?? 'Untitled Cluster';
+
+    const seqResult = await client.query(
+      `SELECT COALESCE(MAX(batch_sequence), 0) + 1 AS next_seq
+         FROM shs_batches WHERE cluster_id = $1`,
+      [cluster_id]
+    );
+    const nextSeq = seqResult.rows[0].next_seq;
+    const batchName = `${clusterName} Batch ${nextSeq}`;
+
+    const result = await client.query(
+      `INSERT INTO shs_batches
+          (cluster_id, cluster, school_year, start_date, end_date, required_number_of_students, max_students,
+           grade11_trainer_id, grade12_trainer_id, remarks, created_by, status, batch_sequence, batch_name)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'Pending', $12, $13)
+        RETURNING public_id, batch_id, status, start_date, end_date, batch_name, batch_sequence`,
+      [
+        cluster_id,
+        clusterName,
+        school_year || null,
+        start_date || null,
+        end_date || null,
+        required_number_of_students,
+        max_students,
+        grade11_trainer_id || null,
+        grade12_trainer_id || null,
+        remarks || null,
+        created_by || null,
+        nextSeq,
+        batchName,
+      ]
+    );
+
+    await client.query('COMMIT');
+    return result.rows[0];
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 };
 
 // => Edits an existing SHS batch's editable fields. cluster is deliberately
@@ -714,17 +756,17 @@ export const getShsAssignmentContext = async (pool, enrollmentPublicId, batchPub
   const result = await pool.query(
     `SELECT
         e.enrollment_id,
-        e.status            AS enrollment_status,
-        e.cluster            AS enrollment_cluster,
+        e.status              AS enrollment_status,
+        e.cluster_id           AS enrollment_cluster_id,
         b.batch_id,
-        b.cluster            AS batch_cluster,
+        b.cluster_id           AS batch_cluster_id,
         b.max_students,
         (SELECT COUNT(*) FROM shs_enrollments
           WHERE batch_id = b.batch_id AND status NOT IN ('Rejected', 'Dropped')
-        )::int               AS current_batch_count
+        )::int                 AS current_batch_count
       FROM shs_enrollments e
       CROSS JOIN LATERAL (
-        SELECT batch_id, cluster, max_students
+        SELECT batch_id, cluster_id, max_students
         FROM shs_batches
         WHERE public_id = $2
       ) b
