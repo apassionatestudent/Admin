@@ -17,8 +17,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import BackButton from '../BackButton/BackButton.jsx';
 // => axiosAdmin auto-attaches credentials + x-csrf-token on every mutating
 //    call - required or csrfProtection middleware silently rejects PATCH/POST.
-//    => ASSUME: path matches Login.jsx's '../../api/axiosAdmin.js' - adjust
-//       if this component sits at a different folder depth.
 import axiosAdmin from '../../api/axiosAdmin.js';
 
 import './tesdaEnrollmentDetail.css';
@@ -61,9 +59,6 @@ const STATUS_DESCRIPTIONS = {
   'Completed': 'Student has finished the program.',
   'Reserved': 'No open class section yet - held until one becomes available.',
 };
-// => ASSUME: exact classification_value strings - not confirmed against the
-//    tesda_client_classifications CHECK constraint (if one exists). Verify
-//    these against your actual schema/form before relying on them.
 // => Matches TESDAStep3.jsx exactly - the physical form only allows
 //    selecting ONE classification, not several
 const CLASSIFICATIONS = [
@@ -1142,8 +1137,6 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
   const docs             = data?.docs          ?? [];
   const address           = data?.address       ?? null;
   const classifications = data?.classifications ?? [];
-  // => ASSUME: shape [{ log_id, action, previous_status, new_status, performed_by_name, remarks, created_at }]
-  //    No enrollment_logs table exists yet - UI-only until that's built.
   const logs = data?.logs ?? [];
 
   const feeDisplay = enrollment.is_tesda_scholar

@@ -15,11 +15,11 @@ import getDay from 'date-fns/getDay';
 import enUS from 'date-fns/locale/en-US';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
-import axiosAdmin from '../../../api/axiosAdmin.js'; // => ADJUST relative path to match this folder's actual depth
+import axiosAdmin from '../../../api/axiosAdmin.js'; 
 import BackButton from '../../BackButton/BackButton.jsx';
 import AddSessionModal from '../AddSessionModal/addSessionModal.jsx';
-import warningIcon from '../../../assets/icons/warning.png'; // => ADJUST path
-import calendarIcon from '../../../assets/icons/calendar.png'; // => ADJUST path
+import warningIcon from '../../../assets/icons/warning.png'; 
+import calendarIcon from '../../../assets/icons/calendar.png'; 
 import './facilitySessionCalendar.css';
 
 // => FIX: the previous localizer wrapped startOfWeek in `() => startOfWeek(new

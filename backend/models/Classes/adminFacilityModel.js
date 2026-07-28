@@ -97,7 +97,6 @@ export const getEligibleBatchesForFacility = async (pool, facilityId) => {
         [facilityId]
       );
 
-  // => ADJUST if shs_classes has no course_id column yet - this assumes it
   //    does, mirroring how tesda_classes.course_id already works above.
   //    If it doesn't exist, tell me and this needs the old name-match
   //    workaround instead, pointed at shs_courses.name.

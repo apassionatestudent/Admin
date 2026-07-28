@@ -22,9 +22,9 @@
 //    in loadOptions() if the real shape differs.
 
 import React, { useEffect, useState } from 'react';
-import axiosAdmin from '../../../api/axiosAdmin.js'; // => ADJUST relative path to match this folder's actual depth
-import closeIcon from '../../../assets/icons/close.png'; // => ADJUST path
-import warningIcon from '../../../assets/icons/warning.png'; // => ADJUST path
+import axiosAdmin from '../../../api/axiosAdmin.js'; 
+import closeIcon from '../../../assets/icons/close.png'; 
+import warningIcon from '../../../assets/icons/warning.png'; 
 import './AddFacilityModal.css';
 
 // => Empty form state - used on mount and reset
@@ -52,14 +52,12 @@ export default function AddFacilityModal({ onClose, onCreated }) {
       setOptionsLoading(true);
       setOptionsError(null);
       try {
-        // => ADJUST: /api/admin/shs-courses is an assumed endpoint name,
         //    mirroring /api/admin/tesda-courses - confirm the real path
         const [tesdaRes, shsCoursesRes] = await Promise.all([
           axiosAdmin.get('/api/admin/tesda-courses'),
           axiosAdmin.get('/api/admin/shs-courses'),
         ]);
         setTesdaCourses(tesdaRes.data.data);
-        // => ADJUST: change .data.courses below if the real response
         //    shape from /api/admin/shs-courses turns out different
         setShsCourses(shsCoursesRes.data.courses ?? shsCoursesRes.data.data ?? []);
       } catch (err) {

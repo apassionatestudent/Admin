@@ -26,7 +26,7 @@
 
 import React, { useState } from 'react';
 import ConfirmModal from '../ConfirmModal/ConfirmModal.jsx';
-import trashIcon from '../../assets/icons/trash.png'; // => ADJUST path to your actual trash icon asset
+import trashIcon from '../../assets/icons/trash.png'; 
 import './DeleteButton.css';
 
 export default function DeleteButton({

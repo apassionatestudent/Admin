@@ -117,14 +117,12 @@ export default function FacilityDetail() {
       setOptionsLoading(true);
       setOptionsError(null);
       try {
-        // => ADJUST: /api/admin/shs-courses is an assumed endpoint name,
         //    mirroring /api/admin/tesda-courses - confirm the real path
         const [tesdaRes, shsCoursesRes] = await Promise.all([
           axiosAdmin.get('/api/admin/tesda-courses'),
           axiosAdmin.get('/api/admin/shs-courses'),
         ]);
         setTesdaCourses(tesdaRes.data.data);
-        // => ADJUST: change .data.courses below if the real response
         //    shape from /api/admin/shs-courses turns out different
         setShsCourses(shsCoursesRes.data.courses ?? shsCoursesRes.data.data ?? []);
       } catch (err) {

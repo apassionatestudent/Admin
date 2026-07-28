@@ -16,8 +16,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import BackButton from '../BackButton/BackButton.jsx';
-// => ASSUME: path matches Login.jsx's '../../api/axiosAdmin.js' - adjust
-//    if this component sits at a different folder depth.
 import axiosAdmin from '../../api/axiosAdmin.js';
 
 import './shsEnrollmentDetail.css';
@@ -990,7 +988,6 @@ export default function SHSEnrollmentDetail() {
   // => Read-only G11/G12 courses for this enrollment's cluster - see
   //    fetchShsEnrollmentDetail in adminEnrollmentService.js
   const clusterCourses = data?.clusterCourses ?? [];
-  // => ASSUME: shape [{ log_id, action, previous_status, new_status, performed_by_name, remarks, created_at }]
   const logs = data?.logs ?? [];
 
   const sortedFamily = [...familyMembers].sort(

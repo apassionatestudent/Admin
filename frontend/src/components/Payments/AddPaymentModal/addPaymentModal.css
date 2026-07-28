@@ -1,0 +1,204 @@
+.add-payment-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.add-payment-modal {
+  background: var(--color-surface, #fff);
+  border-radius: var(--radius-lg, 12px);
+  width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: var(--spacing-lg, 24px);
+}
+
+.add-payment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-md, 16px);
+}
+
+.add-payment-header h2 {
+  margin: 0;
+}
+
+.add-payment-close-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-text-muted, #666);
+}
+
+.add-payment-field {
+  margin-bottom: var(--spacing-md, 16px);
+}
+
+.add-payment-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.add-payment-field input,
+.add-payment-field textarea {
+  width: 100%;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-md, 8px);
+  padding: 8px 12px;
+  box-sizing: border-box;
+}
+
+.add-payment-search-box,
+.add-payment-amount-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-md, 8px);
+  padding: 8px 12px;
+  /* => Keeps the icon from stretching to fill the row's height */
+  box-sizing: border-box;
+}
+
+.add-payment-search-box input,
+.add-payment-amount-box input {
+  border: none;
+  outline: none;
+  width: 100%;
+  padding: 0;
+}
+
+.add-payment-hint {
+  font-size: 13px;
+  color: var(--color-text-muted, #999);
+  margin-top: 8px;
+}
+
+.add-payment-results {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-md, 8px);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.add-payment-results li {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border, #eee);
+}
+
+.add-payment-results li:last-child {
+  border-bottom: none;
+}
+
+.add-payment-results li:hover {
+  background: var(--color-surface-alt, #f7f7f7);
+}
+
+.add-payment-result-name {
+  font-weight: 600;
+}
+
+.add-payment-result-course {
+  font-size: 13px;
+  color: var(--color-text-muted, #666);
+}
+
+.add-payment-result-balance {
+  font-size: 12px;
+  color: var(--color-primary);
+}
+
+.add-payment-selected-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-md, 8px);
+  padding: 12px;
+  margin-bottom: var(--spacing-md, 16px);
+}
+
+.add-payment-selected-card p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--color-text-muted, #666);
+}
+
+.add-payment-change-btn {
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.add-payment-balance-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 4px 0;
+}
+
+.add-payment-balance-remaining {
+  font-weight: 700;
+  border-top: 1px solid var(--color-border, #eee);
+  margin-top: 4px;
+  padding-top: 8px;
+  margin-bottom: var(--spacing-md, 16px);
+}
+
+.add-payment-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: var(--spacing-md, 16px);
+}
+
+.add-payment-cancel-btn {
+  border: 1px solid var(--color-border, #ddd);
+  background: var(--color-surface, #fff);
+  border-radius: var(--radius-md, 8px);
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.add-payment-submit-btn {
+  border: none;
+  background: var(--color-primary);
+  color: var(--color-on-primary, #fff);
+  border-radius: var(--radius-md, 8px);
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.add-payment-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.add-payment-icon {
+  /* => flex: 0 0 18px pins the icon at exactly 18px and refuses to let
+        it grow or shrink, which is what was letting it balloon and sit
+        on top of the typed text instead of beside it */
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  display: block;
+}
