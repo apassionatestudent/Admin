@@ -15,6 +15,9 @@ import { adminApiRateLimit, readRateLimit } from '../../middleware/adminRateLimi
 
 const router = Router();
 
+// => Rate-limit before auth to protect authorization checks from abuse.
+router.use(readRateLimit);
+
 // => Every route here requires a logged-in admin.
 router.use(protectAdmin);
 
