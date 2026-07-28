@@ -173,6 +173,18 @@ export default function Classes() {
   const [remoteSessions,       setRemoteSessions]       = useState([]);
   const [remoteSessionsLoading,setRemoteSessionsLoading] = useState(false);
   const [remoteSessionsError,  setRemoteSessionsError]   = useState(null);
+
+  // => NEW - client-side only filters for the Class Sessions tab's two
+  //    subsections, mirrors the Facilities/Trainers filter pattern, never
+  //    triggers a re-fetch, just re-filters what's already loaded
+  const [facilitySessionSearchTerm,   setFacilitySessionSearchTerm]   = useState(''); // => matches facility name OR any TESDA/SHS course title
+  const [facilitySessionStatusFilter, setFacilitySessionStatusFilter] = useState('ALL'); // => 'ALL' | 'active' | 'inactive'
+  const [facilitySessionTypeFilter,   setFacilitySessionTypeFilter]   = useState('ALL'); // => 'ALL' | 'TESDA' | 'SHS' - one pill instead of 2 dropdowns
+
+  const [remoteSessionSearchTerm, setRemoteSessionSearchTerm] = useState(''); // => matches batch name OR trainer name
+  const [remoteSessionTypeFilter, setRemoteSessionTypeFilter] = useState('ALL'); // => 'ALL' | 'Mobile' | 'Online'
+  const [remoteSessionDateFrom,   setRemoteSessionDateFrom]   = useState('');
+  const [remoteSessionDateTo,     setRemoteSessionDateTo]     = useState('');
   const [showAddRemoteModal,   setShowAddRemoteModal]    = useState(false);
 
   // => Trainers tab: list + create-modal state - mirrors Facilities exactly
@@ -670,6 +682,55 @@ export default function Classes() {
       i.email?.toLowerCase().includes(term);
 
     return matchesProgram && matchesStatus && matchesSearch;
+  });
+
+  // => NEW - Facility-Based Class Sessions filter. One search box covers
+  //    facility name AND both course-title arrays, so there's no need for
+  //    2 separate TESDA/SHS search fields. The Course Type pill narrows to
+  //    facilities that actually teach that program - "Allows all courses"
+  //    facilities always pass, since they implicitly offer both.
+  const applyFacilitySessionFilters = (rows) => rows.filter(f => {
+    const matchesStatus =
+      facilitySessionStatusFilter === 'ALL' ||
+      f.status?.toLowerCase() === facilitySessionStatusFilter;
+
+    const matchesType =
+      facilitySessionTypeFilter === 'ALL' ||
+      f.allows_all_courses ||
+      (facilitySessionTypeFilter === 'TESDA' && f.tesda_course_titles?.length > 0) ||
+      (facilitySessionTypeFilter === 'SHS' && f.shs_course_titles?.length > 0);
+
+    const term = facilitySessionSearchTerm.trim().toLowerCase();
+    const matchesSearch =
+      !term ||
+      f.name?.toLowerCase().includes(term) ||
+      f.tesda_course_titles?.some(t => t.toLowerCase().includes(term)) ||
+      f.shs_course_titles?.some(t => t.toLowerCase().includes(term));
+
+    return matchesStatus && matchesType && matchesSearch;
+  });
+
+  // => NEW - Mobile & Online Class Sessions filter. Session Type pill,
+  //    free text on batch/trainer, plus a date range on session_date.
+  const applyRemoteSessionFilters = (rows) => rows.filter(s => {
+    const matchesType =
+      remoteSessionTypeFilter === 'ALL' ||
+      s.session_type === remoteSessionTypeFilter;
+
+    const term = remoteSessionSearchTerm.trim().toLowerCase();
+    const matchesSearch =
+      !term ||
+      s.batch_label?.toLowerCase().includes(term) ||
+      s.trainer_name?.toLowerCase().includes(term);
+
+    // => session_date comes through as a YYYY-MM-DD-able string, same
+    //    slicing formatDate() already does above, so plain string
+    //    comparison works fine, the format is zero-padded and sorts correctly
+    const sessionDateStr = s.session_date ? String(s.session_date).slice(0, 10) : '';
+    const matchesDateFrom = !remoteSessionDateFrom || (sessionDateStr && sessionDateStr >= remoteSessionDateFrom);
+    const matchesDateTo   = !remoteSessionDateTo   || (sessionDateStr && sessionDateStr <= remoteSessionDateTo);
+
+    return matchesType && matchesSearch && matchesDateFrom && matchesDateTo;
   });
 
   // => Split default classes into two priority buckets, then run them
@@ -1415,30 +1476,157 @@ export default function Classes() {
              never shows the calendar itself, only the entry point into it.
           ════════════════════════════════════ */}
       {mainTab === 'classes' && (
-        <div className="adm-classes-state">
+        <>
 
-          {/* => Subsection toggle - Facility-Based sessions are scheduled
-                 against a physical room and can conflict on time; Mobile
-                 and Online sessions have no facility, so they get a flat
-                 list here instead of a calendar entry point */}
-          <div className="adm-filter-wrap">
-            <div className="adm-filter-group">
-              <span className="adm-filter-label">Type</span>
-              {[
-                { key: 'facility', label: 'Facility-Based' },
-                { key: 'remote',   label: 'Mobile & Online' },
-              ].map(t => (
-                <button
-                  key={t.key}
-                  className={`adm-filter-btn ${sessionSubTab === t.key ? 'adm-filter-btn--active' : ''}`}
-                  onClick={() => setSessionSubTab(t.key)}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* ════════════════════════════════════
+              SEARCH + FILTER
+              // => Changed from div.adm-classes-state to a fragment - that
+              //    class is meant only for the small loading/error/empty
+              //    state blocks (centered, 64px vertical padding), not the
+              //    whole tab. Reusing it here is what centered/narrowed the
+              //    search box and created the big blank gap above it.
+              => Moved above the Type toggle, matching Batches/Facilities/
+                 Trainers layout. Still subtab-specific under the hood,
+                 sessionSubTab already holds the current value regardless
+                 of where the toggle itself renders below.
+              ════════════════════════════════════ */}
+          {sessionSubTab === 'facility' ? (
+            <>
+              <div className="adm-search-wrap">
+                <div className="adm-search-row">
+                  <input
+                    type="text"
+                    className="adm-search-input"
+                    placeholder="Search by facility or course name…"
+                    value={facilitySessionSearchTerm}
+                    onChange={e => setFacilitySessionSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
 
+              <div className="adm-filter-wrap">
+                {/* => Session Type toggle (Facility-Based / Mobile & Online) moved
+                       up onto this row - used to be its own row below the table */}
+                <div className="adm-filter-group">
+                  <span className="adm-filter-label">Session Type</span>
+                  {[
+                    { key: 'facility', label: 'Facility-Based' },
+                    { key: 'remote',   label: 'Mobile & Online' },
+                  ].map(t => (
+                    <button
+                      key={t.key}
+                      className={`adm-filter-btn ${sessionSubTab === t.key ? 'adm-filter-btn--active' : ''}`}
+                      onClick={() => setSessionSubTab(t.key)}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="adm-filter-group">
+                  <span className="adm-filter-label">Course Type</span>
+                  {['ALL', 'TESDA', 'SHS'].map(t => (
+                    <button
+                      key={t}
+                      className={`adm-filter-btn ${facilitySessionTypeFilter === t ? 'adm-filter-btn--active' : ''}`}
+                      onClick={() => setFacilitySessionTypeFilter(t)}
+                    >
+                      {t === 'ALL' ? 'All' : t}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="adm-filter-group">
+                  <span className="adm-filter-label">Status</span>
+                  <select
+                    className="adm-filter-select"
+                    value={facilitySessionStatusFilter}
+                    onChange={e => setFacilitySessionStatusFilter(e.target.value)}
+                  >
+                    <option value="ALL">All</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="adm-search-wrap">
+                <div className="adm-search-row">
+                  <input
+                    type="text"
+                    className="adm-search-input"
+                    placeholder="Search by batch or trainer name…"
+                    value={remoteSessionSearchTerm}
+                    onChange={e => setRemoteSessionSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="adm-filter-wrap">
+                {/* => Session Type toggle (Facility-Based / Mobile & Online) moved
+                       up onto this row - used to be its own row below the table */}
+                <div className="adm-filter-group">
+                  <span className="adm-filter-label">Session Type</span>
+                  {[
+                    { key: 'facility', label: 'Facility-Based' },
+                    { key: 'remote',   label: 'Mobile & Online' },
+                  ].map(t => (
+                    <button
+                      key={t.key}
+                      className={`adm-filter-btn ${sessionSubTab === t.key ? 'adm-filter-btn--active' : ''}`}
+                      onClick={() => setSessionSubTab(t.key)}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* => Renamed from "Session Type" to "Format" so it doesn't
+                       collide with the toggle above - this one filters
+                       Mobile vs Online within the remote list specifically */}
+                <div className="adm-filter-group">
+                  <span className="adm-filter-label">Format</span>
+                  {['ALL', 'Mobile', 'Online'].map(t => (
+                    <button
+                      key={t}
+                      className={`adm-filter-btn ${remoteSessionTypeFilter === t ? 'adm-filter-btn--active' : ''}`}
+                      onClick={() => setRemoteSessionTypeFilter(t)}
+                    >
+                      {t === 'ALL' ? 'All' : t}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="adm-filter-group">
+                  <span className="adm-filter-label">Date From</span>
+                  <input
+                    type="date"
+                    className="adm-filter-date"
+                    value={remoteSessionDateFrom}
+                    onChange={e => setRemoteSessionDateFrom(e.target.value)}
+                  />
+                </div>
+
+                <div className="adm-filter-group">
+                  <span className="adm-filter-label">Date To</span>
+                  <input
+                    type="date"
+                    className="adm-filter-date"
+                    value={remoteSessionDateTo}
+                    onChange={e => setRemoteSessionDateTo(e.target.value)}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ════════════════════════════════════
+              TABLE CONTENT
+              => Loading/error/empty/data states only now, search+filter
+                 moved out above
+              ════════════════════════════════════ */}
           {sessionSubTab === 'facility' ? (
             sessionFacilitiesLoading ? (
               <p>Loading facilities…</p>
@@ -1446,6 +1634,9 @@ export default function Classes() {
               <p className="adm-form-error">{sessionFacilitiesError}</p>
             ) : sessionFacilities.length === 0 ? (
               <p>No active facilities yet. Add one under the Facilities tab first.</p>
+            ) : applyFacilitySessionFilters(sessionFacilities).length === 0 ? (
+              // => 3-way empty state, same distinction used on Courses
+              <p>No facilities match this filter.</p>
             ) : (
               <div className="adm-table-wrap adm-table-wrap--maroon">
                 <table className="adm-table cs-sessions-table">
@@ -1464,7 +1655,7 @@ export default function Classes() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sessionFacilities.map((f, idx) => {
+                    {applyFacilitySessionFilters(sessionFacilities).map((f, idx) => {
                       const tesdaList = [...f.tesda_course_titles].sort((a, b) => a.localeCompare(b));
                       const shsList = [...f.shs_course_titles].sort((a, b) => a.localeCompare(b));
                       return (
@@ -1519,6 +1710,8 @@ export default function Classes() {
                 <p className="adm-form-error">{remoteSessionsError}</p>
               ) : remoteSessions.length === 0 ? (
                 <p>No Mobile or Online sessions scheduled in the next 60 days.</p>
+              ) : applyRemoteSessionFilters(remoteSessions).length === 0 ? (
+                <p>No sessions match this filter.</p>
               ) : (
                 <div className="adm-table-wrap adm-table-wrap--maroon">
                   <table className="adm-table">
@@ -1533,7 +1726,7 @@ export default function Classes() {
                       </tr>
                     </thead>
                     <tbody>
-                      {remoteSessions.map((s, idx) => (
+                      {applyRemoteSessionFilters(remoteSessions).map((s, idx) => (
                         <tr key={s.public_id} className="adm-table-row" style={{ animationDelay: `${idx * 40}ms` }}>
                           <td>
                             <span className={`adm-type-badge adm-type-badge--${s.session_type === 'Mobile' ? 'mobile' : 'online'}`}>
@@ -1574,7 +1767,7 @@ export default function Classes() {
               )}
             </>
           )}
-        </div>
+        </>
       )}
 
       {/* ════════════════════════════════════
