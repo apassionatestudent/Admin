@@ -20,6 +20,21 @@ export default function Courses() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isAddClusterModalOpen, setIsAddClusterModalOpen] = useState(false);
   const [isAddSectorModalOpen, setIsAddSectorModalOpen] = useState(false);
+
+  // => Client-side only, mirrors Classes.jsx's Trainers tab pattern - never
+  //    triggers a re-fetch, just re-filters whatever's already loaded in
+  //    tesdaCourses/shsCourses. Kept separate per tab so switching tabs
+  //    doesn't wipe out or mix up the other tab's search/filter state.
+  const [tesdaSearchTerm, setTesdaSearchTerm] = useState('');
+  const [tesdaSectorFilter, setTesdaSectorFilter] = useState('ALL');
+  const [tesdaNcLevelFilter, setTesdaNcLevelFilter] = useState('ALL');
+  const [tesdaStatusFilter, setTesdaStatusFilter] = useState('ALL');
+
+  const [shsSearchTerm, setShsSearchTerm] = useState('');
+  const [shsClusterFilter, setShsClusterFilter] = useState('ALL');
+  const [shsGradeLevelFilter, setShsGradeLevelFilter] = useState('ALL');
+  const [shsStatusFilter, setShsStatusFilter] = useState('ALL');
+
   const navigate = useNavigate();
 
   // => One shared ConfirmModal instance, used for restoring a deleted course
@@ -84,11 +99,54 @@ export default function Courses() {
   const activeList = activeTab === 'tesda' ? tesdaCourses : shsCourses;
   const colSpan = activeTab === 'tesda' ? 6 : 4;
 
+  // => Dropdown options built from whatever's already loaded - no separate
+  //    endpoint needed, and they stay automatically in sync with real data
+  const tesdaSectorOptions = [...new Set(tesdaCourses.map((c) => c.sector_name).filter(Boolean))];
+  const tesdaNcLevelOptions = [...new Set(tesdaCourses.map((c) => c.certification_type).filter(Boolean))];
+  const shsClusterOptions = [...new Set(shsCourses.map((c) => c.cluster_name).filter(Boolean))];
+  const shsGradeLevelOptions = [...new Set(shsCourses.map((c) => c.grade_level).filter(Boolean))];
+
+  // => Same in-memory filtering pattern as Classes.jsx's applyTrainerFilters -
+  //    combines dropdowns + free-text search into one pass, never re-fetches
+  const applyTesdaFilters = (rows) =>
+    rows.filter((c) => {
+      const matchesSector = tesdaSectorFilter === 'ALL' || c.sector_name === tesdaSectorFilter;
+      const matchesNcLevel = tesdaNcLevelFilter === 'ALL' || c.certification_type === tesdaNcLevelFilter;
+      const matchesStatus = tesdaStatusFilter === 'ALL' || c.status?.toLowerCase() === tesdaStatusFilter;
+
+      const term = tesdaSearchTerm.trim().toLowerCase();
+      const matchesSearch =
+        !term ||
+        c.title?.toLowerCase().includes(term) ||
+        c.accreditation_no?.toLowerCase().includes(term);
+
+      return matchesSector && matchesNcLevel && matchesStatus && matchesSearch;
+    });
+
+  const applyShsFilters = (rows) =>
+    rows.filter((c) => {
+      const matchesCluster = shsClusterFilter === 'ALL' || c.cluster_name === shsClusterFilter;
+      const matchesGradeLevel = shsGradeLevelFilter === 'ALL' || c.grade_level === shsGradeLevelFilter;
+      const matchesStatus = shsStatusFilter === 'ALL' || c.status?.toLowerCase() === shsStatusFilter;
+
+      const term = shsSearchTerm.trim().toLowerCase();
+      const matchesSearch = !term || c.title?.toLowerCase().includes(term);
+
+      return matchesCluster && matchesGradeLevel && matchesStatus && matchesSearch;
+    });
+
+  // => The list actually rendered in the table - activeList itself stays
+  //    untouched so we can still tell "genuinely empty" apart from
+  //    "empty because of the current filter" in the empty-state message below
+  const filteredList = activeTab === 'tesda' ? applyTesdaFilters(tesdaCourses) : applyShsFilters(shsCourses);
+
   return (
     <main className="courses-page">
       <div className="courses-header">
         <div>
-          <h2>Courses</h2>
+          {/* => Title now reads "Courses | TESDA" or "Courses | SHS" -
+                 mirrors Classes.jsx's "Classes | {tabMeta[mainTab].label}" pattern */}
+          <h2>Courses | {activeTab === 'tesda' ? 'TESDA' : 'SHS'}</h2>
           {/* => matches Enrollments.jsx's subtitle pattern under adm-enroll-title */}
           <p className="courses-subtitle">
             Showing <strong>{tesdaCourses.length}</strong> TESDA and <strong>{shsCourses.length}</strong> SHS course
@@ -148,6 +206,123 @@ export default function Courses() {
             Deleted
           </button>
         </div>
+      </div>
+
+      {/* ════════════════════════════════════
+          SEARCH + FILTER ROW
+          => Client-side only, mirrors Classes.jsx's Trainers tab - filters
+             whatever's already loaded, fields swap based on activeTab.
+             Placed above the guidelines block per your request.
+          ════════════════════════════════════ */}
+      <div className="adm-search-wrap">
+        <div className="adm-search-row">
+          <input
+            type="text"
+            className="adm-search-input"
+            placeholder={activeTab === 'tesda' ? 'Search by title or accreditation no...' : 'Search by title...'}
+            value={activeTab === 'tesda' ? tesdaSearchTerm : shsSearchTerm}
+            onChange={(e) =>
+              activeTab === 'tesda' ? setTesdaSearchTerm(e.target.value) : setShsSearchTerm(e.target.value)
+            }
+          />
+        </div>
+      </div>
+
+      <div className="adm-filter-wrap">
+        {activeTab === 'tesda' ? (
+          <>
+            <div className="adm-filter-group">
+              <span className="adm-filter-label">Sector</span>
+              <select
+                className="adm-filter-select"
+                value={tesdaSectorFilter}
+                onChange={(e) => setTesdaSectorFilter(e.target.value)}
+              >
+                <option value="ALL">All</option>
+                {tesdaSectorOptions.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="adm-filter-group">
+              <span className="adm-filter-label">NC Level</span>
+              <select
+                className="adm-filter-select"
+                value={tesdaNcLevelFilter}
+                onChange={(e) => setTesdaNcLevelFilter(e.target.value)}
+              >
+                <option value="ALL">All</option>
+                {tesdaNcLevelOptions.map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* => Status filter hidden in Deleted view - every row there
+                   is already deleted, filtering by active/inactive on top
+                   of that doesn't mean anything useful */}
+            {!isDeletedView && (
+              <div className="adm-filter-group">
+                <span className="adm-filter-label">Status</span>
+                <select
+                  className="adm-filter-select"
+                  value={tesdaStatusFilter}
+                  onChange={(e) => setTesdaStatusFilter(e.target.value)}
+                >
+                  <option value="ALL">All</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="adm-filter-group">
+              <span className="adm-filter-label">Cluster</span>
+              <select
+                className="adm-filter-select"
+                value={shsClusterFilter}
+                onChange={(e) => setShsClusterFilter(e.target.value)}
+              >
+                <option value="ALL">All</option>
+                {shsClusterOptions.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="adm-filter-group">
+              <span className="adm-filter-label">Grade Level</span>
+              <select
+                className="adm-filter-select"
+                value={shsGradeLevelFilter}
+                onChange={(e) => setShsGradeLevelFilter(e.target.value)}
+              >
+                <option value="ALL">All</option>
+                {shsGradeLevelOptions.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            </div>
+
+            {!isDeletedView && (
+              <div className="adm-filter-group">
+                <span className="adm-filter-label">Status</span>
+                <select
+                  className="adm-filter-select"
+                  value={shsStatusFilter}
+                  onChange={(e) => setShsStatusFilter(e.target.value)}
+                >
+                  <option value="ALL">All</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* => Placeholder guidance text, positioned right above the table - swap for your real copy later */}
@@ -218,16 +393,20 @@ export default function Courses() {
             )}
           </thead>
           <tbody>
-            {activeList.length === 0 ? (
+            {filteredList.length === 0 ? (
               <tr>
                 <td colSpan={colSpan} className="courses-empty">
-                  {isDeletedView
+                  {/* => Distinguishes "nothing matches the filter" from a
+                         genuinely empty list, same as Classes.jsx's Trainers tab */}
+                  {activeList.length > 0
+                    ? `No ${activeTab === 'tesda' ? 'TESDA' : 'SHS'} courses match this filter.`
+                    : isDeletedView
                     ? `No deleted ${activeTab === 'tesda' ? 'TESDA' : 'SHS'} courses.`
                     : `No ${activeTab === 'tesda' ? 'TESDA' : 'SHS'} courses yet. Click "+ Add Course" to add one.`}
                 </td>
               </tr>
             ) : (
-              activeList.map((course) => (
+              filteredList.map((course) => (
                 <tr
                   key={course.admin_uuid}
                   className={isDeletedView ? 'courses-row courses-row-static' : 'courses-row'}

@@ -331,3 +331,81 @@
   font-size: 0.75rem;
   line-height: 1;
 }
+
+/* ════════════════════════════════════
+   SEARCH + FILTER ROW
+   => Ported from Classes.css's Trainers tab styling - each admin page
+      keeps its own copy of these classes rather than sharing one file,
+      per the no-shared-abstraction convention already in use.
+   ════════════════════════════════════ */
+.adm-search-wrap {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.adm-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.adm-search-input {
+  flex: 1;
+  min-width: 220px;
+  padding: 9px 14px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem; /* => matches Enrollments.css's search input sizing */
+  color: #111827;
+  font-family: var(--font-body), sans-serif;
+  transition: border-color 0.15s;
+}
+
+.adm-search-input:focus {
+  outline: none;
+  border-color: var(--accent-hover, #8a0d17); /* => swapped from Classes.css's blue to this page's maroon accent */
+}
+
+.adm-filter-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
+.adm-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.adm-filter-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #6b7280);
+  margin-right: 2px;
+}
+
+.adm-filter-select {
+  padding: 6px 12px;
+  background: var(--bg, #fff);
+  color: var(--text, #374151);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1.5px solid var(--border, #e5e7eb);
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+  transition: border-color 0.15s;
+}
+
+.adm-filter-select:focus {
+  outline: none;
+  border-color: var(--accent-hover, #8a0d17); /* => swapped from Classes.css's blue to this page's maroon accent */
+}
