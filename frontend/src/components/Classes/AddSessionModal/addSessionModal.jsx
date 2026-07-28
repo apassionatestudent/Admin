@@ -8,9 +8,9 @@
 //    three-step drill-down, not a single grade-level pick like before.
 
 import React, { useEffect, useState } from 'react';
-import axiosAdmin from '../../../api/axiosAdmin.js'; // => ADJUST relative path
-import closeIcon from '../../../assets/icons/close.png'; // => ADJUST path
-import warningIcon from '../../../assets/icons/warning.png'; // => ADJUST path
+import axiosAdmin from '../../../api/axiosAdmin.js'; 
+import closeIcon from '../../../assets/icons/close.png'; 
+import warningIcon from '../../../assets/icons/warning.png'; 
 import clockIcon from '../../../assets/icons/clock.png';
 import personIcon from '../../../assets/icons/person.png';
 import mapPinIcon from '../../../assets/icons/map-pin.png';

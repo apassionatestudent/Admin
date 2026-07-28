@@ -206,9 +206,7 @@ export const addClassSession = async (data, actor) => {
       }
     }
     // => TESDA restriction check happens implicitly via the frontend's
-    //    already-filtered eligible-batches dropdown. ADJUST if you want a
-    //    hard server-side check here too.
-
+    //    already-filtered eligible-batches dropdown. 
     const conflict = await findConflictingSession(pool, {
       facilityId: facility.facility_id,
       sessionDate: session_date,

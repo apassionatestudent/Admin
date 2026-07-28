@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axiosAdmin from '../../api/axiosAdmin.js';
-import trashIcon from '../../assets/icons/trash.png'; // => same placeholder path used elsewhere - adjust if your actual asset lives somewhere else
+import trashIcon from '../../assets/icons/trash.png'; 
 import ConfirmModal from '../ConfirmModal/ConfirmModal.jsx';
 import './AddSectorModal.css';
 

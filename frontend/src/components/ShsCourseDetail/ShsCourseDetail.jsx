@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom'; // => adjust if not using react-router-dom
-import axiosAdmin from '../../api/axiosAdmin.js'; // => matches the depth every other page uses
-import pencilIcon from '../../assets/icons/pencil.png'; // => same asset tesdaEnrollmentDetail.jsx uses, same import depth
-import trashIcon from '../../assets/icons/trash.png'; // => placeholder path - drop your actual trash icon asset here, filename/path can be adjusted
-import BackButton from '../BackButton/BackButton.jsx'; // => same path/depth as tesdaEnrollmentDetail.jsx
+import { useParams, useNavigate } from 'react-router-dom'; 
+import axiosAdmin from '../../api/axiosAdmin.js'; 
+import pencilIcon from '../../assets/icons/pencil.png'; 
+import trashIcon from '../../assets/icons/trash.png'; 
+import BackButton from '../BackButton/BackButton.jsx';
 import ConfirmModal from '../ConfirmModal/ConfirmModal.jsx';
 import './ShsCourseDetail.css';
 

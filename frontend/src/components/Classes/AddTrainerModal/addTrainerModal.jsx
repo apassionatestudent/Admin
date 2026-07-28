@@ -11,9 +11,9 @@
 //        adjust the destructure in loadOptions() if the real shape differs.
 
 import React, { useEffect, useState } from 'react';
-import axiosAdmin from '../../../api/axiosAdmin.js'; // => ADJUST relative path to match this folder's actual depth
-import closeIcon from '../../../assets/icons/close.png'; // => ADJUST path
-import warningIcon from '../../../assets/icons/warning.png'; // => ADJUST path
+import axiosAdmin from '../../../api/axiosAdmin.js';
+import closeIcon from '../../../assets/icons/close.png'; 
+import warningIcon from '../../../assets/icons/warning.png'; 
 import './addTrainerModal.css';
 
 // => Philippine mobile format: must start with 09, exactly 11 digits total

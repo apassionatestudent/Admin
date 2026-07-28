@@ -32,6 +32,10 @@ import adminClassSessionRouter from './routes/Classes/adminClassSessionRoutes.js
 import cron from 'node-cron';
 import { runAutoPromoteBatches } from './jobs/batchAutoPromoteJob.js';
 
+// Payments Import
+import paymentsRoutes from './routes/Payments/paymentsRoutes.js';
+import refundsRoutes from './routes/Payments/refundsRoutes.js';
+
 dotenv.config(); // => moved up - must run before any module reads process.env
 
 // => CSRF validation middleware - token is generated in adminAuthController on login
@@ -81,6 +85,10 @@ app.use('/api/reference', nationalityRoutes);
 app.use('/api/admin/facilities', adminFacilityRouter);
 app.use('/api/admin/trainers', adminTrainerRouter);
 app.use('/api/admin/class-sessions', adminClassSessionRouter);
+
+// Payments 
+app.use('/api/payments', paymentsRoutes);
+app.use('/api/refunds', refundsRoutes);
 
 
 // => Initialize DB tables that the admin backend needs

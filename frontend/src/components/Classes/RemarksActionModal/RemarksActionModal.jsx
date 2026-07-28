@@ -6,7 +6,7 @@
 //    yes/no confirms elsewhere and is intentionally left untouched.
 
 import React, { useState, useEffect } from 'react';
-import warningIcon from '../../../assets/icons/warning.png'; // => ADJUST path
+import warningIcon from '../../../assets/icons/warning.png'; 
 import './RemarksActionModal.css';
 
 export default function RemarksActionModal({

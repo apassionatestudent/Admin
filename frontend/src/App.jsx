@@ -10,7 +10,7 @@ import Classes       from './pages/Classes/Classes.jsx';
 import SupportTickets from './pages/SupportTickets/SupportTickets.jsx';
 import Students      from './pages/Students/Students.jsx';
 import Reports       from './pages/Reports/Reports.jsx';
-import Payments      from './pages/Payments/Payments.jsx';
+import Payments      from './pages/Payments/payments.jsx';
 import Courses       from './pages/Courses/Courses.jsx';
 import Pages         from './pages/Pages/Pages.jsx';
 import Logs          from './pages/Logs/Logs.jsx';
@@ -29,6 +29,9 @@ import ShsCourseDetail   from './components/ShsCourseDetail/ShsCourseDetail.jsx'
 import FacilityDetail    from './components/Classes/FacilityDetail/FacilityDetail.jsx';
 import FacilitySessionCalendar from './components/Classes/FacilitySessionCalendar/facilitySessionCalendar.jsx';
 import TrainerDetail  from './components/Classes/TrainerDetail/trainerDetail.jsx';
+import PaymentDetail  from './components/Payments/PaymentDetail/paymentDetail.jsx';
+
+import RefundDetail   from './components/Payments/RefundDetail/refundDetail.jsx';
 
 import { Toaster } from "react-hot-toast";
 
@@ -73,6 +76,8 @@ function App() {
                     
                     <Route path="reports"               element={<Reports />} />
                     <Route path="payments"              element={<Payments />} />
+                    <Route path="payments/:publicId"    element={<PaymentDetail />} />
+                    <Route path="refunds/:publicId"     element={<RefundDetail />} />
                     <Route path="courses"               element={<Courses />} />
                     <Route path="courses/tesda/:adminUuid" element={<TesdaCourseDetail />} />
                     <Route path="courses/shs/:adminUuid"   element={<ShsCourseDetail />} />
