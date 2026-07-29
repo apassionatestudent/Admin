@@ -31,7 +31,8 @@ axiosAdmin.interceptors.response.use(
       // => Clear session data on auth failure
       sessionStorage.removeItem('csrfToken');
       sessionStorage.removeItem('isAdminLoggedIn');
-      window.location.href = '/login';
+      // => '/login' is not a registered route in App.jsx - Login lives at '/'
+      window.location.href = '/';
     }
     return Promise.reject(error);
   }

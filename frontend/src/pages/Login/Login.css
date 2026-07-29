@@ -56,7 +56,7 @@
 
 /* --- HEADER SECTION --- */
 .login-header {
-  /* text-align: center; */
+  text-align: center;
   margin-bottom: 1.6rem;
   padding: 2rem 2rem 0;
 }
@@ -167,9 +167,34 @@
   pointer-events: none;
 }
 
+/* => New: clickable eye icon positioned on the right side of the password field */
+.password-toggle {
+  position: absolute;
+  right: 0.7rem;
+  background: none;
+  border: none;
+  padding: 0.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.password-toggle:hover {
+  opacity: 1;
+}
+
+.password-toggle-icon {
+  width: 16px;
+  height: 16px;
+}
+
 .form-group input {
   width: 100%;
-  /* => Left padding makes room for the icon */
+  /* => Left padding makes room for the icon, right padding cleared globally */
+  /* => Password field overrides right padding further below to clear the eye toggle */
   padding: 0.7rem var(--text-base) 0.7rem 2.4rem;
   border-radius: 12px;
   border: 1.5px solid #e8dede;
@@ -185,6 +210,11 @@
 .form-group input:focus {
   border-color: rgba(102, 9, 17, 0.45);
   box-shadow: 0 0 0 3px rgba(102, 9, 17, 0.07);
+}
+
+/* => New: extra right padding only on the password field so typed text clears the eye icon */
+.password-input-wrap input {
+  padding-right: 2.4rem;
 }
 
 .form-group input::placeholder {
