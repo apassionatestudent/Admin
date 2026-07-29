@@ -15,6 +15,14 @@ import { adminApiRateLimit, readRateLimit } from '../../middleware/adminRateLimi
 
 const router = Router();
 
+// => Rate limit must run before auth middleware so even unauthenticated or
+// => forged-token requests get throttled at the door (fixes CodeQL js/missing-rate-limiting)
+router.use(adminApiRateLimit);
+
+// => Rate limit must run before auth middleware so even unauthenticated or
+// => forged-token requests get throttled at the door (fixes CodeQL js/missing-rate-limiting)
+router.use(adminApiRateLimit);
+
 // => Every route here requires a logged-in admin.
 router.use(protectAdmin);
 
