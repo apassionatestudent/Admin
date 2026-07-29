@@ -10,6 +10,8 @@ import logo from './../../assets/logo.jpg';
 
 import emailIcon from './../../assets/email.png';
 import lockIcon from './../../assets/lock.png';
+import eyeIcon from './../../assets/icons/eye.png';
+import eyeOffIcon from './../../assets/icons/eye-off.png';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -25,6 +27,9 @@ export default function Login() {
 
   // => Holds error message returned from the backend
   const [error, setError] = useState(null);
+
+  // => Toggles the password field between hidden and visible
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -100,16 +105,30 @@ export default function Login() {
           <div className="form-group">
             <label>Password</label>
             {/* => input-wrap + input-icon adds the lock icon inside the field */}
-            <div className="input-wrap">
+            <div className="input-wrap password-input-wrap">
               <img src={lockIcon} alt="" className="input-icon" />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 name="password"
                 value={form.password}
                 onChange={handleChange}
                 placeholder="Enter your password"
                 required
               />
+              {/* => Clicking toggles input type between text and password */}
+              {/* => type="button" prevents this from submitting the form */}
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                <img
+                  src={showPassword ? eyeOffIcon : eyeIcon}
+                  alt=""
+                  className="password-toggle-icon"
+                />
+              </button>
             </div>
           </div>
           <div className="login-forgot">

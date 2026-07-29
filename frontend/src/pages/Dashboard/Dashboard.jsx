@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+// => axiosAdmin attaches CSRF token and handles 401s centrally, same as every other admin request
+import axiosAdmin from '../../api/axiosAdmin.js';
 import { useNavigate, Outlet } from 'react-router-dom';
 import Sidebar from '../../components/SideBar/SideBar.jsx';
 import './Dashboard.css';
@@ -18,13 +19,13 @@ export default function Dashboard() {
         const verifySession = async () => {
             try {
                 // => Hits the protected /me route to confirm the admin_token cookie is valid
-                const res = await axios.get('/api/admin-auth/me', {
-                    withCredentials: true,
-                });
+                // => axiosAdmin already sends withCredentials, no need to set it here
+                const res = await axiosAdmin.get('/api/admin-auth/me');
                 setAdmin(res.data.admin);
             } catch {
-                // => Token is missing, expired, or invalid - send them back to login
-                sessionStorage.removeItem('isAdminLoggedIn');
+                // => axiosAdmin's response interceptor already clears sessionStorage and redirects on 401
+                // => this catch just needs to stop the checking spinner, navigate('/') is a safe fallback
+                // => for non-401 errors (e.g. network failure) where the interceptor doesn't fire
                 navigate('/');
             } finally {
                 setIsChecking(false);
