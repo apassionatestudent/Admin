@@ -28,6 +28,7 @@ export const getActiveBatches = async (pool) => {
         b.required_number_of_students,
         b.max_students,
         b.remarks,
+        b.batch_sequence         AS batch_sequence,
         c.title                  AS course_name,
         nct.certification_type   AS certification_type,
         s.sector                 AS sector,
@@ -46,7 +47,7 @@ export const getActiveBatches = async (pool) => {
       GROUP BY
         b.public_id, b.batch_id, b.status,
         b.start_date, b.end_date,
-        b.required_number_of_students, b.max_students, b.remarks,
+        b.required_number_of_students, b.max_students, b.remarks, b.batch_sequence,
         c.title, nct.certification_type, s.sector, i.trainer_full_name
 
       UNION ALL
@@ -61,6 +62,7 @@ export const getActiveBatches = async (pool) => {
         b.required_number_of_students,
         b.max_students,
         b.remarks,
+        b.batch_sequence           AS batch_sequence,
         NULL::text                 AS course_name,
         NULL::text                 AS certification_type,
         NULL::text                 AS sector,
@@ -78,7 +80,7 @@ export const getActiveBatches = async (pool) => {
       GROUP BY
         b.public_id, b.batch_id, b.status,
         b.start_date, b.end_date, b.required_number_of_students,
-        b.max_students, b.remarks, sc.name
+        b.max_students, b.remarks, b.batch_sequence, sc.name
     ) combined
       ORDER BY
         -- => CASE in ORDER BY isn't allowed directly after a UNION -
@@ -317,17 +319,15 @@ export const isTrainerQualifiedForTesdaCourse = async (pool, trainerId, courseId
   return result.rows.length > 0;
 };
 
-// => Returns true if the trainer has a row in trainer_shs_courses for a
-//    course under this cluster AND at this specific grade level - matched
-//    directly on cluster_id now that shs_batches/shs_enrollments are
-//    FK-linked to shs_clusters, no more name matching needed
-export const isTrainerQualifiedForShsGrade = async (pool, trainerId, clusterId, gradeLevel) => {
+// => Returns true if the trainer has a row in trainer_shs_courses for this
+//    exact course_id - qualification is now checked per course, not per
+//    grade level, since a cluster can have multiple courses per grade,
+//    each potentially needing a different qualified trainer
+export const isTrainerQualifiedForShsCourse = async (pool, trainerId, courseId) => {
   if (!trainerId) return true; // => No trainer assigned yet - nothing to check
   const result = await pool.query(
-    `SELECT 1 FROM trainer_shs_courses tsc
-       JOIN shs_courses sc ON tsc.course_id = sc.course_id
-      WHERE tsc.trainer_id = $1 AND sc.cluster_id = $2 AND sc.grade_level = $3`,
-    [trainerId, clusterId, gradeLevel]
+    `SELECT 1 FROM trainer_shs_courses WHERE trainer_id = $1 AND course_id = $2`,
+    [trainerId, courseId]
   );
   return result.rows.length > 0;
 };
@@ -341,6 +341,7 @@ export const getTesdaBatchByPublicId = async (pool, publicId) => {
     `SELECT
         b.public_id,
         b.batch_id,
+        b.batch_sequence,
         b.status,
         b.class_type,
         b.start_date,
@@ -411,6 +412,10 @@ export const updateTesdaBatchStatus = async (pool, publicId, newStatus, remarks)
   return result.rows[0] ?? null;
 };
 
+// => Mirrors createShsBatch below - batch_sequence/batch_name are computed
+//    inside the same locked transaction, scoped by course_id since a
+//    tesda_batches row is already scoped to one course (SHS scopes by
+//    cluster_id instead, since one cluster spans multiple course offerings)
 export const createTesdaBatch = async (pool, {
   trainer_id,
   course_id,
@@ -422,25 +427,57 @@ export const createTesdaBatch = async (pool, {
   remarks,
   created_by,
 }) => {
-  const result = await pool.query(
-    `INSERT INTO tesda_batches
-        (trainer_id, course_id, start_date, end_date,
-         required_number_of_students, max_students, class_type, remarks, created_by, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Pending')
-      RETURNING public_id, batch_id, status, start_date, end_date`,
-    [
-      trainer_id || null,
-      course_id,
-      start_date,
-      end_date,
-      required_number_of_students,
-      max_students,
-      class_type || 'Regular',
-      remarks || null,
-      created_by || null,
-    ]
-  );
-  return result.rows[0];
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // => Released automatically at COMMIT/ROLLBACK - serializes only
+    //    creates for this same course_id, other courses are unaffected
+    await client.query('SELECT pg_advisory_xact_lock($1)', [course_id]);
+
+    const courseResult = await client.query(
+      `SELECT title FROM tesda_courses WHERE course_id = $1`,
+      [course_id]
+    );
+    const courseTitle = courseResult.rows[0]?.title ?? 'Untitled Course';
+
+    const seqResult = await client.query(
+      `SELECT COALESCE(MAX(batch_sequence), 0) + 1 AS next_seq
+         FROM tesda_batches WHERE course_id = $1`,
+      [course_id]
+    );
+    const nextSeq = seqResult.rows[0].next_seq;
+    const batchName = `${courseTitle} Batch ${nextSeq}`;
+
+    const result = await client.query(
+      `INSERT INTO tesda_batches
+          (trainer_id, course_id, start_date, end_date, required_number_of_students,
+           max_students, class_type, remarks, created_by, status, batch_sequence, batch_name)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Pending', $10, $11)
+        RETURNING public_id, batch_id, status, start_date, end_date, batch_name, batch_sequence`,
+      [
+        trainer_id || null,
+        course_id,
+        start_date || null,
+        end_date || null,
+        required_number_of_students,
+        max_students,
+        class_type || 'Regular',
+        remarks || null,
+        created_by || null,
+        nextSeq,
+        batchName,
+      ]
+    );
+
+    await client.query('COMMIT');
+    return result.rows[0];
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 };
 
 // => Edits an existing TESDA batch's editable fields. course_id is
@@ -492,11 +529,17 @@ export const updateTesdaBatchDetails = async (pool, publicId, {
 // SHS BATCH DETAIL
 // ════════════════════════════════════════════
 
+// => grade11_trainer_id/grade12_trainer_id are no longer selected here -
+//    per-course trainer assignments now come from getShsBatchCourseTrainers
+//    below. The two columns still physically exist on shs_batches for now
+//    (dropped in a later cleanup pass per the standard migration pattern),
+//    just no longer read or written.
 export const getShsBatchByPublicId = async (pool, publicId) => {
   const result = await pool.query(
     `SELECT
         b.public_id,
         b.batch_id,
+        b.batch_sequence,
         b.status,
         b.cluster_id,
         sc.name                  AS cluster,
@@ -509,25 +552,42 @@ export const getShsBatchByPublicId = async (pool, publicId) => {
         b.groupchat_link,
         b.grade11_completed,
         b.updated_at,
-        t11.trainer_id           AS grade11_trainer_id,
-        t11.trainer_full_name    AS grade11_trainer_name,
-        t11.contact_number       AS grade11_trainer_contact,
-        t11.email                AS grade11_trainer_email,
-        t12.trainer_id           AS grade12_trainer_id,
-        t12.trainer_full_name    AS grade12_trainer_name,
-        t12.contact_number       AS grade12_trainer_contact,
-        t12.email                AS grade12_trainer_email,
         a.full_name  AS created_by_name,
         b.created_by AS created_by_id
       FROM shs_batches b
       LEFT JOIN shs_clusters sc ON sc.cluster_id = b.cluster_id
-      LEFT JOIN trainers t11 ON b.grade11_trainer_id = t11.trainer_id
-      LEFT JOIN trainers t12 ON b.grade12_trainer_id = t12.trainer_id
       LEFT JOIN admins a ON b.created_by = a.admin_id
       WHERE b.public_id = $1`,
     [publicId]
   );
   return result.rows[0] ?? null;
+};
+
+// => Per-course trainer assignments for one batch - replaces the old fixed
+//    grade11_trainer_id/grade12_trainer_id columns. One row per course
+//    under the batch's cluster (both grades), trainer_id/trainer_full_name
+//    come back null if that specific course hasn't had a trainer assigned
+//    yet ("Assign later").
+export const getShsBatchCourseTrainers = async (pool, batchId) => {
+  const result = await pool.query(
+    `SELECT
+        sc.course_id,
+        sc.title          AS course_title,
+        sc.grade_level,
+        bct.trainer_id,
+        t.trainer_full_name,
+        t.contact_number  AS trainer_contact,
+        t.email           AS trainer_email
+      FROM shs_batches b
+      JOIN shs_courses sc ON sc.cluster_id = b.cluster_id
+      LEFT JOIN shs_batch_course_trainers bct
+        ON bct.batch_id = b.batch_id AND bct.course_id = sc.course_id
+      LEFT JOIN trainers t ON t.trainer_id = bct.trainer_id
+      WHERE b.batch_id = $1
+      ORDER BY sc.grade_level ASC, sc.title ASC`,
+    [batchId]
+  );
+  return result.rows;
 };
 
 export const getEnrolledStudentsByShsBatchId = async (pool, batchId) => {
@@ -575,6 +635,12 @@ export const updateShsBatchStatus = async (pool, publicId, newStatus, remarks) =
 //    concurrent creates for the same cluster can't grab the same sequence.
 // => cluster text is still written alongside cluster_id, kept in sync until
 //    the old denormalized column is dropped in a later cleanup pass
+// => course_trainers replaces grade11_trainer_id/grade12_trainer_id - an
+//    array of { course_id, trainer_id } pairs, one entry per course under
+//    the cluster (trainer_id null = "Assign later" for that course).
+//    Written into shs_batch_course_trainers in the same transaction as the
+//    batch row, so a partial write can never leave a batch with some
+//    courses assigned and others silently missing.
 export const createShsBatch = async (pool, {
   cluster_id,
   school_year,
@@ -582,8 +648,7 @@ export const createShsBatch = async (pool, {
   end_date,
   required_number_of_students,
   max_students,
-  grade11_trainer_id,
-  grade12_trainer_id,
+  course_trainers,
   remarks,
   created_by,
 }) => {
@@ -612,8 +677,8 @@ export const createShsBatch = async (pool, {
     const result = await client.query(
       `INSERT INTO shs_batches
           (cluster_id, cluster, school_year, start_date, end_date, required_number_of_students, max_students,
-           grade11_trainer_id, grade12_trainer_id, remarks, created_by, status, batch_sequence, batch_name)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'Pending', $12, $13)
+           remarks, created_by, status, batch_sequence, batch_name)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Pending', $10, $11)
         RETURNING public_id, batch_id, status, start_date, end_date, batch_name, batch_sequence`,
       [
         cluster_id,
@@ -623,17 +688,25 @@ export const createShsBatch = async (pool, {
         end_date || null,
         required_number_of_students,
         max_students,
-        grade11_trainer_id || null,
-        grade12_trainer_id || null,
         remarks || null,
         created_by || null,
         nextSeq,
         batchName,
       ]
     );
+    const batch = result.rows[0];
+
+    for (const { course_id, trainer_id } of (course_trainers || [])) {
+      await client.query(
+        `INSERT INTO shs_batch_course_trainers (batch_id, course_id, trainer_id)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (batch_id, course_id) DO UPDATE SET trainer_id = EXCLUDED.trainer_id, updated_at = NOW()`,
+        [batch.batch_id, course_id, trainer_id || null]
+      );
+    }
 
     await client.query('COMMIT');
-    return result.rows[0];
+    return batch;
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
@@ -645,47 +718,70 @@ export const createShsBatch = async (pool, {
 // => Edits an existing SHS batch's editable fields. cluster is deliberately
 //    NOT a parameter here - locked permanently once a batch is created,
 //    same reasoning as course_id on the TESDA side.
+// => course_trainers replaces grade11_trainer_id/grade12_trainer_id, same
+//    shape as createShsBatch - re-synced into shs_batch_course_trainers
+//    inside the same transaction as the batch row update.
 export const updateShsBatchDetails = async (pool, publicId, {
   school_year,
   start_date,
   end_date,
   required_number_of_students,
   max_students,
-  grade11_trainer_id,
-  grade12_trainer_id,
+  course_trainers,
   groupchat_link,
   remarks,
 }) => {
-  const result = await pool.query(
-    `UPDATE shs_batches
-        SET school_year                  = COALESCE($1, school_year),
-            start_date                   = $2,
-            end_date                     = $3,
-            required_number_of_students  = $4,
-            max_students                 = $5,
-            grade11_trainer_id            = $6,
-            grade12_trainer_id            = $7,
-            groupchat_link                = $8,
-            remarks                      = COALESCE($9, remarks),
-            updated_at                   = NOW()
-      WHERE public_id = $10
-      RETURNING public_id, batch_id, school_year, start_date, end_date,
-                required_number_of_students, max_students,
-                grade11_trainer_id, grade12_trainer_id, groupchat_link, remarks`,
-    [
-      school_year || null,
-      start_date || null,
-      end_date || null,
-      required_number_of_students,
-      max_students,
-      grade11_trainer_id || null,
-      grade12_trainer_id || null,
-      groupchat_link || null,
-      remarks || null,
-      publicId,
-    ]
-  );
-  return result.rows[0] ?? null;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const result = await client.query(
+      `UPDATE shs_batches
+          SET school_year                  = COALESCE($1, school_year),
+              start_date                   = $2,
+              end_date                     = $3,
+              required_number_of_students  = $4,
+              max_students                 = $5,
+              groupchat_link                = $6,
+              remarks                      = COALESCE($7, remarks),
+              updated_at                   = NOW()
+        WHERE public_id = $8
+        RETURNING public_id, batch_id, school_year, start_date, end_date,
+                  required_number_of_students, max_students, groupchat_link, remarks`,
+      [
+        school_year || null,
+        start_date || null,
+        end_date || null,
+        required_number_of_students,
+        max_students,
+        groupchat_link || null,
+        remarks || null,
+        publicId,
+      ]
+    );
+    const batch = result.rows[0];
+    if (!batch) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+
+    for (const { course_id, trainer_id } of (course_trainers || [])) {
+      await client.query(
+        `INSERT INTO shs_batch_course_trainers (batch_id, course_id, trainer_id)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (batch_id, course_id) DO UPDATE SET trainer_id = EXCLUDED.trainer_id, updated_at = NOW()`,
+        [batch.batch_id, course_id, trainer_id || null]
+      );
+    }
+
+    await client.query('COMMIT');
+    return batch;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 };
 
 // => Dedicated single-column update for the Grade 11 completion flag - kept

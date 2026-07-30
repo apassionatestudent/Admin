@@ -153,20 +153,17 @@ export default function ShsBatchDetail() {
       .finally(() => setLoadingTrainers(false));
   }, [editingSection]);
 
-  // => Course preview data - fetched once on mount (not lazily like
-  //    trainerOptions) since this needs to show in the read-only view too,
-  //    not just while editing. Replaces the removed School Year field.
-  const [clusterCourseData, setClusterCourseData] = useState({ shsCourses: [], clusters: [], trainerShsCourses: [] });
+  // => Only trainerShsCourses is still needed here - course/trainer
+  //    assignments themselves now come from data.courseTrainers in the
+  //    batch detail response, this fetch is purely for qualification
+  //    filtering in the edit-mode dropdowns.
+  const [clusterCourseData, setClusterCourseData] = useState({ trainerShsCourses: [] });
 
   useEffect(() => {
     fetch('/api/admin/batches/form-options', { credentials: 'include' })
       .then(r => r.json())
-      .then(d => setClusterCourseData({
-        shsCourses: d.shsCourses || [],
-        clusters: d.clusters || [],
-        trainerShsCourses: d.trainerShsCourses || [],
-      }))
-      .catch(err => console.error('Failed to fetch cluster course data:', err));
+      .then(d => setClusterCourseData({ trainerShsCourses: d.trainerShsCourses || [] }))
+      .catch(err => console.error('Failed to fetch trainer qualification data:', err));
   }, []);
 
   // => Activity log for this batch - status changes, edits, and the
@@ -261,14 +258,19 @@ export default function ShsBatchDetail() {
   };
 
   const handleEditBatchInfo = () => {
-    const { batchRow } = data;
+    const { batchRow, courseTrainers } = data;
+    // => Keyed by course_id (string) -> trainer_id (string), same shape
+    //    the Add Batch modal in Classes.jsx uses
+    const courseTrainerMap = {};
+    (courseTrainers || []).forEach(c => {
+      courseTrainerMap[c.course_id] = c.trainer_id ?? '';
+    });
     startEdit('batchInfo', {
       start_date:                   toDateInputValue(batchRow.start_date),
       end_date:                     toDateInputValue(batchRow.end_date),
       required_number_of_students:  batchRow.required_number_of_students ?? '',
       max_students:                 batchRow.max_students ?? '',
-      grade11_trainer_id:           batchRow.grade11_trainer_id ?? '',
-      grade12_trainer_id:           batchRow.grade12_trainer_id ?? '',
+      course_trainers:              courseTrainerMap,
       groupchat_link:               batchRow.groupchat_link ?? '',
     });
   };
@@ -293,6 +295,11 @@ export default function ShsBatchDetail() {
       return;
     }
 
+    const course_trainers = Object.entries(draft.course_trainers || {}).map(([course_id, trainer_id]) => ({
+      course_id: Number(course_id),
+      trainer_id: trainer_id ? Number(trainer_id) : null,
+    }));
+
     setSectionSaving(true);
     try {
       await axiosAdmin.patch(`/api/admin/batches/shs/${publicId}`, {
@@ -300,8 +307,7 @@ export default function ShsBatchDetail() {
         end_date:                     draft.end_date || null,
         required_number_of_students:  Number(draft.required_number_of_students),
         max_students:                 Number(draft.max_students),
-        grade11_trainer_id:           draft.grade11_trainer_id ? Number(draft.grade11_trainer_id) : null,
-        grade12_trainer_id:           draft.grade12_trainer_id ? Number(draft.grade12_trainer_id) : null,
+        course_trainers,
         groupchat_link:               draft.groupchat_link?.trim() || null,
       });
 
@@ -424,27 +430,22 @@ export default function ShsBatchDetail() {
   const remainingSlots = batchRow.max_students - (enrolledStudents?.length ?? 0);
   const isEditingBatchInfo = editingSection === 'batchInfo';
 
-  // => Courses under this batch's cluster, split by grade level - replaces
-  //    School Year entirely. cluster is fixed for this batch (locked, no
-  //    dropdown needed here unlike the Add Batch modal), so this is just a
-  //    straight lookup rather than reacting to a selection change.
-  // => No more name-matching needed - batchRow.cluster_id is a real FK now
-  const clusterCourses = batchRow.cluster_id
-    ? clusterCourseData.shsCourses.filter(c => c.cluster_id === batchRow.cluster_id)
-    : [];
-  const grade11Courses = clusterCourses.filter(c => c.grade_level === 'Grade 11');
-  const grade12Courses = clusterCourses.filter(c => c.grade_level === 'Grade 12');
+  // => Per-course trainer assignments, straight from the API - replaces
+  //    the old shsCourses-filtered-by-cluster derivation, since
+  //    data.courseTrainers already comes back scoped to this batch's
+  //    cluster with trainer_id/trainer_full_name attached
+  const courseTrainers = data.courseTrainers || [];
+  const grade11CourseTrainers = courseTrainers.filter(c => c.grade_level === 'Grade 11');
+  const grade12CourseTrainers = courseTrainers.filter(c => c.grade_level === 'Grade 12');
 
-  // => A trainer is "qualified" for a grade if they have a
-  //    trainer_shs_courses row for any course in that grade's list -
-  //    not just handles_shs generally. Used to flag (not hide) unqualified
-  //    trainers in the two dropdowns below, since the substitute
-  //    confirm-flow still needs them selectable.
-  const isTrainerQualified = (trainerId, gradeCourses) => {
-    const courseIds = gradeCourses.map(c => c.course_id);
-    return clusterCourseData.trainerShsCourses.some(
-      tc => tc.trainer_id === trainerId && courseIds.includes(tc.course_id)
-    );
+  // => Trainers qualified for one specific course, not a whole grade level -
+  //    each course under the cluster gets its own filtered dropdown now,
+  //    since a cluster can hold more than one course per grade
+  const getQualifiedTrainersForCourse = (courseId) => {
+    const qualifiedIds = clusterCourseData.trainerShsCourses
+      .filter(tc => tc.course_id === courseId)
+      .map(tc => tc.trainer_id);
+    return trainerOptions.filter(t => qualifiedIds.includes(t.trainer_id));
   };
 
   return (
@@ -458,7 +459,7 @@ export default function ShsBatchDetail() {
         <div className="adm-batch-detail-hero">
           <div className="adm-hero-left">
             <p className="adm-hero-sector">SHS Batch</p>
-            <h1 className="adm-hero-course-name">{batchRow.cluster ?? '-'} (Batch #{batchRow.batch_id})</h1>
+            <h1 className="adm-hero-course-name">{batchRow.cluster ?? '-'} (Batch #{batchRow.batch_sequence ?? batchRow.batch_id})</h1>
           </div>
 
           <span className={`adm-hero-badge ${statusClass[batchRow.status] || ''}`}>
@@ -527,12 +528,14 @@ export default function ShsBatchDetail() {
               </div>
 
               <div className="adm-info-card">
-                <p className="adm-info-label">Grade 11 Courses</p>
-                {grade11Courses.length === 0 ? (
+                <p className="adm-info-label">Grade 11 Courses & Trainers</p>
+                {grade11CourseTrainers.length === 0 ? (
                   <p className="adm-info-value">-</p>
                 ) : (
                   <ul className="adm-modal-course-list">
-                    {grade11Courses.map(c => <li key={c.course_id}>{c.title}</li>)}
+                    {grade11CourseTrainers.map(c => (
+                      <li key={c.course_id}>{c.course_title} — {c.trainer_full_name ?? 'Unassigned'}</li>
+                    ))}
                   </ul>
                 )}
               </div>
@@ -557,24 +560,16 @@ export default function ShsBatchDetail() {
               </div>
 
               <div className="adm-info-card">
-                <p className="adm-info-label">Grade 12 Courses</p>
-                {grade12Courses.length === 0 ? (
+                <p className="adm-info-label">Grade 12 Courses & Trainers</p>
+                {grade12CourseTrainers.length === 0 ? (
                   <p className="adm-info-value">-</p>
                 ) : (
                   <ul className="adm-modal-course-list">
-                    {grade12Courses.map(c => <li key={c.course_id}>{c.title}</li>)}
+                    {grade12CourseTrainers.map(c => (
+                      <li key={c.course_id}>{c.course_title} — {c.trainer_full_name ?? 'Unassigned'}</li>
+                    ))}
                   </ul>
                 )}
-              </div>
-
-              <div className="adm-info-card">
-                <p className="adm-info-label">Grade 11 Trainer</p>
-                <p className="adm-info-value">{batchRow.grade11_trainer_name ?? '-'}</p>
-              </div>
-
-              <div className="adm-info-card">
-                <p className="adm-info-label">Grade 12 Trainer</p>
-                <p className="adm-info-value">{batchRow.grade12_trainer_name ?? '-'}</p>
               </div>
 
               <div className="adm-info-card">
@@ -641,67 +636,49 @@ export default function ShsBatchDetail() {
                 <p className="adm-info-value">{batchRow.cluster ?? '-'}</p>
               </div>
 
-              {/* => Read-only reference, same as the modal - cluster doesn't
-                     change here so this is just informational, not editable */}
-              <div className="adm-info-card">
-                <p className="adm-info-label">Grade 11 Courses</p>
-                {grade11Courses.length === 0 ? (
-                  <p className="adm-info-value">-</p>
-                ) : (
-                  <ul className="adm-modal-course-list">
-                    {grade11Courses.map(c => <li key={c.course_id}>{c.title}</li>)}
-                  </ul>
-                )}
-              </div>
-
-              <div className="adm-info-card">
-                <p className="adm-info-label">Grade 12 Courses</p>
-                {grade12Courses.length === 0 ? (
-                  <p className="adm-info-value">-</p>
-                ) : (
-                  <ul className="adm-modal-course-list">
-                    {grade12Courses.map(c => <li key={c.course_id}>{c.title}</li>)}
-                  </ul>
-                )}
-              </div>
-
+              {/* => One trainer dropdown per course, not per grade level -
+                     doubles as the read-only course list too, so the
+                     separate cards from before are no longer needed.
+                     cluster itself stays locked/uneditable, same as before. */}
               <div className="adm-form-group">
-                <label className="adm-form-label">Grade 11 Trainer</label>
+                <label className="adm-form-label">Course Trainers</label>
                 {loadingTrainers ? (
                   <p className="adm-empty-note">Loading trainers…</p>
                 ) : (
-                  <select
-                    className="adm-form-select"
-                    value={draft.grade11_trainer_id}
-                    onChange={e => updateDraft('grade11_trainer_id', e.target.value)}
-                  >
-                    <option value="">- Unassigned -</option>
-                    {trainerOptions
-                      .filter(t => t.handles_shs && isTrainerQualified(t.trainer_id, grade11Courses))
-                      .map(t => (
-                        <option key={t.trainer_id} value={t.trainer_id}>{t.trainer_full_name}</option>
-                      ))}
-                  </select>
-                )}
-              </div>
-
-              <div className="adm-form-group">
-                <label className="adm-form-label">Grade 12 Trainer</label>
-                {loadingTrainers ? (
-                  <p className="adm-empty-note">Loading trainers…</p>
-                ) : (
-                  <select
-                    className="adm-form-select"
-                    value={draft.grade12_trainer_id}
-                    onChange={e => updateDraft('grade12_trainer_id', e.target.value)}
-                  >
-                    <option value="">- Unassigned -</option>
-                    {trainerOptions
-                      .filter(t => t.handles_shs && isTrainerQualified(t.trainer_id, grade12Courses))
-                      .map(t => (
-                        <option key={t.trainer_id} value={t.trainer_id}>{t.trainer_full_name}</option>
-                      ))}
-                  </select>
+                  ['Grade 11', 'Grade 12'].map(grade => {
+                    const coursesForGrade = courseTrainers.filter(c => c.grade_level === grade);
+                    if (coursesForGrade.length === 0) {
+                      return (
+                        <div key={grade} className="adm-course-trainer-grade-group">
+                          <span className="adm-cluster-courses-grade">{grade}</span>
+                          <p className="adm-empty-note">No courses set up for {grade} yet.</p>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={grade} className="adm-course-trainer-grade-group">
+                        <span className="adm-cluster-courses-grade">{grade}</span>
+                        {coursesForGrade.map(c => (
+                          <div key={c.course_id} className="adm-course-trainer-row">
+                            <label className="adm-form-label adm-form-label--sub">{c.course_title}</label>
+                            <select
+                              className="adm-form-select"
+                              value={draft.course_trainers?.[c.course_id] ?? ''}
+                              onChange={e => setDraft(prev => ({
+                                ...prev,
+                                course_trainers: { ...prev.course_trainers, [c.course_id]: e.target.value },
+                              }))}
+                            >
+                              <option value="">- Unassigned -</option>
+                              {getQualifiedTrainersForCourse(c.course_id).map(t => (
+                                <option key={t.trainer_id} value={t.trainer_id}>{t.trainer_full_name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })
                 )}
               </div>
 
