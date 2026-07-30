@@ -9,6 +9,7 @@ import {
   getActiveBatches,
   getTesdaBatchByPublicId,
   getShsBatchByPublicId,
+  getShsBatchCourseTrainers,
   getEnrolledStudentsByTesdaBatchId,
   getEnrolledStudentsByShsBatchId,
   updateTesdaBatchStatus,
@@ -21,7 +22,7 @@ import {
   searchBatches,
   getBatchFormOptions,
   isTrainerQualifiedForTesdaCourse,
-  isTrainerQualifiedForShsGrade,
+  isTrainerQualifiedForShsCourse,
   getTesdaAssignmentContext,
   assignTesdaEnrollmentToBatch,
   getShsAssignmentContext,
@@ -79,7 +80,10 @@ export const fetchShsBatchDetail = async (publicId) => {
   if (!batchRow) return null;
 
   const enrolledStudents = await getEnrolledStudentsByShsBatchId(pool, batchRow.batch_id);
-  return { batchRow, enrolledStudents };
+  // => Per-course trainer assignments, replaces the old fixed
+  //    grade11_trainer_id/grade12_trainer_id columns on batchRow
+  const courseTrainers = await getShsBatchCourseTrainers(pool, batchRow.batch_id);
+  return { batchRow, enrolledStudents, courseTrainers };
 };
 
 // => GET ACTIVITY LOGS FOR A BATCH - used by the Logs section on both
@@ -123,6 +127,33 @@ const checkOngoingEligibility = (trainerAssigned, start_date) => {
 const checkConcludedEligibility = (trainerAssigned, end_date) => {
   if (!trainerAssigned) {
     throw new Error('Cannot set status to Concluded - no trainer is assigned to this batch.');
+  }
+  if (!isDateReached(end_date)) {
+    throw new Error('Cannot set status to Concluded - the end date has not been reached yet.');
+  }
+};
+
+// => SHS-specific: at least one Grade 11 course must exist under the
+//    cluster, and every single one of them needs a trainer assigned.
+//    Grade 12 is deliberately NOT checked here - it doesn't start until
+//    much later (grade11_completed flips first), so requiring a Grade 12
+//    trainer this early would block an otherwise-ready batch for nothing.
+const checkShsOngoingEligibility = (courseTrainers, start_date) => {
+  const grade11Courses = courseTrainers.filter(c => c.grade_level === 'Grade 11');
+  const allGrade11Staffed = grade11Courses.length > 0 && grade11Courses.every(c => !!c.trainer_id);
+  if (!allGrade11Staffed) {
+    throw new Error('Cannot set status to Ongoing - every Grade 11 course needs a trainer assigned first.');
+  }
+  if (!isDateReached(start_date)) {
+    throw new Error('Cannot set status to Ongoing - the start date has not been reached yet.');
+  }
+};
+
+const checkShsConcludedEligibility = (courseTrainers, end_date) => {
+  const grade11Courses = courseTrainers.filter(c => c.grade_level === 'Grade 11');
+  const allGrade11Staffed = grade11Courses.length > 0 && grade11Courses.every(c => !!c.trainer_id);
+  if (!allGrade11Staffed) {
+    throw new Error('Cannot set status to Concluded - every Grade 11 course needs a trainer assigned.');
   }
   if (!isDateReached(end_date)) {
     throw new Error('Cannot set status to Concluded - the end date has not been reached yet.');
@@ -175,16 +206,17 @@ export const changeShsBatchStatus = async (publicId, newStatus, remarks, adminId
     throw new Error('Remarks are required when changing the batch status.');
   }
 
-  // => SHS trainer requirement is "at least one of the two grade slots
-  //    filled" - mirrors TESDA's single trainer_id check
+  // => SHS trainer requirement is now per-course, not per-grade-slot -
+  //    every Grade 11 course under this batch's cluster needs its own
+  //    trainer assigned before the batch can go Ongoing
   const existing = await getShsBatchByPublicId(pool, publicId);
   if (!existing) throw new Error('Batch not found.');
-  const trainerAssigned = !!(existing.grade11_trainer_id || existing.grade12_trainer_id);
+  const courseTrainers = await getShsBatchCourseTrainers(pool, existing.batch_id);
 
   if (newStatus === 'Ongoing') {
-    checkOngoingEligibility(trainerAssigned, existing.start_date);
+    checkShsOngoingEligibility(courseTrainers, existing.start_date);
   } else if (newStatus === 'Concluded') {
-    checkConcludedEligibility(trainerAssigned, existing.end_date);
+    checkShsConcludedEligibility(courseTrainers, existing.end_date);
   }
 
   const updated = await updateShsBatchStatus(pool, publicId, newStatus, remarksTrimmed);
@@ -240,7 +272,7 @@ export const addTesdaBatch = async (batchData) => {
 export const addShsBatch = async (batchData) => {
   const {
     cluster_id, school_year, required_number_of_students, max_students,
-    grade11_trainer_id, grade12_trainer_id,
+    course_trainers,
   } = batchData;
 
   if (!cluster_id)    throw new Error('cluster_id is required.');
@@ -261,16 +293,13 @@ export const addShsBatch = async (batchData) => {
   //    caught start_date being after end_date, never a stale start_date
   validateBatchDates(batchData.start_date, batchData.end_date);
 
-  if (grade11_trainer_id) {
-    const qualified = await isTrainerQualifiedForShsGrade(pool, grade11_trainer_id, cluster_id, 'Grade 11');
+  // => Per-course qualification check, replaces the old two-field
+  //    grade11/grade12 check - one entry per course under the cluster
+  for (const { course_id, trainer_id } of (course_trainers || [])) {
+    if (!trainer_id) continue; // => "Assign later" for this course - nothing to check
+    const qualified = await isTrainerQualifiedForShsCourse(pool, trainer_id, course_id);
     if (!qualified) {
-      throw new Error('This trainer is not qualified for Grade 11 under this cluster. Assign a qualified trainer, or leave the field blank for now.');
-    }
-  }
-  if (grade12_trainer_id) {
-    const qualified = await isTrainerQualifiedForShsGrade(pool, grade12_trainer_id, cluster_id, 'Grade 12');
-    if (!qualified) {
-      throw new Error('This trainer is not qualified for Grade 12 under this cluster. Assign a qualified trainer, or leave the field blank for now.');
+      throw new Error('One of the assigned trainers is not qualified for that course. Assign a qualified trainer, or leave the field blank for now.');
     }
   }
 
@@ -331,7 +360,7 @@ export const editTesdaBatchDetails = async (publicId, batchData, existingCourseI
 export const editShsBatchDetails = async (publicId, batchData, existingClusterId, adminId, batchId) => {
   const {
     school_year, start_date, end_date, required_number_of_students, max_students,
-    grade11_trainer_id, grade12_trainer_id,
+    course_trainers,
   } = batchData;
 
   if (!required_number_of_students) throw new Error('required_number_of_students is required.');
@@ -343,16 +372,14 @@ export const editShsBatchDetails = async (publicId, batchData, existingClusterId
     throw new Error('required_number_of_students cannot exceed max_students.');
   }
 
-  if (grade11_trainer_id) {
-    const qualified = await isTrainerQualifiedForShsGrade(pool, grade11_trainer_id, existingClusterId, 'Grade 11');
+  // => Same per-course qualification check as addShsBatch - existingClusterId
+  //    isn't even needed anymore here since course_id itself already
+  //    identifies which cluster/grade it belongs to
+  for (const { course_id, trainer_id } of (course_trainers || [])) {
+    if (!trainer_id) continue; // => "Assign later" for this course - nothing to check
+    const qualified = await isTrainerQualifiedForShsCourse(pool, trainer_id, course_id);
     if (!qualified) {
-      throw new Error('This trainer is not qualified for Grade 11 under this cluster. Assign a qualified trainer, or leave the field blank for now.');
-    }
-  }
-  if (grade12_trainer_id) {
-    const qualified = await isTrainerQualifiedForShsGrade(pool, grade12_trainer_id, existingClusterId, 'Grade 12');
-    if (!qualified) {
-      throw new Error('This trainer is not qualified for Grade 12 under this cluster. Assign a qualified trainer, or leave the field blank for now.');
+      throw new Error('One of the assigned trainers is not qualified for that course. Assign a qualified trainer, or leave the field blank for now.');
     }
   }
 
