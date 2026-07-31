@@ -17,6 +17,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import BackButton from '../BackButton/BackButton.jsx';
 import axiosAdmin from '../../api/axiosAdmin.js';
+import toast from 'react-hot-toast';
 
 import './shsEnrollmentDetail.css';
 
@@ -30,10 +31,12 @@ import trashIcon from '../../assets/icons/trash.png';
 
 // Constants
 
-// => Matches shs_enrollments.status CHECK constraint exactly (same values as TESDA)
+// => Matches ALLOWED_STATUSES in sharedEnrollmentService.js exactly
+// => Same values as TESDA - 'Completed' replaced with 'For Assessment',
+//    'Reviewed' and 'Failed Assessment' added
 const STATUS_OPTIONS = [
-  'Pending', 'Approved', 'Needs Clarification', 'Rejected',
-  'Dropped', 'Completed', 'Reserved',
+  'Pending', 'Reviewed', 'Approved', 'Needs Clarification', 'Rejected',
+  'Dropped', 'For Assessment', 'Failed Assessment', 'Reserved',
 ];
 
 const NAME_EXTENSIONS = ['N/A', 'Jr.', 'Sr.', 'II', 'III', 'IV', 'V'];
@@ -48,21 +51,34 @@ const RELIGIONS = [
 
 const STATUS_DESCRIPTIONS = {
   'Pending': 'Submitted and awaiting initial review.',
+  'Reviewed': 'Enrollment has been reviewed with no issues. The student must submit photocopies of the documents along with the original ones as reference to be approved.',
   'Approved': 'Reviewed and accepted - the student is officially enrolled.',
   'Needs Clarification': 'Missing or unclear information - waiting on the student to respond.',
   'Rejected': 'Enrollment was declined.',
   'Dropped': 'Student withdrew or was removed after being enrolled.',
-  'Completed': 'Student has finished the program.',
+  'For Assessment': 'Training finished - student is scheduled for competency assessment.',
+  'Failed Assessment': 'Student did not pass the competency assessment.',
   'Reserved': 'No open class section yet - held until one becomes available.',
+};
+
+// => Same warnings as TESDA, minus the reservation-fee mention since SHS
+//    has no such fee
+const STATUS_CONFIRM_WARNINGS = {
+  'Approved': 'Please confirm the student has submitted physical photocopies of their documents and that these have been compared against the original copies before proceeding.',
+  'Failed Assessment': 'This marks the assessment as failed and will be visible to the student on their dashboard.',
+  'Rejected': 'This will reject the enrollment application and will be visible to the student on their dashboard.',
+  'Dropped': 'This will mark the student as dropped from the program and will be visible to the student on their dashboard.',
 };
 
 const statusClass = {
   'Pending':             'status--pending',
+  'Reviewed':            'status--reviewed',
   'Approved':            'status--approved',
   'Needs Clarification': 'status--clarification',
   'Rejected':            'status--rejected',
   'Dropped':             'status--dropped',
-  'Completed':           'status--completed',
+  'For Assessment':      'status--for-assessment',
+  'Failed Assessment':   'status--failed-assessment',
   'Reserved':            'status--reserved',
 };
 
@@ -80,12 +96,30 @@ const formatDate = (dateStr) => {
   });
 };
 
+// => True only when the batch has an end_date AND today is on/after it -
+//    same reasoning as tesdaEnrollmentDetail.jsx
+const isBatchTrainingEnded = (endDateStr) => {
+  if (!endDateStr) return false;
+  const batchEndDate = new Date(endDateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  batchEndDate.setHours(0, 0, 0, 0);
+  return today >= batchEndDate;
+};
+
 const formatDateTime = (dateStr) => {
   if (!dateStr) return '-';
   return new Date(dateStr).toLocaleString('en-PH', {
     year: 'numeric', month: 'short', day: 'numeric',
     hour: 'numeric', minute: '2-digit',
   });
+};
+
+// => Used by the Miscellaneous Fee Payments section - this file never
+//    had a currency formatter before that section was added.
+const formatCurrency = (amount) => {
+  if (amount == null) return '-';
+  return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
 };
 
 // => student_profile columns are last_name / first_name / middle_name / name_extension
@@ -541,9 +575,13 @@ export default function SHSEnrollmentDetail() {
   const [error,   setError]   = useState(null);
 
   const [selectedStatus, setSelectedStatus] = useState('');
+  // => Client-side pagination for the Activity Logs table - same
+  //    reasoning as tesdaEnrollmentDetail.jsx
+  const [logPage, setLogPage] = useState(1);
   const [nationalities, setNationalities] = useState([]);
   const [saving,         setSaving]         = useState(false);
-  const [saveMsg,        setSaveMsg]        = useState(null);
+  // => saveMsg state removed - status save feedback now goes through
+  //    react-hot-toast instead of an inline banner
   const [internalRemarksDraft, setInternalRemarksDraft] = useState('');
   const [externalRemarksDraft, setExternalRemarksDraft] = useState('');
   const [savingInternalRemarks, setSavingInternalRemarks] = useState(false);
@@ -559,6 +597,14 @@ export default function SHSEnrollmentDetail() {
   }, [selectedStatus, data?.enrollment?.status, data?.enrollment?.external_remarks]);
 
   const [modal, setModal] = useState(null);
+
+  // => Payment & Refund History - placeholder state for now, wired to a
+  //    real fetch in Step 3 once the backend endpoint exists.
+  const [paymentHistory, setPaymentHistory] = useState([]);
+  const [batchMiscFeeTotal, setBatchMiscFeeTotal] = useState(0);
+  // => Total paid toward this enrollment's batch misc fees, for the
+  //    For Assessment gate balance display
+  const [totalPaid, setTotalPaid] = useState(0);
   const [electivesModalOpen, setElectivesModalOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -661,6 +707,30 @@ export default function SHSEnrollmentDetail() {
     fetchDetail();
   }, [publicId]);
 
+  // => Payment History - separate fetch, own endpoint. Doesn't block the
+  //    page's main loading state; failing silently here just leaves the
+  //    section at its default empty values.
+  useEffect(() => {
+    if (!publicId) return;
+
+    const fetchPaymentHistory = async () => {
+      try {
+        const res = await fetch(`/api/admin/enrollments/shs/${publicId}/payment-history`, {
+          credentials: 'include',
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        setPaymentHistory(json.records ?? []);
+        setBatchMiscFeeTotal(json.batchMiscFeeTotal ?? 0);
+        setTotalPaid(json.totalPaid ?? 0);
+      } catch (err) {
+        console.error('Failed to fetch payment history:', err);
+      }
+    };
+
+    fetchPaymentHistory();
+  }, [publicId]);
+
   // => Resolve address codes to human-readable names
   useEffect(() => {
     if (!data?.address) return;
@@ -748,29 +818,59 @@ export default function SHSEnrollmentDetail() {
       .catch(err => console.error('Failed to fetch nationalities:', err));
   }, []);
 
+  // => Same reasoning as TESDA - re-fetches the full detail bundle
+  //    without touching the page's loading/error state, so Activity
+  //    Logs reflects a status change immediately
+  const refreshDetail = async () => {
+    try {
+      const res = await fetch(`/api/admin/enrollments/shs/${publicId}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) return;
+      const json = await res.json();
+      setData(json);
+    } catch (err) {
+      console.error('Failed to refresh enrollment detail:', err);
+    }
+  };
+
   //  Status update handler 
   // => Switched from raw fetch to axiosAdmin so x-csrf-token is attached.
   const handleStatusSave = () => {
     if (!selectedStatus || selectedStatus === data?.enrollment?.status) return;
+    // => Same reasoning as TESDA - block here before opening the confirm
+    //    modal, not just after hitting a 400 from the backend gate
+    if (selectedStatus === 'Needs Clarification' && !externalRemarksDraft.trim()) {
+      toast.error('External Remarks is required when setting status to "Needs Clarification".');
+      return;
+    }
+    // => Same block as TESDA - For Assessment requires the batch's
+    //    training period to have actually ended
+    if (selectedStatus === 'For Assessment' && !isBatchTrainingEnded(enrollment.end_date)) {
+      toast.error(
+        enrollment.end_date
+          ? `Cannot set status to "For Assessment": the batch's training period hasn't ended yet (ends ${formatDate(enrollment.end_date)}).`
+          : 'Cannot set status to "For Assessment": this batch has no end date set, so the training period cannot be confirmed as finished.'
+      );
+      return;
+    }
     setConfirmOpen(true);
   };
 
   const handleStatusConfirmed = async () => {
     setConfirmOpen(false);
     setSaving(true);
-    setSaveMsg(null);
     try {
       await axiosAdmin.patch(`/api/admin/enrollments/shs/${publicId}/status`, {
         status: selectedStatus,
         external_remarks: externalRemarksDraft,
       });
-      setData(prev => ({
-        ...prev,
-        enrollment: { ...prev.enrollment, status: selectedStatus, external_remarks: externalRemarksDraft },
-      }));
-      setSaveMsg({ type: 'success', text: `Status updated to "${selectedStatus}".` });
+      // => Pulls the fresh detail bundle - including the Activity Logs
+      //    row the backend just wrote - instead of a manual local patch
+      await refreshDetail();
+      toast.success(`Status updated to "${selectedStatus}".`);
     } catch (err) {
-      setSaveMsg({ type: 'error', text: err.response?.data?.error || 'Failed to update status.' });
+      toast.error(err.response?.data?.error || 'Failed to update status.');
     } finally {
       setSaving(false);
     }
@@ -1047,6 +1147,16 @@ export default function SHSEnrollmentDetail() {
               <span className={`adm-hero-badge ${statusClass[enrollment.status] || ''}`}>
                 {enrollment.status}
               </span>
+              {/* => Balance badge for the For Assessment gate - batch misc
+                   fees only, no course fee (DepEd covers SHS tuition).
+                   Moved here from Update Status for the same reason as TESDA. */}
+              <span className={`adm-hero-balance-badge ${totalPaid >= batchMiscFeeTotal ? 'adm-hero-balance-badge--paid' : 'adm-hero-balance-badge--unpaid'}`}>
+                {batchMiscFeeTotal <= 0
+                  ? 'No Fee Assigned'
+                  : totalPaid >= batchMiscFeeTotal
+                  ? 'Balance Cleared'
+                  : `₱${(batchMiscFeeTotal - totalPaid).toFixed(2)} Due`}
+              </span>
             </div>
           </div>
 
@@ -1061,28 +1171,66 @@ export default function SHSEnrollmentDetail() {
                 value={selectedStatus}
                 onChange={e => {
                   setSelectedStatus(e.target.value);
-                  setSaveMsg(null);
                 }}
               >
                 {STATUS_OPTIONS.map(s => (
-                  <option key={s} value={s}>{s}</option>
+                  // => Sequencing/prereq gates mirrored from
+                  //    shsEnrollmentService.js. Note: misc-fee balance
+                  //    clearing for "For Assessment" isn't checked
+                  //    client-side here since payment totals aren't loaded
+                  //    into this component - it only surfaces via the
+                  //    backend error toast.
+                  <option
+                    key={s}
+                    value={s}
+                    disabled={
+                      (s === 'Reserved' && enrollment.batch_id) ||
+                      (s === 'Approved' && enrollment.status !== 'Reviewed' && enrollment.status !== 'Approved') ||
+                      (s === 'For Assessment' && (
+                        (enrollment.status !== 'Approved' && enrollment.status !== 'For Assessment') ||
+                        !enrollment.batch_id ||
+                        !isBatchTrainingEnded(enrollment.end_date) ||
+                        totalPaid < batchMiscFeeTotal
+                      )) ||
+                      (s === 'Failed Assessment' && enrollment.status !== 'For Assessment' && enrollment.status !== 'Failed Assessment')
+                    }
+                  >
+                    {s}
+                  </option>
                 ))}
               </select>
 
               <button
                 className="adm-status-btn"
                 onClick={handleStatusSave}
-                disabled={saving || selectedStatus === enrollment.status}
+                disabled={
+                  saving ||
+                  selectedStatus === enrollment.status ||
+                  (selectedStatus === 'Needs Clarification' && !externalRemarksDraft.trim())
+                }
               >
                 {saving ? 'Saving…' : 'Save Status'}
               </button>
 
-              {saveMsg && (
-                <span className={`adm-save-msg adm-save-msg--${saveMsg.type}`}>
-                  {saveMsg.text}
-                </span>
-              )}
-              <span className="adm-status-description">{STATUS_DESCRIPTIONS[selectedStatus]}</span>
+              <span className="adm-status-description">
+                {selectedStatus === 'Reserved' && enrollment.batch_id
+                  ? 'This enrollment already has a batch assigned, so it cannot be set to Reserved.'
+                  : selectedStatus === 'Approved' && enrollment.status !== 'Reviewed' && enrollment.status !== 'Approved'
+                  ? 'Enrollment must be in "Reviewed" status before it can be Approved.'
+                  : selectedStatus === 'For Assessment' && enrollment.status !== 'Approved' && enrollment.status !== 'For Assessment'
+                  ? 'Enrollment must be Approved before it can be set to "For Assessment".'
+                  : selectedStatus === 'For Assessment' && !enrollment.batch_id
+                  ? 'A batch must be assigned before this enrollment can be set to "For Assessment".'
+                  : selectedStatus === 'For Assessment' && !isBatchTrainingEnded(enrollment.end_date)
+                  ? (enrollment.end_date
+                      ? `Batch training must end before this can be set to "For Assessment" (ends ${formatDate(enrollment.end_date)}).`
+                      : 'This batch has no end date set - training completion cannot be confirmed for "For Assessment".')
+                  : selectedStatus === 'For Assessment' && totalPaid < batchMiscFeeTotal
+                  ? 'Balance must be fully cleared before this enrollment can be set to "For Assessment".'
+                  : selectedStatus === 'Failed Assessment' && enrollment.status !== 'For Assessment' && enrollment.status !== 'Failed Assessment'
+                  ? 'Enrollment must be in "For Assessment" status before it can be set to "Failed Assessment".'
+                  : STATUS_DESCRIPTIONS[selectedStatus]}
+              </span>
 
               {/* => External Remarks: shown/emailed to the student. No Save
                    button - clears when status is changed, restores when
@@ -1090,6 +1238,9 @@ export default function SHSEnrollmentDetail() {
               <div className="adm-remarks-group adm-remarks-group--external">
                 <label className="adm-remarks-label adm-remarks-label--external" htmlFor="shs-external-remarks">
                   External Remarks
+                  {selectedStatus === 'Needs Clarification' && (
+                    <span className="adm-remarks-required"> (required)</span>
+                  )}
                 </label>
                 <textarea
                   id="shs-external-remarks"
@@ -1256,6 +1407,68 @@ export default function SHSEnrollmentDetail() {
                 </>
               )}
             </div>
+          </section>
+
+          {/* ════════════════════════════════════
+              MISCELLANEOUS FEE PAYMENTS (read-only)
+              => No reservation-fee gate here, DepEd covers tuition. This
+                 only ever tracks batch-assigned misc fees.
+              ════════════════════════════════════ */}
+          <section className="adm-section">
+            <h3 className="adm-section-title">
+              Miscellaneous Fee Payments
+              <span className="adm-section-count-inline">{paymentHistory.length}</span>
+            </h3>
+
+            {paymentHistory.length === 0 ? (
+              <p className="adm-empty-note">
+                {batchMiscFeeTotal > 0
+                  ? 'No payments or refunds recorded yet.'
+                  : 'No miscellaneous fee has been assigned to this batch yet.'}
+              </p>
+            ) : (
+              <div className="adm-sub-table-wrap">
+                <table className="adm-sub-table">
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>Reference #</th>
+                      <th>Amount</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paymentHistory.map(record => (
+                      <tr
+                        key={record.public_id}
+                        className="adm-sub-table-row"
+                        onClick={() => navigate(
+                          record.record_type === 'Payment'
+                            ? `/dashboard/payments/${record.public_id}`
+                            : `/dashboard/refunds/${record.public_id}`
+                        )}
+                        title={`View ${record.record_type.toLowerCase()} detail`}
+                      >
+                        <td>
+                          <span className={`adm-type-badge adm-type-badge--${record.record_type.toLowerCase()}`}>
+                            {record.record_type}
+                          </span>
+                        </td>
+                        <td className="adm-td-or-number">{record.reference_number}</td>
+                        <td>{formatCurrency(record.amount)}</td>
+                        <td className="adm-td-date">{formatDate(record.record_date)}</td>
+                        <td>
+                          <span className={`adm-badge adm-badge--payment-${record.status.toLowerCase()}`}>
+                            {record.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
 
           {/* ════════════════════════════════════
@@ -1723,47 +1936,96 @@ export default function SHSEnrollmentDetail() {
           </section>
 
           {/* ════════════════════════════════════
-              AUDIT LOG
+              ACTIVITY LOGS
               ════════════════════════════════════ */}
           <section className="adm-section">
             <h3 className="adm-section-title">
-              Audit Log
+              Activity Logs
               <span className="adm-section-count-inline">{logs.length}</span>
             </h3>
 
             {logs.length === 0 ? (
               <p className="adm-empty-note">No activity recorded yet.</p>
-            ) : (
-              <div className="adm-log-timeline">
-                {logs.map((log, i) => (
-                  <div className="adm-log-item" key={log.log_id ?? i}>
-                    <div className="adm-log-dot" />
-                    <div className="adm-log-content">
-                      <p className="adm-log-action">
-                        {log.action}
-                        {log.previous_status && log.new_status && (
-                          <span className="adm-log-status-change">
-                            {' '}- {log.previous_status} → {log.new_status}
-                          </span>
-                        )}
-                      </p>
-                      <p className="adm-log-meta">
-                        {log.performed_by_name ?? 'System'} · {formatDateTime(log.created_at)}
-                      </p>
-                      {log.remarks && <p className="adm-log-remarks">{log.remarks}</p>}
-                    </div>
+            ) : (() => {
+              const LOGS_PER_PAGE = 10;
+              const totalLogPages = Math.max(1, Math.ceil(logs.length / LOGS_PER_PAGE));
+              const currentLogPage = Math.min(logPage, totalLogPages);
+              const pagedLogs = logs.slice(
+                (currentLogPage - 1) * LOGS_PER_PAGE,
+                currentLogPage * LOGS_PER_PAGE
+              );
+
+              return (
+                <>
+                  <div className="adm-sub-table-wrap">
+                    <table className="adm-sub-table">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Actor</th>
+                          <th>Action</th>
+                          <th>Details</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pagedLogs.map((log, i) => (
+                          <tr key={log.log_id ?? i}>
+                            <td>{formatDateTime(log.created_at)}</td>
+                            <td>{log.performed_by_name ?? 'System'}</td>
+                            <td>{log.action}</td>
+                            <td>{log.remarks || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                ))}
-              </div>
-            )}
+
+                  {totalLogPages > 1 && (
+                    <div className="adm-log-pagination">
+                      <button
+                        className="adm-log-page-btn"
+                        onClick={() => setLogPage(p => Math.max(1, p - 1))}
+                        disabled={currentLogPage === 1}
+                      >
+                        Prev
+                      </button>
+                      {Array.from({ length: totalLogPages }, (_, i) => i + 1).map(p => (
+                        <button
+                          key={p}
+                          className={`adm-log-page-btn ${p === currentLogPage ? 'adm-log-page-btn--active' : ''}`}
+                          onClick={() => setLogPage(p)}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                      <button
+                        className="adm-log-page-btn"
+                        onClick={() => setLogPage(p => Math.min(totalLogPages, p + 1))}
+                        disabled={currentLogPage === totalLogPages}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </section>
 
           {/* ════════════════════════════════════
               CONFIRM STATUS CHANGE MODAL & DELETE !!
               ════════════════════════════════════ */}
+          {/* => Approving adds a reminder about physical document
+               verification - this can't be enforced by the system since
+               only staff can physically compare copies against
+               originals, so it's a prompt, not a blocking check */}
           <ConfirmModal
             isOpen={confirmOpen}
-            message={`Change enrollment status to "${selectedStatus}"?`}
+            message={
+              STATUS_CONFIRM_WARNINGS[selectedStatus]
+                ? `Change enrollment status to "${selectedStatus}"? ${STATUS_CONFIRM_WARNINGS[selectedStatus]}`
+                : `Change enrollment status to "${selectedStatus}"?`
+            }
             onConfirm={handleStatusConfirmed}
             onCancel={() => setConfirmOpen(false)}
           />

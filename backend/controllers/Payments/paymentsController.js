@@ -22,9 +22,10 @@ export async function getEligibleEnrollments(req, res, next) {
 
 export async function createPayment(req, res, next) {
   try {
-    const { enrollmentId, amount, paymentDate, remarks } = req.body;
+    const { enrollmentType, enrollmentId, amount, paymentDate, remarks } = req.body;
 
     const payment = await paymentsService.createPayment({
+      enrollmentType,
       enrollmentId,
       amount,
       paymentDate,

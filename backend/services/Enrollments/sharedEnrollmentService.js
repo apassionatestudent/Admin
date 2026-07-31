@@ -31,10 +31,12 @@ export const searchEnrollmentsService = async (filters) => {
 //
 export const ALLOWED_STATUSES = [
   'Pending',
+  'Reviewed',
   'Approved',
   'Needs Clarification',
   'Rejected',
   'Dropped',
-  'Completed',
+  'For Assessment',
+  'Failed Assessment',
   'Reserved',
 ];

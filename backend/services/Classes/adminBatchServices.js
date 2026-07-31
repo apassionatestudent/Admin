@@ -28,6 +28,9 @@ import {
   getShsAssignmentContext,
   assignShsEnrollmentToBatch,
   getAdminNameById,
+  getMiscFeesByBatch,
+  addBatchMiscFee,
+  deleteBatchMiscFee,
 } from '../../models/Classes/adminBatchModel.js';
 
 const ALLOWED_BATCH_STATUSES = ['Pending', 'Ongoing', 'Concluded', 'Dissolved'];
@@ -467,4 +470,81 @@ export const assignShsEnrollment = async (enrollmentPublicId, batchPublicId) => 
   }
 
   return await assignShsEnrollmentToBatch(pool, enrollmentPublicId, ctx.batch_id);
+};
+
+//
+// BATCH MISCELLANEOUS FEES
+// => batchType is always 'TESDA' or 'SHS', passed explicitly by the
+//    controller rather than inferred - keeps this function usable by
+//    both without duplicating it per type.
+//
+
+export const fetchBatchMiscFees = async (batchType, publicId) => {
+  const batchRow = batchType === 'SHS'
+    ? await getShsBatchByPublicId(pool, publicId)
+    : await getTesdaBatchByPublicId(pool, publicId);
+  if (!batchRow) return null;
+
+  const fees = await getMiscFeesByBatch(pool, batchType, batchRow.batch_id);
+  const totalAmount = fees.reduce((sum, f) => sum + Number(f.fee_amount), 0);
+
+  return { fees, totalAmount };
+};
+
+export const createBatchMiscFee = async (batchType, publicId, { feeLabel, feeAmount, adminId }) => {
+  if (!feeLabel || !feeLabel.trim()) {
+    throw new Error('feeLabel is required.');
+  }
+  const numericAmount = Number(feeAmount);
+  if (!numericAmount || numericAmount <= 0) {
+    throw new Error('feeAmount is required and must be a positive number.');
+  }
+
+  const batchRow = batchType === 'SHS'
+    ? await getShsBatchByPublicId(pool, publicId)
+    : await getTesdaBatchByPublicId(pool, publicId);
+  if (!batchRow) throw new Error('Batch not found.');
+
+  const created = await addBatchMiscFee(pool, {
+    batchType,
+    batchId: batchRow.batch_id,
+    feeLabel: feeLabel.trim(),
+    feeAmount: numericAmount,
+    createdBy: adminId,
+  });
+
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   batchType === 'SHS' ? 'shs_batch' : 'tesda_batch',
+    entity_id:     batchRow.batch_id,
+    actor_type:    'Admin',
+    actor_id:      adminId,
+    actor_name:    actorName,
+    action:        'Miscellaneous fee added',
+    action_detail: `Added "${created.fee_label}" - PHP ${numericAmount.toFixed(2)}`,
+  });
+
+  return created;
+};
+
+// => Delete doesn't need batchType passed in - the fee row itself already
+//    knows which batch table it belongs to (returned by the model), so
+//    the controller route for this can be a single shared DELETE
+//    regardless of TESDA or SHS.
+export const removeBatchMiscFee = async (feePublicId, adminId) => {
+  const deleted = await deleteBatchMiscFee(pool, feePublicId);
+  if (!deleted) throw new Error('Fee not found.');
+
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   deleted.batch_type === 'SHS' ? 'shs_batch' : 'tesda_batch',
+    entity_id:     deleted.batch_id,
+    actor_type:    'Admin',
+    actor_id:      adminId,
+    actor_name:    actorName,
+    action:        'Miscellaneous fee removed',
+    action_detail: `Removed "${deleted.fee_label}" - PHP ${Number(deleted.fee_amount).toFixed(2)}`,
+  });
+
+  return deleted;
 };

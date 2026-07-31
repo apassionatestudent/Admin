@@ -64,7 +64,7 @@ function AddRefund({ onClose, onCreated }) {
     if (refundType === 'Percentage') {
       const pct = parseFloat(percentageValue);
       if (!pct) return 0;
-      return selectedEnrollment.feeAtEnrollment * (pct / 100);
+      return selectedEnrollment.totalDue * (pct / 100);
     }
     return parseFloat(fixedAmount) || 0;
   }, [selectedEnrollment, refundType, percentageValue, fixedAmount]);
@@ -105,6 +105,7 @@ function AddRefund({ onClose, onCreated }) {
     setSubmitting(true);
     try {
       await axiosAdmin.post('/api/refunds', {
+        enrollmentType: selectedEnrollment.enrollmentType,
         enrollmentId: selectedEnrollment.enrollmentId,
         refundType,
         percentageValue: refundType === 'Percentage' ? parseFloat(percentageValue) : undefined,
@@ -152,9 +153,17 @@ function AddRefund({ onClose, onCreated }) {
               {results.length > 0 && (
                 <ul className="add-refund-results">
                   {results.map((enrollment) => (
-                    <li key={enrollment.enrollmentId} onClick={() => handleSelectEnrollment(enrollment)}>
-                      <span className="add-refund-result-name">{enrollment.studentName}</span>
-                      <span className="add-refund-result-course">{enrollment.courseTitle}</span>
+                    <li
+                      key={`${enrollment.enrollmentType}-${enrollment.enrollmentId}`}
+                      onClick={() => handleSelectEnrollment(enrollment)}
+                    >
+                      <span>
+                        <span className={`add-refund-result-type-badge add-refund-result-type-badge--${enrollment.enrollmentType.toLowerCase()}`}>
+                          {enrollment.enrollmentType}
+                        </span>
+                        <span className="add-refund-result-name">{enrollment.studentName}</span>
+                      </span>
+                      <span className="add-refund-result-course">{enrollment.batchName}</span>
                       <span className="add-refund-result-balance">
                         Refundable: PHP {enrollment.refundableBalance.toFixed(2)}
                       </span>
@@ -165,7 +174,7 @@ function AddRefund({ onClose, onCreated }) {
 
               {!searching && search.trim() && results.length === 0 && (
                 <p className="add-refund-hint">
-                  No refundable enrollments found. Only Regular TESDA enrollments with at least one completed payment and a positive refundable balance appear here.
+                  No refundable enrollments found. Only Regular TESDA enrollments, or SHS enrollments whose batch has a misc fee configured, with at least one completed payment and a positive refundable balance appear here.
                 </p>
               )}
             </div>
@@ -175,8 +184,13 @@ function AddRefund({ onClose, onCreated }) {
             <>
               <div className="add-refund-selected-card">
                 <div>
-                  <strong>{selectedEnrollment.studentName}</strong>
-                  <p>{selectedEnrollment.courseTitle} - {selectedEnrollment.batchName}</p>
+                  <strong>
+                    <span className={`add-refund-result-type-badge add-refund-result-type-badge--${selectedEnrollment.enrollmentType.toLowerCase()}`}>
+                      {selectedEnrollment.enrollmentType}
+                    </span>
+                    {selectedEnrollment.studentName}
+                  </strong>
+                  <p>{selectedEnrollment.batchName}</p>
                 </div>
                 <button
                   type="button"
@@ -188,8 +202,8 @@ function AddRefund({ onClose, onCreated }) {
               </div>
 
               <div className="add-refund-balance-row">
-                <span>Course Fee</span>
-                <span>PHP {selectedEnrollment.feeAtEnrollment.toFixed(2)}</span>
+                <span>Total Due</span>
+                <span>PHP {selectedEnrollment.totalDue.toFixed(2)}</span>
               </div>
               <div className="add-refund-balance-row">
                 <span>Total Paid</span>
@@ -226,7 +240,7 @@ function AddRefund({ onClose, onCreated }) {
 
               {refundType === 'Percentage' ? (
                 <div className="add-refund-field">
-                  <label>Percentage of Course Fee <span className="add-refund-required">*</span></label>
+                  <label>Percentage of Total Due <span className="add-refund-required">*</span></label>
                   <input
                     type="number"
                     min="1"

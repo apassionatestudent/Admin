@@ -15,7 +15,9 @@ const statusClass = {
   'Approved':            'status--approved',
   'Rejected':            'status--rejected',
   'Dropped':             'status--dropped',
-  'Completed':           'status--completed',
+  'For Assessment':      'status--for-assessment',
+  'Reviewed':            'status--reviewed',
+  'Failed Assessment':   'status--failed-assessment',
   'Reserved':            'status--reserved',
 };
 

@@ -1,4 +1,4 @@
-// => admin/models/adminStudentModel.js
+// => admin/models/Students/adminStudentModel.js
 // => All queries receive `pool` as a param - mirrors adminClassModel.js pattern
 // => Only admins call these
 

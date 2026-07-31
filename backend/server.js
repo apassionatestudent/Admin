@@ -19,7 +19,7 @@ import locationRouter, { loadLocationCache } from './routes/locationRoutes.js';
 import tesdaCoursesRouter from './routes/tesdaCoursesRoutes.js';
 import shsCoursesRouter from './routes/shsCoursesRoutes.js';
 import adminBatchRouter from './routes/Classes/adminBatchRoutes.js';
-import adminStudentRouter from './routes/adminStudentRoute.js';
+import adminStudentRouter from './routes/Students/adminStudentRoute.js';
 import nationalityRoutes from './routes/nationalityRoutes.js';
 import sectorClusterRoutes from './routes/sectorClusterRoutes.js';
 
@@ -135,6 +135,43 @@ async function initDB() {
                 ) THEN
                     CREATE TRIGGER admins_set_updated_at
                     BEFORE UPDATE ON admins
+                    FOR EACH ROW
+                    EXECUTE FUNCTION set_updated_at();
+                END IF;
+            END $$
+        `;
+
+        // => Miscellaneous fee line items for a batch (SHS or TESDA).
+        // => batch_type + batch_id mirrors class_sessions.batch_type /
+        // => payments.enrollment_type - no DB-level FK is possible across
+        // => two tables, so batch existence is validated at the service
+        // => layer instead. A batch's total misc fee is always the SUM of
+        // => its rows here, never a separately-stored total.
+        await sql`
+            CREATE TABLE IF NOT EXISTS batch_misc_fees (
+                fee_id        SERIAL        PRIMARY KEY,
+                public_id     UUID          NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+
+                batch_type    VARCHAR(10)   NOT NULL CHECK (batch_type IN ('SHS', 'TESDA')),
+                batch_id      INTEGER       NOT NULL,
+
+                fee_label     VARCHAR(150)  NOT NULL,
+                fee_amount    NUMERIC(10,2) NOT NULL CHECK (fee_amount > 0),
+
+                created_by    INTEGER       NOT NULL REFERENCES admins(admin_id) ON DELETE SET NULL,
+                created_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+                updated_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+            )
+        `;
+
+        // => Attach the same updated_at trigger function to batch_misc_fees
+        await sql`
+            DO $$ BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_trigger WHERE tgname = 'batch_misc_fees_set_updated_at'
+                ) THEN
+                    CREATE TRIGGER batch_misc_fees_set_updated_at
+                    BEFORE UPDATE ON batch_misc_fees
                     FOR EACH ROW
                     EXECUTE FUNCTION set_updated_at();
                 END IF;

@@ -13,6 +13,7 @@ import axiosAdmin from '../../../api/axiosAdmin.js';
 import BackButton from '../../BackButton/BackButton.jsx';
 import ConfirmModal from '../../ConfirmModal/ConfirmModal.jsx';
 import pencilIcon from '../../../assets/icons/pencil.png';
+import trashIcon from '../../../assets/icons/trash.png';
 
 import './TesdaBatchDetail.css';
 
@@ -215,6 +216,77 @@ export default function TesdaBatchDetail() {
     }
   };
 
+  // => Miscellaneous fee line items for this batch - own fetch, own
+  //    state, same self-contained pattern as fetchClassSessions above
+  const [miscFees, setMiscFees] = useState([]);
+  const [miscFeesTotal, setMiscFeesTotal] = useState(0);
+  const [miscFeesLoading, setMiscFeesLoading] = useState(false);
+
+  const fetchMiscFees = async () => {
+    setMiscFeesLoading(true);
+    try {
+      const res = await axiosAdmin.get(`/api/admin/batches/tesda/${publicId}/misc-fees`);
+      setMiscFees(res.data.fees || []);
+      setMiscFeesTotal(res.data.totalAmount || 0);
+    } catch (err) {
+      console.error('Failed to fetch miscellaneous fees:', err);
+    } finally {
+      setMiscFeesLoading(false);
+    }
+  };
+
+  // => Add Fee form state
+  const [newFeeLabel, setNewFeeLabel] = useState('');
+  const [newFeeAmount, setNewFeeAmount] = useState('');
+  const [addingFee, setAddingFee] = useState(false);
+  const [deletingFeeId, setDeletingFeeId] = useState(null);
+  // => Holds the fee object pending deletion, or null. Delete only fires
+  //    once the admin confirms via ConfirmModal below.
+  const [deleteFeeConfirm, setDeleteFeeConfirm] = useState(null);
+
+  const handleAddMiscFee = async () => {
+    if (!newFeeLabel.trim()) {
+      toast.error('Fee label is required.');
+      return;
+    }
+    const numericAmount = parseFloat(newFeeAmount);
+    if (!numericAmount || numericAmount <= 0) {
+      toast.error('Enter a valid fee amount.');
+      return;
+    }
+    setAddingFee(true);
+    try {
+      await axiosAdmin.post(`/api/admin/batches/tesda/${publicId}/misc-fees`, {
+        fee_label: newFeeLabel.trim(),
+        fee_amount: numericAmount,
+      });
+      setNewFeeLabel('');
+      setNewFeeAmount('');
+      toast.success('Fee added.');
+      await fetchMiscFees();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to add fee.');
+    } finally {
+      setAddingFee(false);
+    }
+  };
+
+  const handleDeleteMiscFee = async () => {
+    if (!deleteFeeConfirm) return;
+    const feePublicId = deleteFeeConfirm.public_id;
+    setDeleteFeeConfirm(null);
+    setDeletingFeeId(feePublicId);
+    try {
+      await axiosAdmin.delete(`/api/admin/batches/misc-fees/${feePublicId}`);
+      toast.success('Fee removed.');
+      await fetchMiscFees();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to remove fee.');
+    } finally {
+      setDeletingFeeId(null);
+    }
+  };
+
   // => silent=true skips the full-page loading spinner - used when
   //    re-fetching after a save, where the page is already showing content
   const fetchDetail = async (silent = false) => {
@@ -242,6 +314,7 @@ export default function TesdaBatchDetail() {
     fetchDetail();
     fetchLogs();
     fetchClassSessions();
+    fetchMiscFees();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [publicId]);
 
@@ -701,6 +774,80 @@ export default function TesdaBatchDetail() {
           )}
         </div>
 
+        {/* MISCELLANEOUS FEES */}
+        <div className="adm-batch-section">
+          <p className="adm-section-title">
+            Miscellaneous Fees
+            <span className="adm-section-count-inline">{miscFees.length}</span>
+          </p>
+
+          {miscFeesLoading && <p className="adm-empty-note">Loading fees…</p>}
+
+          {!miscFeesLoading && miscFees.length === 0 && (
+            <p className="adm-empty-note">No miscellaneous fees added yet.</p>
+          )}
+
+          {!miscFeesLoading && miscFees.length > 0 && (
+            <div className="adm-sub-table-wrap">
+              <table className="adm-sub-table">
+                <thead>
+                  <tr>
+                    <th>Fee</th>
+                    <th>Amount</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {miscFees.map((fee) => (
+                    <tr key={fee.public_id}>
+                      <td className="adm-td-student-name">{fee.fee_label}</td>
+                      <td>₱{Number(fee.fee_amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
+                      <td className="adm-td-arrow">
+                        <button
+                          className="adm-fee-delete-btn"
+                          onClick={() => setDeleteFeeConfirm(fee)}
+                          disabled={deletingFeeId === fee.public_id}
+                          title="Remove fee"
+                        >
+                          <img src={trashIcon} alt="Remove" className="adm-pencil-icon" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {!miscFeesLoading && miscFees.length > 0 && (
+            <p className="adm-fee-total">
+              Total: ₱{Number(miscFeesTotal).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+            </p>
+          )}
+
+          <div className="adm-fee-add-row">
+            <input
+              type="text"
+              className="adm-form-input"
+              placeholder="Fee label (e.g. ID Fee)"
+              value={newFeeLabel}
+              onChange={e => setNewFeeLabel(e.target.value)}
+            />
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              className="adm-form-input"
+              placeholder="Amount"
+              value={newFeeAmount}
+              onChange={e => setNewFeeAmount(e.target.value)}
+            />
+            <button className="adm-status-btn" onClick={handleAddMiscFee} disabled={addingFee}>
+              {addingFee ? 'Adding…' : 'Add Fee'}
+            </button>
+          </div>
+        </div>
+
         {/* ENROLLED STUDENTS TABLE */}
         <div className="adm-batch-section">
           <p className="adm-section-title">
@@ -875,6 +1022,15 @@ export default function TesdaBatchDetail() {
         message="Have you already consulted the trainer about concluding this batch?"
         onConfirm={handleConfirmConclude}
         onCancel={() => setShowConcludeConfirm(false)}
+      />
+
+      {/* => Fee deletion is destructive and does NOT touch any payment
+             already recorded against it - the warning says so explicitly */}
+      <ConfirmModal
+        isOpen={!!deleteFeeConfirm}
+        message={`Remove "${deleteFeeConfirm?.fee_label}"? This can't be undone. If a student already paid toward this fee, that payment stays on record as-is - it will not be refunded automatically. Issue a Refund separately if one is owed.`}
+        onConfirm={handleDeleteMiscFee}
+        onCancel={() => setDeleteFeeConfirm(null)}
       />
     </div>
   );

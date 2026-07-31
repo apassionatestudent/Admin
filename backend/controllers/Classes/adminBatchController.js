@@ -19,6 +19,9 @@ import {
   fetchBatchFormOptions,
   assignTesdaEnrollment,
   assignShsEnrollment,
+  fetchBatchMiscFees,
+  createBatchMiscFee,
+  removeBatchMiscFee,
 } from '../../services/Classes/adminBatchServices.js';
 
 // GET /api/admin/batches
@@ -291,6 +294,91 @@ export const assignShsEnrollmentController = async (req, res) => {
       : (err.message.includes('full') || err.message.includes('does not match')) ? 400
       : 500;
     if (statusCode === 500) console.error('assignShsEnrollmentController error:', err);
+    return res.status(statusCode).json({ error: err.message });
+  }
+};
+
+// GET /api/admin/batches/tesda/:publicId/misc-fees
+export const getTesdaBatchMiscFeesController = async (req, res) => {
+  const { publicId } = req.params;
+  try {
+    const data = await fetchBatchMiscFees('TESDA', publicId);
+    if (!data) return res.status(404).json({ error: 'Batch not found.' });
+    return res.status(200).json(data);
+  } catch (err) {
+    console.error('getTesdaBatchMiscFeesController error:', err);
+    return res.status(500).json({ error: 'Failed to fetch miscellaneous fees.' });
+  }
+};
+
+// GET /api/admin/batches/shs/:publicId/misc-fees
+export const getShsBatchMiscFeesController = async (req, res) => {
+  const { publicId } = req.params;
+  try {
+    const data = await fetchBatchMiscFees('SHS', publicId);
+    if (!data) return res.status(404).json({ error: 'Batch not found.' });
+    return res.status(200).json(data);
+  } catch (err) {
+    console.error('getShsBatchMiscFeesController error:', err);
+    return res.status(500).json({ error: 'Failed to fetch miscellaneous fees.' });
+  }
+};
+
+// POST /api/admin/batches/tesda/:publicId/misc-fees
+// => Body: { fee_label, fee_amount }
+export const postTesdaBatchMiscFeeController = async (req, res) => {
+  const { publicId } = req.params;
+  const { fee_label, fee_amount } = req.body;
+  try {
+    const created = await createBatchMiscFee('TESDA', publicId, {
+      feeLabel: fee_label,
+      feeAmount: fee_amount,
+      adminId: req.admin?.admin_id ?? null,
+    });
+    return res.status(201).json({ success: true, fee: created });
+  } catch (err) {
+    const statusCode = err.message.includes('required') ? 400
+      : err.message === 'Batch not found.' ? 404
+      : 500;
+    if (statusCode === 500) console.error('postTesdaBatchMiscFeeController error:', err);
+    return res.status(statusCode).json({ error: err.message });
+  }
+};
+
+// POST /api/admin/batches/shs/:publicId/misc-fees
+// => Body: { fee_label, fee_amount }
+export const postShsBatchMiscFeeController = async (req, res) => {
+  const { publicId } = req.params;
+  const { fee_label, fee_amount } = req.body;
+  try {
+    const created = await createBatchMiscFee('SHS', publicId, {
+      feeLabel: fee_label,
+      feeAmount: fee_amount,
+      adminId: req.admin?.admin_id ?? null,
+    });
+    return res.status(201).json({ success: true, fee: created });
+  } catch (err) {
+    const statusCode = err.message.includes('required') ? 400
+      : err.message === 'Batch not found.' ? 404
+      : 500;
+    if (statusCode === 500) console.error('postShsBatchMiscFeeController error:', err);
+    return res.status(statusCode).json({ error: err.message });
+  }
+};
+
+// DELETE /api/admin/batches/misc-fees/:feePublicId
+// => Not nested under /tesda/ or /shs/ - the fee row's own public_id
+//    already identifies it uniquely, and the service resolves which
+//    batch it belongs to from the row itself, so type doesn't need to
+//    be in the URL for a delete.
+export const deleteBatchMiscFeeController = async (req, res) => {
+  const { feePublicId } = req.params;
+  try {
+    const deleted = await removeBatchMiscFee(feePublicId, req.admin?.admin_id ?? null);
+    return res.status(200).json({ success: true, deleted });
+  } catch (err) {
+    const statusCode = err.message === 'Fee not found.' ? 404 : 500;
+    if (statusCode === 500) console.error('deleteBatchMiscFeeController error:', err);
     return res.status(statusCode).json({ error: err.message });
   }
 };

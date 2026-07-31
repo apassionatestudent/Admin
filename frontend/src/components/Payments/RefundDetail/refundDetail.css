@@ -1,37 +1,82 @@
+/* ════════════════════════════════════
+   REFUND DETAIL PAGE
+   => Same tokens and structure as paymentDetail.css - kept as a fully
+      separate file per the project's TESDA/SHS-style duplication policy,
+      not a shared stylesheet
+   ════════════════════════════════════ */
+
 .refund-detail-page {
-  padding: var(--spacing-lg, 24px);
-  max-width: 720px;
+  padding: 36px 40px;
+  min-height: 100vh;
+  background: #f4f5f8;
+  font-family: var(--font-body), sans-serif;
+  color: #374151;
+  box-sizing: border-box;
+  width: 100%;
+  /* => Same defensive fix as paymentDetail.css - see that file's comment */
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-width: 0;
+}
+
+/* => Same side-by-side treatment as paymentDetail.css */
+.refund-detail-top-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.refund-detail-page * {
+  box-sizing: border-box;
 }
 
 .refund-detail-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: var(--spacing-lg, 24px);
+  gap: 16px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
 }
 
 .refund-detail-header h1 {
-  margin: 0 0 6px;
-  font-family: monospace;
+  margin: 0 0 10px;
+  font-family: var(--font-body), sans-serif;
+  font-weight: 800;
+  font-size: 2rem;
+  letter-spacing: 0.03em;
+  color: #0f1724;
 }
 
 .refund-detail-header-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .refund-detail-void-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  border-radius: var(--radius-md, 8px);
-  padding: 8px 14px;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 10px 16px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 0.8125rem;
+  font-family: inherit;
   border: none;
-  background: var(--color-danger, #c0392b);
+  background: var(--sidebar-bg, #7a1220);
   color: #fff;
+  transition: opacity 0.15s;
+}
+
+.refund-detail-void-btn:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+/* => Ban icon is a dark PNG by default - force it white on the maroon button */
+.refund-detail-void-btn .refund-detail-icon {
+  filter: brightness(0) invert(1);
 }
 
 .refund-detail-icon {
@@ -41,10 +86,12 @@
 }
 
 .refund-detail-status-badge {
-  padding: 4px 10px;
-  border-radius: var(--radius-pill, 999px);
-  font-size: 12px;
-  font-weight: 600;
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .refund-detail-status-completed {
@@ -58,79 +105,116 @@
 }
 
 .refund-detail-card {
-  border: 1px solid var(--color-border, #ddd);
-  border-radius: var(--radius-md, 8px);
-  padding: 16px;
-  margin-bottom: var(--spacing-md, 16px);
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  padding: 22px 24px;
+  margin-bottom: 18px;
 }
 
 .refund-detail-card h2 {
-  margin: 0 0 10px;
-  font-size: 15px;
+  margin: 0 0 16px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7280;
 }
 
 .refund-detail-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px 24px;
 }
 
 .refund-detail-label {
   display: block;
-  font-size: 12px;
-  color: var(--color-text-muted, #999);
-  margin-bottom: 2px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+  margin-bottom: 4px;
 }
 
 .refund-detail-value {
+  display: block;
   font-weight: 600;
+  font-size: 0.9375rem;
+  color: #111827;
+  word-break: break-word;
 }
 
 .refund-detail-remarks {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--color-border, #eee);
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.refund-detail-remarks p {
+  color: #374151;
+  font-size: 0.875rem;
+  margin-top: 4px;
 }
 
 .refund-detail-void-card {
-  border-color: var(--color-danger, #c0392b);
+  border-color: #fca5a5;
+  background: #fff7f7;
 }
 
 .refund-detail-void-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(15, 23, 36, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 16px;
 }
 
 .refund-detail-void-form {
-  background: var(--color-surface, #fff);
-  border-radius: var(--radius-lg, 12px);
-  padding: 20px;
-  width: 400px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  font-family: var(--font-body), sans-serif;
 }
 
 .refund-detail-void-form h3 {
   margin: 0 0 8px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 1.05rem;
+  color: #0f1724;
 }
 
 .refund-detail-void-form p {
-  font-size: 13px;
-  color: var(--color-text-muted, #666);
-  margin: 0 0 12px;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin: 0 0 14px;
 }
 
 .refund-detail-void-form textarea {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid var(--color-border, #ddd);
-  border-radius: var(--radius-md, 8px);
-  padding: 10px;
-  margin: 0 0 12px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0 0 14px;
   font-family: inherit;
+  font-size: 0.875rem;
+  color: #111827;
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+
+.refund-detail-void-form textarea:focus {
+  outline: none;
+  border-color: var(--sidebar-bg, #7a1220);
 }
 
 .refund-detail-void-actions {
@@ -140,23 +224,73 @@
 }
 
 .refund-detail-void-actions button[type="submit"] {
-  background: var(--color-danger, #c0392b);
+  background: var(--sidebar-bg, #7a1220);
   color: #fff;
   border: none;
-  border-radius: var(--radius-md, 8px);
-  padding: 8px 14px;
+  border-radius: 8px;
+  padding: 9px 16px;
   cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  transition: opacity 0.15s;
+}
+
+.refund-detail-void-actions button[type="submit"]:hover:not(:disabled) {
+  opacity: 0.88;
 }
 
 .refund-detail-void-actions button[type="button"] {
-  border: 1px solid var(--color-border, #ddd);
-  background: var(--color-surface, #fff);
-  border-radius: var(--radius-md, 8px);
-  padding: 8px 14px;
+  border: 1.5px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  border-radius: 8px;
+  padding: 9px 16px;
   cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  transition: background 0.15s;
+}
+
+.refund-detail-void-actions button[type="button"]:hover {
+  background: #f3f4f6;
 }
 
 .refund-detail-void-actions button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* => Same sequence tag as paymentDetail.css / payments.css, own copy per
+      the project's per-file duplication policy */
+.refund-detail-batch-seq {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 0.72rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+/* => Responsive */
+@media (max-width: 800px) {
+  .refund-detail-top-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .refund-detail-page {
+    padding: 20px 16px;
+  }
+  .refund-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .refund-detail-header {
+    flex-direction: column;
+  }
 }
