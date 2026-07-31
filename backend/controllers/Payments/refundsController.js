@@ -1,6 +1,7 @@
 // => Thin layer: pull request data, call the service, shape the response.
 // => No SQL and no business rules here.
 import * as refundsService from '../../services/Payments/refundsService.js';
+import { generateRefundReceiptPdf } from '../../services/Payments/refundReceiptService.js';
 
 export async function getTesdaCourseOptions(req, res, next) {
   try {
@@ -57,6 +58,18 @@ export async function getRefundDetail(req, res, next) {
   try {
     const refund = await refundsService.getRefundDetail(req.params.publicId);
     res.json({ refund });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function downloadRefundReceipt(req, res, next) {
+  try {
+    const pdfBuffer = await generateRefundReceiptPdf(req.params.publicId);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="refund-receipt-${req.params.publicId}.pdf"`);
+    res.send(pdfBuffer);
   } catch (error) {
     next(error);
   }

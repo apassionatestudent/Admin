@@ -11,6 +11,7 @@ import axiosAdmin from '../../../api/axiosAdmin.js';
 import BackButton from '../../BackButton/BackButton.jsx';
 
 import banIcon from '../../../assets/icons/ban.png';
+import downloadIcon from '../../../assets/icons/download.png';
 
 import './refundDetail.css';
 
@@ -24,6 +25,8 @@ function RefundDetail() {
   const [showVoidForm, setShowVoidForm] = useState(false);
   const [voidReason, setVoidReason] = useState('');
   const [voiding, setVoiding] = useState(false);
+
+  const [downloading, setDownloading] = useState(false);
 
   const fetchRefund = useCallback(async () => {
     setLoading(true);
@@ -64,6 +67,31 @@ function RefundDetail() {
     }
   };
 
+  // => Mirrors PaymentDetail's handleDownloadReceipt, hits the refund
+  // => receipt endpoint instead
+  const handleDownloadReceipt = async () => {
+    setDownloading(true);
+    try {
+      const response = await axiosAdmin.get(`/api/refunds/${publicId}/receipt`, {
+        responseType: 'blob'
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Refund-Receipt-${refund.refundNumber}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download receipt:', error);
+      toast.error('Failed to download receipt.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(value);
   };
@@ -100,14 +128,19 @@ function RefundDetail() {
           </span>
         </div>
 
-        {refund.status === 'Completed' && (
-          <div className="refund-detail-header-actions">
+        <div className="refund-detail-header-actions">
+          <button className="refund-detail-download-btn" onClick={handleDownloadReceipt} disabled={downloading}>
+            <img src={downloadIcon} alt="" className="refund-detail-icon" />
+            {downloading ? 'Preparing...' : 'Download Receipt'}
+          </button>
+
+          {refund.status === 'Completed' && (
             <button className="refund-detail-void-btn" onClick={() => setShowVoidForm(true)}>
               <img src={banIcon} alt="" className="refund-detail-icon" />
               Void Refund
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <div className="refund-detail-top-row">
@@ -131,10 +164,6 @@ function RefundDetail() {
             <div>
               <span className="refund-detail-label">Batch</span>
               <span className="refund-detail-value">{refund.batchName}</span>
-            </div>
-            <div>
-              <span className="refund-detail-label">Course Fee</span>
-              <span className="refund-detail-value">{formatCurrency(refund.totalDue)}</span>
             </div>
           </div>
         </div>

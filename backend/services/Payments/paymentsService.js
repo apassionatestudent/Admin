@@ -25,19 +25,27 @@ export async function getEligibleEnrollments(searchTerm) {
     paymentsModel.findEligibleShsEnrollments(searchTerm),
   ]);
 
-  const tesdaResults = tesdaRows.map((row) => ({
-    enrollmentId: row.enrollment_id,
-    enrollmentPublicId: row.public_id,
-    enrollmentType: 'TESDA',
-    studentName: formatStudentName(row),
-    courseTitle: row.course_title,
-    batchName: row.batch_name,
-    // => totalDue replaces the old TESDA-only feeAtEnrollment name, so
-    //    the frontend can read one field regardless of program type
-    totalDue: Number(row.fee_at_enrollment),
-    totalPaid: Number(row.total_paid),
-    balance: Number(row.fee_at_enrollment) - Number(row.total_paid)
-  }));
+  const tesdaResults = tesdaRows.map((row) => {
+    const courseFee = Number(row.fee_at_enrollment);
+    const miscFee = Number(row.total_misc_fee || 0);
+    const totalDue = courseFee + miscFee;
+
+    return {
+      enrollmentId: row.enrollment_id,
+      enrollmentPublicId: row.public_id,
+      enrollmentType: 'TESDA',
+      studentName: formatStudentName(row),
+      courseTitle: row.course_title,
+      batchName: row.batch_name,
+      // => courseFee and miscFee are now tracked separately, totalDue
+      // => stays as the combined figure so existing balance math keeps working
+      courseFee,
+      miscFee,
+      totalDue,
+      totalPaid: Number(row.total_paid),
+      balance: totalDue - Number(row.total_paid)
+    };
+  });
 
   const shsResults = shsRows.map((row) => ({
     enrollmentId: row.enrollment_id,
@@ -46,6 +54,10 @@ export async function getEligibleEnrollments(searchTerm) {
     studentName: formatStudentName(row),
     courseTitle: row.cluster_name,
     batchName: row.batch_name,
+    // => SHS never has a separate course fee, courseFee stays null so
+    // => the frontend can distinguish the two program types on this field alone
+    courseFee: null,
+    miscFee: Number(row.total_misc_fee),
     totalDue: Number(row.total_misc_fee),
     totalPaid: Number(row.total_paid),
     balance: Number(row.total_misc_fee) - Number(row.total_paid)
@@ -102,7 +114,9 @@ export async function createPayment({ enrollmentType, enrollmentId, amount, paym
         throw err;
       }
 
-      remainingBalance = Number(enrollment.fee_at_enrollment) - Number(enrollment.total_paid);
+      // => Remaining balance now includes any misc fees configured on
+      // => this TESDA batch, not just the course fee
+      remainingBalance = (Number(enrollment.fee_at_enrollment) + Number(enrollment.total_misc_fee || 0)) - Number(enrollment.total_paid);
     } else {
       const enrollment = await paymentsModel.lockShsEnrollmentBalance(client, enrollmentId);
 
@@ -211,6 +225,12 @@ export async function getPaymentDetail(publicId) {
   // => the other side is always NULL by construction of the model query
   const isTesda = row.enrollment_type === 'TESDA';
 
+  // => courseFee is TESDA-only (null for SHS), miscFee applies to both
+  // => program types now that TESDA batches can carry batch_misc_fees too
+  const courseFee = isTesda ? Number(row.fee_at_enrollment || 0) : null;
+  const miscFee = isTesda ? Number(row.tesda_total_misc_fee || 0) : Number(row.shs_total_misc_fee || 0);
+  const totalDue = (courseFee || 0) + miscFee;
+
   return {
     paymentId: row.payment_id,
     publicId: row.public_id,
@@ -227,10 +247,9 @@ export async function getPaymentDetail(publicId) {
     createdAt: row.created_at,
     enrollmentPublicId: row.enrollment_public_id,
     enrollmentType: row.enrollment_type,
-    // => totalDue: fee_at_enrollment for TESDA, total configured batch
-    // => misc fee for SHS - matches the naming already used by
-    // => getEligibleEnrollments for the same concept
-    totalDue: isTesda ? Number(row.fee_at_enrollment || 0) : Number(row.shs_total_misc_fee || 0),
+    courseFee,
+    miscFee,
+    totalDue,
     studentName: formatStudentName(row),
     studentEmail: row.student_email,
     batchName: isTesda ? row.tesda_batch_name : row.shs_batch_name,

@@ -30,6 +30,7 @@ export async function findRefundableEnrollments(searchTerm) {
       te.enrollment_id,
       te.public_id,
       te.fee_at_enrollment,
+      COALESCE(tesda_fee.total_misc_fee, 0) AS total_misc_fee,
       tb.batch_name,
       tc.title AS course_title,
       sp.first_name,
@@ -44,6 +45,11 @@ export async function findRefundableEnrollments(searchTerm) {
     LEFT JOIN student_profile sp ON sp.student_id = te.student_id
     LEFT JOIN payments p ON p.enrollment_id = te.enrollment_id
     LEFT JOIN refunds r ON r.enrollment_id = te.enrollment_id
+    LEFT JOIN LATERAL (
+      SELECT SUM(fee_amount) AS total_misc_fee
+      FROM batch_misc_fees
+      WHERE batch_type = 'TESDA' AND batch_id = tb.batch_id
+    ) tesda_fee ON true
     WHERE tb.class_type = 'Regular'
       AND te.is_tesda_scholar = FALSE
       AND (
@@ -51,7 +57,7 @@ export async function findRefundableEnrollments(searchTerm) {
         OR sp.last_name ILIKE ${term}
         OR sp.email ILIKE ${term}
       )
-    GROUP BY te.enrollment_id, tb.batch_name, tc.title, sp.first_name, sp.last_name, sp.middle_name, sp.email
+    GROUP BY te.enrollment_id, tb.batch_name, tc.title, sp.first_name, sp.last_name, sp.middle_name, sp.email, tesda_fee.total_misc_fee
     HAVING COALESCE(SUM(p.amount) FILTER (WHERE p.status = 'Completed'), 0)
          - COALESCE(SUM(r.amount) FILTER (WHERE r.status = 'Completed'), 0) > 0
     ORDER BY sp.last_name ASC
@@ -164,15 +170,21 @@ export async function lockEnrollmentForRefund(client, enrollmentId) {
   const result = await client.query(
     `SELECT te.enrollment_id,
             te.fee_at_enrollment,
+            COALESCE(tesda_fee.total_misc_fee, 0) AS total_misc_fee,
             tb.class_type,
             COALESCE(SUM(p.amount) FILTER (WHERE p.status = 'Completed'), 0) AS total_paid,
             COALESCE(SUM(r.amount) FILTER (WHERE r.status = 'Completed'), 0) AS total_refunded
      FROM tesda_enrollments te
      JOIN tesda_batches tb ON tb.batch_id = te.batch_id
+     LEFT JOIN LATERAL (
+       SELECT SUM(fee_amount) AS total_misc_fee
+       FROM batch_misc_fees
+       WHERE batch_type = 'TESDA' AND batch_id = tb.batch_id
+     ) tesda_fee ON true
      LEFT JOIN payments p ON p.enrollment_id = te.enrollment_id
      LEFT JOIN refunds r ON r.enrollment_id = te.enrollment_id
      WHERE te.enrollment_id = $1
-     GROUP BY te.enrollment_id, tb.class_type
+     GROUP BY te.enrollment_id, tb.class_type, tesda_fee.total_misc_fee
      FOR UPDATE OF te`,
     [enrollmentId]
   );
@@ -283,6 +295,7 @@ export async function findRefundByPublicId(publicId) {
       creator.full_name AS created_by_name,
       voider.full_name AS voided_by_name,
       te.fee_at_enrollment,
+      tesda_fee.total_misc_fee AS tesda_total_misc_fee,
       tb.batch_name AS tesda_batch_name,
       tb.batch_sequence AS tesda_batch_sequence,
       sb.batch_name AS shs_batch_name,
@@ -291,6 +304,11 @@ export async function findRefundByPublicId(publicId) {
     FROM refunds r
     LEFT JOIN tesda_enrollments te ON te.enrollment_id = r.enrollment_id AND r.enrollment_type = 'TESDA'
     LEFT JOIN tesda_batches tb ON tb.batch_id = te.batch_id
+    LEFT JOIN LATERAL (
+      SELECT SUM(fee_amount) AS total_misc_fee
+      FROM batch_misc_fees
+      WHERE batch_type = 'TESDA' AND batch_id = tb.batch_id
+    ) tesda_fee ON r.enrollment_type = 'TESDA'
     LEFT JOIN shs_enrollments se ON se.enrollment_id = r.enrollment_id AND r.enrollment_type = 'SHS'
     LEFT JOIN shs_batches sb ON sb.batch_id = se.batch_id
     LEFT JOIN LATERAL (

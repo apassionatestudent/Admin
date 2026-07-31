@@ -19,20 +19,27 @@ export async function getRefundableEnrollments(searchTerm) {
     refundsModel.findRefundableShsEnrollments(searchTerm),
   ]);
 
-  const tesdaResults = tesdaRows.map((row) => ({
-    enrollmentId: row.enrollment_id,
-    enrollmentPublicId: row.public_id,
-    enrollmentType: 'TESDA',
-    studentName: formatStudentName(row),
-    studentEmail: row.email,
-    batchName: row.batch_name,
-    // => totalDue replaces the old TESDA-only feeAtEnrollment name, same
-    // => reasoning as paymentsService.js's getEligibleEnrollments
-    totalDue: Number(row.fee_at_enrollment),
-    totalPaid: Number(row.total_paid),
-    totalRefunded: Number(row.total_refunded),
-    refundableBalance: Number(row.total_paid) - Number(row.total_refunded)
-  }));
+  const tesdaResults = tesdaRows.map((row) => {
+    const courseFee = Number(row.fee_at_enrollment);
+    const miscFee = Number(row.total_misc_fee || 0);
+
+    return {
+      enrollmentId: row.enrollment_id,
+      enrollmentPublicId: row.public_id,
+      enrollmentType: 'TESDA',
+      studentName: formatStudentName(row),
+      studentEmail: row.email,
+      batchName: row.batch_name,
+      courseFee,
+      miscFee,
+      // => totalDue is what percentage-based refunds are calculated
+      // => against, course fee plus any misc fees on this TESDA batch
+      totalDue: courseFee + miscFee,
+      totalPaid: Number(row.total_paid),
+      totalRefunded: Number(row.total_refunded),
+      refundableBalance: Number(row.total_paid) - Number(row.total_refunded)
+    };
+  });
 
   const shsResults = shsRows.map((row) => ({
     enrollmentId: row.enrollment_id,
@@ -41,6 +48,8 @@ export async function getRefundableEnrollments(searchTerm) {
     studentName: formatStudentName(row),
     studentEmail: row.email,
     batchName: row.batch_name,
+    courseFee: null,
+    miscFee: Number(row.total_misc_fee),
     totalDue: Number(row.total_misc_fee),
     totalPaid: Number(row.total_paid),
     totalRefunded: Number(row.total_refunded),
@@ -109,7 +118,9 @@ export async function createRefund({ enrollmentType, enrollmentId, refundType, p
         throw err;
       }
 
-      totalDue = Number(enrollment.fee_at_enrollment);
+      // => totalDue now includes any misc fees on this TESDA batch, so
+      // => percentage-based refunds calculate against the full amount owed
+      totalDue = Number(enrollment.fee_at_enrollment) + Number(enrollment.total_misc_fee || 0);
       refundableBalance = Number(enrollment.total_paid) - Number(enrollment.total_refunded);
     } else {
       const enrollment = await refundsModel.lockShsEnrollmentForRefund(client, enrollmentId);
@@ -227,6 +238,10 @@ export async function getRefundDetail(publicId) {
   // => Same pick-the-right-side logic as paymentsService.js's getPaymentDetail
   const isTesda = row.enrollment_type === 'TESDA';
 
+  const courseFee = isTesda ? Number(row.fee_at_enrollment || 0) : null;
+  const miscFee = isTesda ? Number(row.tesda_total_misc_fee || 0) : Number(row.shs_total_misc_fee || 0);
+  const totalDue = (courseFee || 0) + miscFee;
+
   return {
     refundId: row.refund_id,
     publicId: row.public_id,
@@ -245,7 +260,9 @@ export async function getRefundDetail(publicId) {
     createdAt: row.created_at,
     enrollmentPublicId: row.enrollment_public_id,
     enrollmentType: row.enrollment_type,
-    totalDue: isTesda ? Number(row.fee_at_enrollment || 0) : Number(row.shs_total_misc_fee || 0),
+    courseFee,
+    miscFee,
+    totalDue,
     studentName: formatStudentName(row),
     studentEmail: row.student_email,
     batchName: isTesda ? row.tesda_batch_name : row.shs_batch_name,

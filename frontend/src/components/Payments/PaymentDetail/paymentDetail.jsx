@@ -160,10 +160,6 @@ function PaymentDetail() {
               <span className="payment-detail-label">Batch</span>
               <span className="payment-detail-value">{payment.batchName}</span>
             </div>
-            <div>
-              <span className="payment-detail-label">Total Fee</span>
-              <span className="payment-detail-value">{formatCurrency(payment.totalDue)}</span>
-            </div>
           </div>
         </div>
       </div>
