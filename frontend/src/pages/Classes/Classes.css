@@ -1132,3 +1132,45 @@
 .cs-sessions-table td {
   white-space: normal;
 }
+
+.adm-cluster-courses-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.adm-cluster-courses-grade {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+}
+
+.adm-cluster-courses-list {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 0.875rem;
+  color: #111827;
+}
+
+.adm-course-trainer-grade-group {
+  margin-bottom: 12px;
+}
+
+.adm-course-trainer-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.adm-form-label--sub {
+  flex: 0 0 160px;
+  font-weight: 500;
+  color: #4b5563;
+}

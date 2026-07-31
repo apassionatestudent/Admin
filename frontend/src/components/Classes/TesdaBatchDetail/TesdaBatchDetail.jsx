@@ -485,7 +485,11 @@ export default function TesdaBatchDetail() {
             <h1 className="adm-hero-course-name">
               {batchRow.course_name ?? '-'}
               {batchRow.certification_type ? ` (${batchRow.certification_type})` : ''}
-              {' '}(Batch #{batchRow.batch_id})
+              {/* => batch_sequence is the per-course display number,
+                     batch_id is just the raw primary key and skips gaps
+                     left by dissolved batches - same fix as the list view
+                     in Classes.jsx */}
+              {' '}(Batch #{batchRow.batch_sequence ?? batchRow.batch_id})
             </h1>
           </div>
 

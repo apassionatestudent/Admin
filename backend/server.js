@@ -178,6 +178,23 @@ async function initDB() {
             END $$
         `;
 
+        // => Per-course trainer assignments for SHS batches - replaces the
+        //    old single grade11_trainer_id/grade12_trainer_id columns on
+        //    shs_batches, which couldn't represent more than one course per
+        //    grade level having its own qualified trainer. Mirrored from
+        //    the Neon SQL Editor migration already run live.
+        await sql`
+            CREATE TABLE IF NOT EXISTS shs_batch_course_trainers (
+                batch_course_trainer_id SERIAL PRIMARY KEY,
+                batch_id    INTEGER NOT NULL REFERENCES shs_batches(batch_id),
+                course_id   INTEGER NOT NULL REFERENCES shs_courses(course_id),
+                trainer_id  INTEGER REFERENCES trainers(trainer_id),
+                created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+                updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+                UNIQUE (batch_id, course_id)
+            )
+        `;
+
         console.log('Admin database initialized successfully');
     } catch (error) {
         console.error('Error initializing admin database:', error);

@@ -510,6 +510,23 @@
   white-space: nowrap;
 }
 
+.adm-course-trainer-grade-group {
+  margin-bottom: 12px;
+}
+
+.adm-course-trainer-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.adm-form-label--sub {
+  flex: 0 0 160px;
+  font-weight: 500;
+  color: #4b5563;
+}
+
 @media (max-width: 640px) {
   .adm-shs-batch-detail-page   { padding: 20px 16px 48px; }
   .adm-batch-detail-hero        { padding: 20px; }

@@ -48,14 +48,32 @@ const promoteTesdaBatches = async () => {
 };
 
 const promoteShsBatches = async () => {
+  // => Every Grade 11 course under the batch's cluster must have a
+  //    trainer assigned in shs_batch_course_trainers before auto-promotion
+  //    fires - replaces the old loose "either grade slot filled" check.
+  //    Grade 12 is intentionally not checked, same reasoning as the manual
+  //    status-change validation in adminBatchServices.js.
   const result = await pool.query(
-    `UPDATE shs_batches
+    `UPDATE shs_batches sb
         SET status     = 'Ongoing',
             updated_at = NOW()
-      WHERE status      = 'Pending'
-        AND (grade11_trainer_id IS NOT NULL OR grade12_trainer_id IS NOT NULL)
-        AND start_date <= CURRENT_DATE - INTERVAL '${AUTO_PROMOTE_BUFFER_DAYS} days'
-      RETURNING public_id, batch_id`
+      WHERE sb.status      = 'Pending'
+        AND sb.start_date <= CURRENT_DATE - INTERVAL '${AUTO_PROMOTE_BUFFER_DAYS} days'
+        AND EXISTS (
+              SELECT 1 FROM shs_courses sc
+               WHERE sc.cluster_id = sb.cluster_id AND sc.grade_level = 'Grade 11'
+            )
+        AND NOT EXISTS (
+              SELECT 1 FROM shs_courses sc
+               WHERE sc.cluster_id = sb.cluster_id AND sc.grade_level = 'Grade 11'
+                 AND NOT EXISTS (
+                       SELECT 1 FROM shs_batch_course_trainers bct
+                        WHERE bct.batch_id = sb.batch_id
+                          AND bct.course_id = sc.course_id
+                          AND bct.trainer_id IS NOT NULL
+                     )
+            )
+      RETURNING sb.public_id, sb.batch_id`
   );
 
   for (const row of result.rows) {

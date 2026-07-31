@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 import './Classes.css';
 import axiosAdmin from '../../api/axiosAdmin.js'; 
@@ -109,14 +110,17 @@ const EMPTY_FILTERS = {
 //    since SHS batches have a materially different shape (cluster instead
 //    of course, two grade-specific trainer slots instead of one)
 const EMPTY_SHS_BATCH_FORM = {
-  cluster:                     '',
+  cluster_id:                  '', // => Renamed from cluster - backend's addShsBatch expects cluster_id now, not the free-text cluster name
   school_year:                 '',
+  // => Replaces grade11_trainer_id/grade12_trainer_id - keyed by course_id
+  // (string) -> trainer_id (string), one entry per course under the
+  // selected cluster. A cluster can have more than one course per grade
+  // level, each needing its own qualified trainer.
+  course_trainers:             {},
   start_date:                  '',
   end_date:                    '',
   required_number_of_students: '',
   max_students:                '',
-  grade11_trainer_id:          '',
-  grade12_trainer_id:          '',
   remarks:                     '',
 };
 
@@ -259,7 +263,6 @@ export default function Classes() {
   const [formOptions,  setFormOptions]  = useState({ courses: [], trainers: [], clusters: [] });
   const [classForm,    setClassForm]    = useState(EMPTY_CLASS_FORM);
   const [shsBatchForm, setShsBatchForm] = useState(EMPTY_SHS_BATCH_FORM);
-  const [formError,    setFormError]    = useState(null);
   const [formSaving,   setFormSaving]   = useState(false);
 
   // => Ref to abort stale search requests
@@ -523,7 +526,6 @@ export default function Classes() {
     setCreateType('TESDA'); // => Always defaults back to TESDA on open
     setClassForm(EMPTY_CLASS_FORM);
     setShsBatchForm(EMPTY_SHS_BATCH_FORM);
-    setFormError(null);
     setModalOpen(true);
 
     try {
@@ -542,23 +544,20 @@ export default function Classes() {
         setFilterOptions(extracted);
       }
     } catch (err) {
-      setFormError('Could not load form options. Please try again.');
+      toast.error('Could not load form options. Please try again.');
     }
   };
 
   const handleCloseModal = () => {
     if (formSaving) return; // => prevent close mid-save
     setModalOpen(false);
-    setFormError(null);
   };
 
   // => Submit the new batch form (TESDA-only, per the Add Batch modal scope)
   const handleCreateClass = async () => {
-    setFormError(null);
-
     const dateError = validateBatchDatesClient(classForm.start_date, classForm.end_date);
     if (dateError) {
-      setFormError(dateError);
+      toast.error(dateError);
       return;
     }
 
@@ -580,55 +579,53 @@ export default function Classes() {
       setModalOpen(false);
       navigate(`/dashboard/classes/tesda/${res.data.batch.public_id}`);
     } catch (err) {
-      setFormError(err.response?.data?.error || 'Failed to create batch.');
+      toast.error(err.response?.data?.error || 'Failed to create batch.');
     } finally {
       setFormSaving(false);
     }
   };
 
   // => Submit the new SHS batch form
-  // => Unlike TESDA, an unqualified grade11/grade12 trainer isn't a hard
-  //    error - the backend responds 409 with warning:true instead, and this
-  //    reuses the shared ConfirmModal to ask "assign anyway as a
-  //    substitute?" before resubmitting with confirm_unqualified_trainers: true
-  const submitShsBatch = async (confirmUnqualified = false) => {
-    setFormError(null);
-
+  // => Trainer qualification is now a hard block on the backend for SHS
+  //    too (isTrainerQualifiedForShsCourse), same as TESDA - the old
+  //    409/confirm-unqualified substitute flow is gone, errors just come
+  //    back as a normal 400 like everything else.
+  const submitShsBatch = async () => {
     const dateError = validateBatchDatesClient(shsBatchForm.start_date, shsBatchForm.end_date);
     if (dateError) {
-      setFormError(dateError);
+      toast.error(dateError);
       return;
     }
 
     setFormSaving(true);
 
+    // => Turns the { course_id: trainer_id } map back into the
+    //    [{ course_id, trainer_id }] array shape the backend expects
+    const course_trainers = Object.entries(shsBatchForm.course_trainers)
+      .map(([course_id, trainer_id]) => ({
+        course_id: Number(course_id),
+        trainer_id: trainer_id ? Number(trainer_id) : null,
+      }));
+
     try {
       const res = await axiosAdmin.post('/api/admin/batches/shs', {
         ...shsBatchForm,
+        cluster_id:                  Number(shsBatchForm.cluster_id),
         required_number_of_students: Number(shsBatchForm.required_number_of_students),
-        max_students:       Number(shsBatchForm.max_students),
-        grade11_trainer_id: shsBatchForm.grade11_trainer_id ? Number(shsBatchForm.grade11_trainer_id) : null,
-        grade12_trainer_id: shsBatchForm.grade12_trainer_id ? Number(shsBatchForm.grade12_trainer_id) : null,
-        confirm_unqualified_trainers: confirmUnqualified,
+        max_students:                Number(shsBatchForm.max_students),
+        course_trainers,
       });
 
       setModalOpen(false);
       navigate(`/dashboard/classes/shs/${res.data.batch.public_id}`);
     } catch (err) {
-      // => 409 + warning:true means "needs confirmation," not a hard error -
-      //    show the confirm dialog instead of a form error message
-      if (err.response?.status === 409 && err.response?.data?.warning) {
-        setFormSaving(false);
-        openConfirm(err.response.data.error, () => submitShsBatch(true));
-        return;
-      }
-      setFormError(err.response?.data?.error || 'Failed to create batch.');
+      toast.error(err.response?.data?.error || 'Failed to create batch.');
     } finally {
       setFormSaving(false);
     }
   };
 
-  const handleCreateShsBatch = () => submitShsBatch(false);
+  const handleCreateShsBatch = () => submitShsBatch();
 
   // => Determine what's currently displayed
   const isSearchMode = searchResults !== null;
@@ -1229,9 +1226,21 @@ export default function Classes() {
                       onChange={e => setClassForm(f => ({ ...f, trainer_id: e.target.value }))}
                     >
                       <option value="">- Assign later -</option>
-                      {formOptions.trainers.map(i => (
-                        <option key={i.trainer_id} value={i.trainer_id}>{i.trainer_full_name}</option>
-                      ))}
+                      {/* => Filtered to trainers actually accredited for the selected
+                             course, using the trainer_tesda_courses pairs already
+                             returned by /form-options. Shows everyone until a course
+                             is picked, since there's nothing to filter against yet. */}
+                      {formOptions.trainers
+                        .filter(i =>
+                          !classForm.course_id ||
+                          (formOptions.trainerTesdaCourses || []).some(row =>
+                            String(row.trainer_id) === String(i.trainer_id) &&
+                            String(row.course_id) === String(classForm.course_id)
+                          )
+                        )
+                        .map(i => (
+                          <option key={i.trainer_id} value={i.trainer_id}>{i.trainer_full_name}</option>
+                        ))}
                     </select>
                   </div>
 
@@ -1308,18 +1317,23 @@ export default function Classes() {
                     <label className="adm-form-label">Cluster <span className="adm-form-required">*</span></label>
                     <select
                       className="adm-form-select"
-                      value={shsBatchForm.cluster}
-                      onChange={e => setShsBatchForm(f => ({ ...f, cluster: e.target.value }))}
+                      value={shsBatchForm.cluster_id}
+                      onChange={e => setShsBatchForm(f => ({ ...f, cluster_id: e.target.value }))}
                     >
                       <option value="">- Select a cluster -</option>
+                      {/* => value is now cluster_id, not name - matches what
+                             addShsBatch actually validates and inserts */}
                       {formOptions.clusters.map(c => (
-                        <option key={c.cluster_id} value={c.name}>
+                        <option key={c.cluster_id} value={c.cluster_id}>
                           {c.name}
                         </option>
                       ))}
                     </select>
                   </div>
 
+                  {/* => Read-only reference: courses offered under the
+                         selected cluster, split by grade level - helps the
+                         admin see what they're actually creating a batch for */}
                   {/* => School Year */}
                   <div className="adm-form-group">
                     <label className="adm-form-label">School Year <span className="adm-form-required">*</span></label>
@@ -1332,40 +1346,63 @@ export default function Classes() {
                     />
                   </div>
 
-                  {/* => Two trainer slots - one batch spans both grade
-                         levels, so one FK can't represent it. Assigning an
-                         unqualified trainer here isn't a hard error - it
-                         triggers a confirm prompt (substitute scenario)
-                         instead, see submitShsBatch. */}
-                  <div className="adm-form-row">
+                  {/* => One trainer dropdown per course, not per grade level -
+                         a cluster can hold more than one course per grade,
+                         each needing its own qualified trainer, which the old
+                         two-slot design couldn't represent. Doubles as the
+                         read-only "what courses does this cluster have" view,
+                         so the separate box from before is no longer needed.
+                         Each dropdown is filtered to only trainers qualified
+                         for that exact course, via trainer_shs_courses. */}
+                  {shsBatchForm.cluster_id && (
                     <div className="adm-form-group">
-                      <label className="adm-form-label">Grade 11 Trainer <span className="adm-form-optional">(optional)</span></label>
-                      <select
-                        className="adm-form-select"
-                        value={shsBatchForm.grade11_trainer_id}
-                        onChange={e => setShsBatchForm(f => ({ ...f, grade11_trainer_id: e.target.value }))}
-                      >
-                        <option value="">- Assign later -</option>
-                        {formOptions.trainers.map(t => (
-                          <option key={t.trainer_id} value={t.trainer_id}>{t.trainer_full_name}</option>
-                        ))}
-                      </select>
+                      <label className="adm-form-label">Course Trainers <span className="adm-form-optional">(optional)</span></label>
+                      {['Grade 11', 'Grade 12'].map(grade => {
+                        const coursesForGrade = (formOptions.shsCourses || []).filter(
+                          c => String(c.cluster_id) === String(shsBatchForm.cluster_id) && c.grade_level === grade
+                        );
+                        if (coursesForGrade.length === 0) {
+                          return (
+                            <div key={grade} className="adm-course-trainer-grade-group">
+                              <span className="adm-cluster-courses-grade">{grade}</span>
+                              <p className="adm-empty-note">No courses set up for {grade} yet.</p>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div key={grade} className="adm-course-trainer-grade-group">
+                            <span className="adm-cluster-courses-grade">{grade}</span>
+                            {coursesForGrade.map(c => {
+                              const qualifiedTrainers = formOptions.trainers.filter(t =>
+                                (formOptions.trainerShsCourses || []).some(row =>
+                                  String(row.trainer_id) === String(t.trainer_id) &&
+                                  String(row.course_id) === String(c.course_id)
+                                )
+                              );
+                              return (
+                                <div key={c.course_id} className="adm-course-trainer-row">
+                                  <label className="adm-form-label adm-form-label--sub">{c.title}</label>
+                                  <select
+                                    className="adm-form-select"
+                                    value={shsBatchForm.course_trainers[c.course_id] || ''}
+                                    onChange={e => setShsBatchForm(f => ({
+                                      ...f,
+                                      course_trainers: { ...f.course_trainers, [c.course_id]: e.target.value },
+                                    }))}
+                                  >
+                                    <option value="">- Assign later -</option>
+                                    {qualifiedTrainers.map(t => (
+                                      <option key={t.trainer_id} value={t.trainer_id}>{t.trainer_full_name}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
                     </div>
-
-                    <div className="adm-form-group">
-                      <label className="adm-form-label">Grade 12 Trainer <span className="adm-form-optional">(optional)</span></label>
-                      <select
-                        className="adm-form-select"
-                        value={shsBatchForm.grade12_trainer_id}
-                        onChange={e => setShsBatchForm(f => ({ ...f, grade12_trainer_id: e.target.value }))}
-                      >
-                        <option value="">- Assign later -</option>
-                        {formOptions.trainers.map(t => (
-                          <option key={t.trainer_id} value={t.trainer_id}>{t.trainer_full_name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
+                  )}
 
                   {/* => Start Date + End Date side by side - both optional,
                          same reasoning as tesda_batches: start_date may be
@@ -1439,9 +1476,7 @@ export default function Classes() {
               )}
 
               {/* => Form error */}
-              {formError && (
-                <p className="adm-form-error"><img className="adm-inline-icon" src={warningIcon} alt="" /> {formError}</p>
-              )}
+              
             </div>
 
             <div className="adm-modal-footer">
@@ -2151,9 +2186,13 @@ function ClassTable({ rows, onRowClick }) {
                 </td>
                 <td className="adm-td-course">
                   <span className="adm-course-name">
+                    {/* => batch_sequence is the per-course/cluster display number,
+                           batch_id is just the raw primary key and skips gaps left
+                           by dissolved batches, so it was showing "Batch #6" for
+                           what is really only the 2nd batch of that course */}
                     {isShs
-                      ? `${row.cluster ?? 'Unnamed Cluster'} (Batch #${row.batch_id})`
-                      : `${row.course_name ?? 'Unnamed Course'}${row.certification_type ? ` (${row.certification_type})` : ''} (Batch #${row.batch_id})`}
+                      ? `${row.cluster ?? 'Unnamed Cluster'} (Batch #${row.batch_sequence ?? row.batch_id})`
+                      : `${row.course_name ?? 'Unnamed Course'}${row.certification_type ? ` (${row.certification_type})` : ''} (Batch #${row.batch_sequence ?? row.batch_id})`}
                   </span>
                 </td>
                 {/* => Labeled explicitly as Sector/Cluster in the cell itself,
