@@ -51,6 +51,13 @@ const formatDateTime = (dateStr) => {
   });
 };
 
+// => Used by the Payment & Refund History section - this file never had
+//    a currency formatter before that section was added.
+const formatCurrency = (amount) => {
+  if (amount == null) return '-';
+  return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
+};
+
 // => Sex display label - handles legacy 'm'/'f' rows as well as the new
 //    full-word 'Male'/'Female' values so old records still render correctly
 const sexLabel = (val) => {
@@ -432,6 +439,10 @@ export default function StudentDetail() {
   const [sectionError,   setSectionError]   = useState(null);
   const [fieldErrors,    setFieldErrors]    = useState({});
 
+  // => Payment & Refund History - placeholder state for now, wired to a
+  //    real fetch in Step 3 once the backend endpoint exists.
+  const [paymentHistory, setPaymentHistory] = useState([]);
+
   const startEdit = (sectionKey, initialValues) => {
     setEditingSection(sectionKey);
     setDraft(initialValues);
@@ -475,6 +486,28 @@ export default function StudentDetail() {
     };
 
     fetchDetail();
+  }, [publicId]);
+
+  // => Payment & Refund History - separate fetch, own endpoint. Doesn't
+  //    block the page's main loading state; failing silently here just
+  //    leaves the section at its default empty array.
+  useEffect(() => {
+    if (!publicId) return;
+
+    const fetchPaymentHistory = async () => {
+      try {
+        const res = await fetch(`/api/admin/students/${publicId}/payment-history`, {
+          credentials: 'include',
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        setPaymentHistory(json.records ?? []);
+      } catch (err) {
+        console.error('Failed to fetch payment history:', err);
+      }
+    };
+
+    fetchPaymentHistory();
   }, [publicId]);
 
   
@@ -969,6 +1002,70 @@ export default function StudentDetail() {
                         }
                       </td>
                       <td className="adm-td-arrow">›</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* ════════════════════════════════════
+            PAYMENT & REFUND HISTORY (read-only)
+            => Lifetime ledger across both TESDA and SHS enrollments for
+               this student.
+            ════════════════════════════════════ */}
+        <div className="adm-student-section">
+          <p className="adm-section-title">
+            Payment & Refund History
+            <span className="adm-section-count-inline">{paymentHistory.length}</span>
+          </p>
+
+          {paymentHistory.length === 0 ? (
+            <p className="adm-empty-note">No payments or refunds recorded for this student.</p>
+          ) : (
+            <div className="adm-sub-table-wrap">
+              <table className="adm-sub-table">
+                <thead>
+                  <tr>
+                    <th>Program</th>
+                    <th>Type</th>
+                    <th>Reference #</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paymentHistory.map(record => (
+                    <tr
+                      key={record.public_id}
+                      className="adm-sub-table-row"
+                      onClick={() => navigate(
+                        record.record_type === 'Payment'
+                          ? `/dashboard/payments/${record.public_id}`
+                          : `/dashboard/refunds/${record.public_id}`
+                      )}
+                      title={`View ${record.record_type.toLowerCase()} detail`}
+                    >
+                      <td>
+                        <span className={`adm-type-badge adm-type-badge--${record.program_type.toLowerCase()}`}>
+                          {record.program_type}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`adm-type-badge adm-type-badge--${record.record_type.toLowerCase()}`}>
+                          {record.record_type}
+                        </span>
+                      </td>
+                      <td className="adm-td-or-number">{record.reference_number}</td>
+                      <td>{formatCurrency(record.amount)}</td>
+                      <td className="adm-td-date">{formatDate(record.record_date)}</td>
+                      <td>
+                        <span className={`adm-badge adm-badge--payment-${record.status.toLowerCase()}`}>
+                          {record.status}
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

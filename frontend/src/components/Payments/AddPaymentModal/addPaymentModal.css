@@ -17,6 +17,21 @@
   padding: var(--spacing-lg, 24px);
 }
 
+/* => Blanket override: something dashboard-wide keeps forcing white text
+      onto elements inside this modal (confirmed on labels, spans, li
+      results - patching one at a time keeps missing new spots). This
+      forces every descendant back to dark text by default; the specific
+      muted-gray/accent color rules further down this file still apply
+      since they come later in the file at equal specificity. */
+.add-payment-modal * {
+  color: var(--text-h, #08060d) !important;
+}
+
+.add-payment-field input,
+.add-payment-field textarea {
+  color: var(--text-h, #08060d) !important;
+}
+
 .add-payment-header {
   display: flex;
   align-items: center;
@@ -44,13 +59,14 @@
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 6px;
+  color: var(--text-h, #08060d);
 }
 
 .add-payment-field input,
 .add-payment-field textarea {
   width: 100%;
   border: 1px solid var(--color-border, #ddd);
-  border-radius: var(--radius-md, 8px);
+  border-radius: 0;
   padding: 8px 12px;
   box-sizing: border-box;
 }
@@ -79,6 +95,18 @@
   font-size: 13px;
   color: var(--color-text-muted, #999);
   margin-top: 8px;
+}
+
+/* => Payment date is locked to today, shown as plain text styled to
+      still read as a field rather than a floating label value */
+.add-payment-static-date {
+  font-size: 14px;
+  color: var(--text-h, #08060d);
+  background: #f7f7f7;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-md, 8px);
+  padding: 8px 12px;
+  margin: 0;
 }
 
 .add-payment-results {
@@ -110,7 +138,26 @@
 
 .add-payment-result-name {
   font-weight: 600;
+  /* => !important because a dashboard-wide global rule (likely styling
+        sidebar nav <li>/<span> as white) is overriding this at higher
+        specificity or its own !important - see conversation notes */
+  color: var(--text-h, #08060d) !important;
 }
+
+/* => TESDA/SHS badge in the eligible-enrollments search results, same
+      color pairing as .adm-type-badge elsewhere in the dashboard */
+.add-payment-result-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-right: 6px;
+  color: var(--text-h, #08060d) !important;
+}
+.add-payment-result-type-badge--tesda { background: #e0e7ff !important; color: #3730a3 !important; }
+.add-payment-result-type-badge--shs   { background: #fce7f3 !important; color: #9d174d !important; }
 
 .add-payment-result-course {
   font-size: 13px;
@@ -119,7 +166,7 @@
 
 .add-payment-result-balance {
   font-size: 12px;
-  color: var(--color-primary);
+  color: var(--accent-hover, #8a0d17);
 }
 
 .add-payment-selected-card {
@@ -141,7 +188,7 @@
 .add-payment-change-btn {
   border: none;
   background: transparent;
-  color: var(--color-primary);
+  color: var(--accent-hover, #8a0d17);
   cursor: pointer;
   font-weight: 600;
   font-size: 13px;
@@ -152,6 +199,7 @@
   justify-content: space-between;
   font-size: 14px;
   padding: 4px 0;
+  color: var(--text-h, #08060d);
 }
 
 .add-payment-balance-remaining {
@@ -179,8 +227,8 @@
 
 .add-payment-submit-btn {
   border: none;
-  background: var(--color-primary);
-  color: var(--color-on-primary, #fff);
+  background: var(--accent-hover, #8a0d17);
+  color: #fff;
   border-radius: var(--radius-md, 8px);
   padding: 10px 16px;
   font-weight: 600;

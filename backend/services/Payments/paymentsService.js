@@ -20,24 +20,50 @@ export async function getTesdaCourseOptions() {
 }
 
 export async function getEligibleEnrollments(searchTerm) {
-  const rows = await paymentsModel.findEligibleEnrollments(searchTerm);
+  const [tesdaRows, shsRows] = await Promise.all([
+    paymentsModel.findEligibleEnrollments(searchTerm),
+    paymentsModel.findEligibleShsEnrollments(searchTerm),
+  ]);
 
-  return rows.map((row) => ({
+  const tesdaResults = tesdaRows.map((row) => ({
     enrollmentId: row.enrollment_id,
     enrollmentPublicId: row.public_id,
+    enrollmentType: 'TESDA',
     studentName: formatStudentName(row),
     courseTitle: row.course_title,
     batchName: row.batch_name,
-    feeAtEnrollment: Number(row.fee_at_enrollment),
+    // => totalDue replaces the old TESDA-only feeAtEnrollment name, so
+    //    the frontend can read one field regardless of program type
+    totalDue: Number(row.fee_at_enrollment),
     totalPaid: Number(row.total_paid),
     balance: Number(row.fee_at_enrollment) - Number(row.total_paid)
   }));
+
+  const shsResults = shsRows.map((row) => ({
+    enrollmentId: row.enrollment_id,
+    enrollmentPublicId: row.public_id,
+    enrollmentType: 'SHS',
+    studentName: formatStudentName(row),
+    courseTitle: row.cluster_name,
+    batchName: row.batch_name,
+    totalDue: Number(row.total_misc_fee),
+    totalPaid: Number(row.total_paid),
+    balance: Number(row.total_misc_fee) - Number(row.total_paid)
+  }));
+
+  return [...tesdaResults, ...shsResults];
 }
 
-export async function createPayment({ enrollmentId, amount, paymentDate, remarks, admin }) {
+export async function createPayment({ enrollmentType, enrollmentId, amount, paymentDate, remarks, admin }) {
   // => Basic input guards live here now instead of middleware - services
   // => own the full validation + business logic layer, not just
   // => cross-entity rules
+  if (!enrollmentType || !['TESDA', 'SHS'].includes(enrollmentType)) {
+    const err = new Error('enrollmentType must be "TESDA" or "SHS".');
+    err.status = 400;
+    throw err;
+  }
+
   if (!enrollmentId || typeof enrollmentId !== 'number') {
     const err = new Error('enrollmentId is required and must be a number.');
     err.status = 400;
@@ -55,27 +81,49 @@ export async function createPayment({ enrollmentId, amount, paymentDate, remarks
   try {
     await client.query('BEGIN');
 
-    const enrollment = await paymentsModel.lockEnrollmentBalance(client, enrollmentId);
+    let remainingBalance;
 
-    if (!enrollment) {
-      const err = new Error('Enrollment not found.');
-      err.status = 404;
-      throw err;
+    if (enrollmentType === 'TESDA') {
+      const enrollment = await paymentsModel.lockEnrollmentBalance(client, enrollmentId);
+
+      if (!enrollment) {
+        const err = new Error('Enrollment not found.');
+        err.status = 404;
+        throw err;
+      }
+      if (enrollment.class_type !== 'Regular') {
+        const err = new Error('Only Regular TESDA batch enrollments accept OTC payments.');
+        err.status = 400;
+        throw err;
+      }
+      if (enrollment.is_tesda_scholar) {
+        const err = new Error('This enrollment is TESDA-sponsored and does not accept OTC payments.');
+        err.status = 400;
+        throw err;
+      }
+
+      remainingBalance = Number(enrollment.fee_at_enrollment) - Number(enrollment.total_paid);
+    } else {
+      const enrollment = await paymentsModel.lockShsEnrollmentBalance(client, enrollmentId);
+
+      if (!enrollment) {
+        const err = new Error('Enrollment not found.');
+        err.status = 404;
+        throw err;
+      }
+      if (!enrollment.batch_id) {
+        const err = new Error('This enrollment has no batch assigned yet.');
+        err.status = 400;
+        throw err;
+      }
+      if (Number(enrollment.total_misc_fee) <= 0) {
+        const err = new Error('This batch has no miscellaneous fee assigned.');
+        err.status = 400;
+        throw err;
+      }
+
+      remainingBalance = Number(enrollment.total_misc_fee) - Number(enrollment.total_paid);
     }
-
-    if (enrollment.class_type !== 'Regular') {
-      const err = new Error('Only Regular TESDA batch enrollments accept OTC payments.');
-      err.status = 400;
-      throw err;
-    }
-
-    if (enrollment.is_tesda_scholar) {
-      const err = new Error('This enrollment is TESDA-sponsored and does not accept OTC payments.');
-      err.status = 400;
-      throw err;
-    }
-
-    const remainingBalance = Number(enrollment.fee_at_enrollment) - Number(enrollment.total_paid);
 
     if (amount > remainingBalance) {
       const err = new Error(`Amount exceeds the remaining balance of ${remainingBalance.toFixed(2)}.`);
@@ -84,6 +132,7 @@ export async function createPayment({ enrollmentId, amount, paymentDate, remarks
     }
 
     const payment = await paymentsModel.insertPayment(client, {
+      enrollmentType,
       enrollmentId,
       amount,
       paymentDate,
@@ -97,7 +146,7 @@ export async function createPayment({ enrollmentId, amount, paymentDate, remarks
       actorId: admin.adminId,
       actorName: admin.fullName,
       action: 'payment_created',
-      actionDetail: `Recorded payment ${payment.or_number} for enrollment #${enrollmentId}, amount ${amount}.`
+      actionDetail: `Recorded ${enrollmentType} payment ${payment.or_number} for enrollment #${enrollmentId}, amount ${amount}.`
     });
 
     await client.query('COMMIT');
@@ -135,8 +184,13 @@ export async function listPayments({ page = 1, limit = 10, status, courseId, sea
       paymentDate: row.payment_date,
       status: row.status,
       createdAt: row.created_at,
+      enrollmentType: row.enrollment_type,
       studentName: formatStudentName(row),
-      courseTitle: row.course_title
+      // => Batch replaces course title as the display column - a batch
+      // => already implies its course for TESDA, and SHS enrollments
+      // => have no single "course" concept per the cluster-based model
+      batchName: row.batch_name,
+      batchSequence: row.batch_sequence
     })),
     totalCount: total,
     page: safePage,
@@ -153,6 +207,10 @@ export async function getPaymentDetail(publicId) {
     throw err;
   }
 
+  // => Picks the right side's batch/fee data based on enrollment_type -
+  // => the other side is always NULL by construction of the model query
+  const isTesda = row.enrollment_type === 'TESDA';
+
   return {
     paymentId: row.payment_id,
     publicId: row.public_id,
@@ -168,11 +226,15 @@ export async function getPaymentDetail(publicId) {
     createdByName: row.created_by_name,
     createdAt: row.created_at,
     enrollmentPublicId: row.enrollment_public_id,
-    feeAtEnrollment: Number(row.fee_at_enrollment),
+    enrollmentType: row.enrollment_type,
+    // => totalDue: fee_at_enrollment for TESDA, total configured batch
+    // => misc fee for SHS - matches the naming already used by
+    // => getEligibleEnrollments for the same concept
+    totalDue: isTesda ? Number(row.fee_at_enrollment || 0) : Number(row.shs_total_misc_fee || 0),
     studentName: formatStudentName(row),
     studentEmail: row.student_email,
-    courseTitle: row.course_title,
-    batchName: row.batch_name
+    batchName: isTesda ? row.tesda_batch_name : row.shs_batch_name,
+    batchSequence: isTesda ? row.tesda_batch_sequence : row.shs_batch_sequence
   };
 }
 

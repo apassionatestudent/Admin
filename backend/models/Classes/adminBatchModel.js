@@ -787,3 +787,47 @@ export const assignShsEnrollmentToBatch = async (pool, enrollmentPublicId, batch
   );
   return result.rows[0] ?? null;
 };
+
+// 
+// BATCH MISCELLANEOUS FEES
+// => batch_type + batch_id mirrors class_sessions.batch_type / payments.
+//    enrollment_type - no DB-level FK is possible across two tables, so
+//    the caller is responsible for resolving/validating the batch's
+//    numeric id via getTesdaBatchByPublicId / getShsBatchByPublicId
+//    before calling these, same as every other batch mutation in this file.
+// 
+
+export const getMiscFeesByBatch = async (pool, batchType, batchId) => {
+  const result = await pool.query(
+    `SELECT public_id, fee_label, fee_amount, created_at
+       FROM batch_misc_fees
+       WHERE batch_type = $1 AND batch_id = $2
+       ORDER BY created_at ASC`,
+    [batchType, batchId]
+  );
+  return result.rows;
+};
+
+export const addBatchMiscFee = async (pool, { batchType, batchId, feeLabel, feeAmount, createdBy }) => {
+  const result = await pool.query(
+    `INSERT INTO batch_misc_fees (batch_type, batch_id, fee_label, fee_amount, created_by)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING public_id, fee_label, fee_amount, created_at`,
+    [batchType, batchId, feeLabel, feeAmount, createdBy]
+  );
+  return result.rows[0];
+};
+
+// => Returns batch_type/batch_id on the deleted row too, so the service
+//    layer can log the deletion against the right batch's activity log
+//    (getActivityLogsForEntity already keys off 'tesda_batch'/'shs_batch'
+//    + batch_id elsewhere in this file).
+export const deleteBatchMiscFee = async (pool, feePublicId) => {
+  const result = await pool.query(
+    `DELETE FROM batch_misc_fees
+       WHERE public_id = $1
+       RETURNING public_id, batch_type, batch_id, fee_label, fee_amount`,
+    [feePublicId]
+  );
+  return result.rows[0] ?? null;
+};

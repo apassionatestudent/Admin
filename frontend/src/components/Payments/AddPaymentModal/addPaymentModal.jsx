@@ -15,7 +15,20 @@ function AddPaymentModal({ onClose, onCreated }) {
 
   const [selectedEnrollment, setSelectedEnrollment] = useState(null);
   const [amount, setAmount] = useState('');
-  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
+  // => Payment date is always today - no longer user-editable, so no
+  //    setter is exposed. Kept as state (not a plain const) so the
+  //    existing submit payload doesn't need to change shape.
+  const [paymentDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  // => Formats the locked-in date for display without the timezone
+  //    off-by-one risk of new Date('YYYY-MM-DD') - parse the parts
+  //    manually instead.
+  const formatDisplayDate = (isoDate) => {
+    const [y, m, d] = isoDate.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-PH', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+  };
   const [remarks, setRemarks] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -72,6 +85,7 @@ function AddPaymentModal({ onClose, onCreated }) {
     setSubmitting(true);
     try {
       await axiosAdmin.post('/api/payments', {
+        enrollmentType: selectedEnrollment.enrollmentType,
         enrollmentId: selectedEnrollment.enrollmentId,
         amount: numericAmount,
         paymentDate,
@@ -117,8 +131,16 @@ function AddPaymentModal({ onClose, onCreated }) {
               {results.length > 0 && (
                 <ul className="add-payment-results">
                   {results.map((enrollment) => (
-                    <li key={enrollment.enrollmentId} onClick={() => handleSelectEnrollment(enrollment)}>
-                      <span className="add-payment-result-name">{enrollment.studentName}</span>
+                    <li
+                      key={`${enrollment.enrollmentType}-${enrollment.enrollmentId}`}
+                      onClick={() => handleSelectEnrollment(enrollment)}
+                    >
+                      <span>
+                        <span className={`add-payment-result-type-badge add-payment-result-type-badge--${enrollment.enrollmentType.toLowerCase()}`}>
+                          {enrollment.enrollmentType}
+                        </span>
+                        <span className="add-payment-result-name">{enrollment.studentName}</span>
+                      </span>
                       <span className="add-payment-result-course">{enrollment.courseTitle}</span>
                       <span className="add-payment-result-balance">
                         Balance: PHP {enrollment.balance.toFixed(2)}
@@ -130,7 +152,7 @@ function AddPaymentModal({ onClose, onCreated }) {
 
               {!searching && search.trim() && results.length === 0 && (
                 <p className="add-payment-hint">
-                  No eligible enrollments found. Only Regular, non-scholar TESDA enrollments with a remaining balance appear here.
+                  No eligible enrollments found. Only Regular, non-scholar TESDA enrollments with a remaining balance, or SHS enrollments whose batch has a miscellaneous fee assigned, appear here.
                 </p>
               )}
             </div>
@@ -153,8 +175,8 @@ function AddPaymentModal({ onClose, onCreated }) {
               </div>
 
               <div className="add-payment-balance-row">
-                <span>Total Fee</span>
-                <span>PHP {selectedEnrollment.feeAtEnrollment.toFixed(2)}</span>
+                <span>{selectedEnrollment.enrollmentType === 'SHS' ? 'Total Miscellaneous Fee' : 'Total Fee'}</span>
+                <span>PHP {selectedEnrollment.totalDue.toFixed(2)}</span>
               </div>
               <div className="add-payment-balance-row">
                 <span>Already Paid</span>
@@ -183,12 +205,7 @@ function AddPaymentModal({ onClose, onCreated }) {
 
               <div className="add-payment-field">
                 <label>Payment Date</label>
-                <input
-                  type="date"
-                  value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
-                  required
-                />
+                <p className="add-payment-static-date">{formatDisplayDate(paymentDate)}</p>
               </div>
 
               <div className="add-payment-field">

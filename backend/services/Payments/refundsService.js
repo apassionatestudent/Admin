@@ -14,23 +14,49 @@ export async function getTesdaCourseOptions() {
 }
 
 export async function getRefundableEnrollments(searchTerm) {
-  const rows = await refundsModel.findRefundableEnrollments(searchTerm);
+  const [tesdaRows, shsRows] = await Promise.all([
+    refundsModel.findRefundableEnrollments(searchTerm),
+    refundsModel.findRefundableShsEnrollments(searchTerm),
+  ]);
 
-  return rows.map((row) => ({
+  const tesdaResults = tesdaRows.map((row) => ({
     enrollmentId: row.enrollment_id,
     enrollmentPublicId: row.public_id,
+    enrollmentType: 'TESDA',
     studentName: formatStudentName(row),
     studentEmail: row.email,
-    courseTitle: row.course_title,
     batchName: row.batch_name,
-    feeAtEnrollment: Number(row.fee_at_enrollment),
+    // => totalDue replaces the old TESDA-only feeAtEnrollment name, same
+    // => reasoning as paymentsService.js's getEligibleEnrollments
+    totalDue: Number(row.fee_at_enrollment),
     totalPaid: Number(row.total_paid),
     totalRefunded: Number(row.total_refunded),
     refundableBalance: Number(row.total_paid) - Number(row.total_refunded)
   }));
+
+  const shsResults = shsRows.map((row) => ({
+    enrollmentId: row.enrollment_id,
+    enrollmentPublicId: row.public_id,
+    enrollmentType: 'SHS',
+    studentName: formatStudentName(row),
+    studentEmail: row.email,
+    batchName: row.batch_name,
+    totalDue: Number(row.total_misc_fee),
+    totalPaid: Number(row.total_paid),
+    totalRefunded: Number(row.total_refunded),
+    refundableBalance: Number(row.total_paid) - Number(row.total_refunded)
+  }));
+
+  return [...tesdaResults, ...shsResults];
 }
 
-export async function createRefund({ enrollmentId, refundType, percentageValue, amount, reason, remarks, admin }) {
+export async function createRefund({ enrollmentType, enrollmentId, refundType, percentageValue, amount, reason, remarks, admin }) {
+  if (!enrollmentType || !['TESDA', 'SHS'].includes(enrollmentType)) {
+    const err = new Error('enrollmentType must be "TESDA" or "SHS".');
+    err.status = 400;
+    throw err;
+  }
+
   if (!enrollmentId || typeof enrollmentId !== 'number') {
     const err = new Error('enrollmentId is required and must be a number.');
     err.status = 400;
@@ -66,21 +92,47 @@ export async function createRefund({ enrollmentId, refundType, percentageValue, 
   try {
     await client.query('BEGIN');
 
-    const enrollment = await refundsModel.lockEnrollmentForRefund(client, enrollmentId);
+    let totalDue;
+    let refundableBalance;
 
-    if (!enrollment) {
-      const err = new Error('Enrollment not found.');
-      err.status = 404;
-      throw err;
+    if (enrollmentType === 'TESDA') {
+      const enrollment = await refundsModel.lockEnrollmentForRefund(client, enrollmentId);
+
+      if (!enrollment) {
+        const err = new Error('Enrollment not found.');
+        err.status = 404;
+        throw err;
+      }
+      if (enrollment.class_type !== 'Regular') {
+        const err = new Error('Only Regular TESDA batch enrollments accept refunds.');
+        err.status = 400;
+        throw err;
+      }
+
+      totalDue = Number(enrollment.fee_at_enrollment);
+      refundableBalance = Number(enrollment.total_paid) - Number(enrollment.total_refunded);
+    } else {
+      const enrollment = await refundsModel.lockShsEnrollmentForRefund(client, enrollmentId);
+
+      if (!enrollment) {
+        const err = new Error('Enrollment not found.');
+        err.status = 404;
+        throw err;
+      }
+      if (!enrollment.batch_id) {
+        const err = new Error('This enrollment has no batch assigned yet.');
+        err.status = 400;
+        throw err;
+      }
+      if (Number(enrollment.total_misc_fee) <= 0) {
+        const err = new Error('This batch has no miscellaneous fee assigned.');
+        err.status = 400;
+        throw err;
+      }
+
+      totalDue = Number(enrollment.total_misc_fee);
+      refundableBalance = Number(enrollment.total_paid) - Number(enrollment.total_refunded);
     }
-
-    if (enrollment.class_type !== 'Regular') {
-      const err = new Error('Only Regular TESDA batch enrollments accept refunds.');
-      err.status = 400;
-      throw err;
-    }
-
-    const refundableBalance = Number(enrollment.total_paid) - Number(enrollment.total_refunded);
 
     if (amount > refundableBalance) {
       const err = new Error(`Amount exceeds the refundable balance of ${refundableBalance.toFixed(2)}.`);
@@ -88,19 +140,19 @@ export async function createRefund({ enrollmentId, refundType, percentageValue, 
       throw err;
     }
 
-    // => Percentage is calculated against fee_at_enrollment (the course's
-    // => full fee), per project decision - not against amount paid.
-    // => Sanity-check the resolved amount actually matches that formula.
+    // => Percentage is calculated against totalDue (course fee for
+    // => TESDA, total batch misc fee for SHS) - not against amount paid.
     if (refundType === 'Percentage') {
-      const expectedAmount = Number(enrollment.fee_at_enrollment) * (percentageValue / 100);
+      const expectedAmount = totalDue * (percentageValue / 100);
       if (Math.abs(expectedAmount - amount) > 0.01) {
-        const err = new Error('amount does not match percentageValue applied to the course fee.');
+        const err = new Error('amount does not match percentageValue applied to the total due.');
         err.status = 400;
         throw err;
       }
     }
 
     const refund = await refundsModel.insertRefund(client, {
+      enrollmentType,
       enrollmentId,
       refundType,
       percentageValue: refundType === 'Percentage' ? percentageValue : null,
@@ -116,7 +168,7 @@ export async function createRefund({ enrollmentId, refundType, percentageValue, 
       actorId: admin.adminId,
       actorName: admin.fullName,
       action: 'refund_created',
-      actionDetail: `Recorded refund ${refund.refund_number} for enrollment #${enrollmentId}, amount ${amount}.`
+      actionDetail: `Recorded ${enrollmentType} refund ${refund.refund_number} for enrollment #${enrollmentId}, amount ${amount}.`
     });
 
     await client.query('COMMIT');
@@ -152,8 +204,10 @@ export async function listRefunds({ page = 1, limit = 10, status, courseId, sear
       refundType: row.refund_type,
       status: row.status,
       createdAt: row.created_at,
+      enrollmentType: row.enrollment_type,
       studentName: formatStudentName(row),
-      courseTitle: row.course_title
+      batchName: row.batch_name,
+      batchSequence: row.batch_sequence
     })),
     totalCount: total,
     page: safePage,
@@ -169,6 +223,9 @@ export async function getRefundDetail(publicId) {
     err.status = 404;
     throw err;
   }
+
+  // => Same pick-the-right-side logic as paymentsService.js's getPaymentDetail
+  const isTesda = row.enrollment_type === 'TESDA';
 
   return {
     refundId: row.refund_id,
@@ -187,11 +244,12 @@ export async function getRefundDetail(publicId) {
     createdByName: row.created_by_name,
     createdAt: row.created_at,
     enrollmentPublicId: row.enrollment_public_id,
-    feeAtEnrollment: Number(row.fee_at_enrollment),
+    enrollmentType: row.enrollment_type,
+    totalDue: isTesda ? Number(row.fee_at_enrollment || 0) : Number(row.shs_total_misc_fee || 0),
     studentName: formatStudentName(row),
     studentEmail: row.student_email,
-    courseTitle: row.course_title,
-    batchName: row.batch_name
+    batchName: isTesda ? row.tesda_batch_name : row.shs_batch_name,
+    batchSequence: isTesda ? row.tesda_batch_sequence : row.shs_batch_sequence
   };
 }
 

@@ -20,6 +20,7 @@ import {
   deleteShsDocumentController,
   getAvailableShsClassesController,
   getShsLookupsController,
+  getShsPaymentHistory,
 } from '../../controllers/Enrollments/shsEnrollmentController.js';
 import { upload } from '../../middleware/upload.js';
 
@@ -36,6 +37,9 @@ router.get('/lookups', adminApiRateLimit, protectAdmin, getShsLookupsController)
 
 // => GET /api/admin/enrollments/shs/:publicId
 router.get('/:publicId', adminApiRateLimit, protectAdmin, getShsEnrollmentDetail);
+
+// => GET /api/admin/enrollments/shs/:publicId/payment-history
+router.get('/:publicId/payment-history', adminApiRateLimit, protectAdmin, getShsPaymentHistory);
 
 // => PATCH /api/admin/enrollments/shs/:publicId/status
 // => Body: { status: string }

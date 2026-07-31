@@ -222,10 +222,13 @@ function Payments() {
   };
 
   // => Header subtitle swaps per tab, same pattern as Classes.jsx's headerSubtitle
+  // => No longer TESDA-only copy - the list now correctly includes SHS
+  //    payments/refunds too, now that the underlying queries join both
+  //    enrollment types instead of always assuming TESDA
   const headerSubtitle =
     mainTab === 'payments'
-      ? <>Showing <strong>{paymentTotalCount}</strong> payment{paymentTotalCount === 1 ? '' : 's'} of regular TESDA enrollees.</>
-      : <>Showing <strong>{refundTotalCount}</strong> refund{refundTotalCount === 1 ? '' : 's'} issued to regular TESDA enrollees.</>;
+      ? <>Showing <strong>{paymentTotalCount}</strong> payment{paymentTotalCount === 1 ? '' : 's'}.</>
+      : <>Showing <strong>{refundTotalCount}</strong> refund{refundTotalCount === 1 ? '' : 's'}.</>;
 
   return (
     <div className="adm-payments-page">
@@ -235,7 +238,8 @@ function Payments() {
           ════════════════════════════════════ */}
       <div className="adm-payments-header">
         <div>
-          <h1 className="adm-payments-title">Payments</h1>
+          {/* => Title now swaps per tab too, same mainTab check as headerSubtitle */}
+          <h1 className="adm-payments-title">{mainTab === 'payments' ? 'Payments' : 'Refunds'}</h1>
           <p className="adm-payments-subtitle">{headerSubtitle}</p>
         </div>
       </div>
@@ -331,7 +335,7 @@ function Payments() {
                   <tr>
                     <th>OR Number</th>
                     <th>Student</th>
-                    <th>Course</th>
+                    <th>Batch</th>
                     <th>Amount</th>
                     <th>Payment Date</th>
                     <th>Status</th>
@@ -350,7 +354,7 @@ function Payments() {
                       <td className="adm-td-course">
                         <span className="adm-course-name">{payment.studentName}</span>
                       </td>
-                      <td>{payment.courseTitle}</td>
+                      <td>{payment.batchName}</td>
                       <td>{formatCurrency(payment.amount)}</td>
                       <td className="adm-td-date">{formatDate(payment.paymentDate)}</td>
                       <td>

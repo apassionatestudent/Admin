@@ -21,6 +21,11 @@ import {
   markShsGrade11CompletedController,
   assignTesdaEnrollmentController,
   assignShsEnrollmentController,
+  getTesdaBatchMiscFeesController,
+  getShsBatchMiscFeesController,
+  postTesdaBatchMiscFeeController,
+  postShsBatchMiscFeeController,
+  deleteBatchMiscFeeController,
 } from '../../controllers/Classes/adminBatchController.js';
 
 const router = express.Router();
@@ -52,5 +57,14 @@ router.patch('/shs/:publicId/status', adminApiRateLimit, protectAdmin, patchShsB
 router.patch('/shs/:publicId/grade11-completed', adminApiRateLimit, protectAdmin, markShsGrade11CompletedController);
 router.patch('/shs/:publicId/assign-enrollment', adminApiRateLimit, protectAdmin, assignShsEnrollmentController);
 router.post('/shs', adminApiRateLimit, protectAdmin, createShsBatchController);
+
+// => Miscellaneous fee line items per batch
+router.get('/tesda/:publicId/misc-fees', adminApiRateLimit, protectAdmin, getTesdaBatchMiscFeesController);
+router.post('/tesda/:publicId/misc-fees', adminApiRateLimit, protectAdmin, postTesdaBatchMiscFeeController);
+router.get('/shs/:publicId/misc-fees', adminApiRateLimit, protectAdmin, getShsBatchMiscFeesController);
+router.post('/shs/:publicId/misc-fees', adminApiRateLimit, protectAdmin, postShsBatchMiscFeeController);
+// => Not type-prefixed - the fee's own public_id is enough to find and
+//    delete it regardless of which batch table it belongs to
+router.delete('/misc-fees/:feePublicId', adminApiRateLimit, protectAdmin, deleteBatchMiscFeeController);
 
 export default router;

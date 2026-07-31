@@ -174,6 +174,21 @@ export const getGuardianByStudentId = async (pool, studentId) => {
   return result.rows[0] ?? null;
 };
 
+// => Looks up an admin's current display name for activity-log actor_name.
+//    Placed here rather than duplicated per-type (unlike
+//    adminBatchModel.js, which duplicates this locally since Batches has
+//    no equivalent shared file) - sharedEnrollmentModel.js is already the
+//    designated home for logic genuinely shared between
+//    tesdaEnrollmentService.js and shsEnrollmentService.js.
+export const getAdminNameById = async (pool, adminId) => {
+  if (!adminId) return null;
+  const result = await pool.query(
+    `SELECT full_name FROM admins WHERE admin_id = $1`,
+    [adminId]
+  );
+  return result.rows[0]?.full_name ?? null;
+};
+
 //
 // GENERIC PARTIAL UPDATE HELPER
 // => Column names can't be parameterized with $ placeholders, so every

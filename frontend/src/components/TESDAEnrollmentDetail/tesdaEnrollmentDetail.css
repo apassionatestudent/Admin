@@ -151,9 +151,17 @@
   background: #f3f4f6;
   color: #374151;
 }
-.status--completed {
-  background: #ecfdf5;
-  color: #047857;
+.status--for-assessment {
+  background: #e0f2fe;
+  color: #075985;
+}
+.status--reviewed {
+  background: #ccfbf1;
+  color: #115e59;
+}
+.status--failed-assessment {
+  background: #fecdd3;
+  color: #9f1239;
 }
 .status--reserved {
   background: #ede9fe;
@@ -253,19 +261,6 @@
   cursor: not-allowed;
 }
 
-.adm-save-msg {
-  font-size: 0.8125rem;
-  font-weight: 500;
-}
-
-.adm-save-msg--success {
-  color: #065f46;
-}
-
-.adm-save-msg--error {
-  color: #b91c1c;
-}
-
 .adm-status-description {
   font-size: 0.8125rem;
   color: #6b7280;
@@ -300,6 +295,13 @@
 
 .adm-remarks-label--internal { color: #1d4ed8; }
 .adm-remarks-label--external { color: #b91c1c; }
+
+.adm-remarks-required {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  font-style: italic;
+}
 
 .adm-remarks-input {
   resize: vertical;
@@ -488,6 +490,67 @@
 .adm-sub-table tbody tr:hover {
   background: #f9fafb;
 }
+
+/* => Payment History table needs actual clickable-row styling, unlike
+      the other sub-tables on this page which are plain display-only */
+.adm-sub-table-row {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.adm-sub-table-row:hover {
+  background: #f0f4ff;
+}
+
+.adm-td-or-number {
+  font-family: monospace;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+}
+
+.adm-td-date {
+  white-space: nowrap;
+  color: #6b7280;
+}
+
+/* Badge used inside the Payment History table */
+.adm-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.adm-badge--payment-completed { background: #d1fae5; color: #065f46; }
+.adm-badge--payment-voided    { background: #fee2e2; color: #7f1d1d; }
+
+.adm-type-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.adm-type-badge--payment { background: #dcfce7; color: #166534; }
+.adm-type-badge--refund  { background: #fee2e2; color: #7f1d1d; }
+
+/* => Reservation Fee note above the Payment History table - TESDA-only,
+      the SHS enrollment page has no equivalent since DepEd covers tuition */
+.adm-reservation-note {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  display: inline-block;
+}
+.adm-reservation-note--paid   { background: #d1fae5; color: #065f46; }
+.adm-reservation-note--unpaid { background: #fef3c7; color: #92400e; }
 
 /* ════════════════════════════════════
    DOC CLICKABLE WRAPPER
@@ -870,69 +933,45 @@
 }
 
 /* ════════════════════════════════════
-   AUDIT LOG TIMELINE
+   ACTIVITY LOGS PAGINATION
+   => Table itself reuses .adm-sub-table-wrap / .adm-sub-table, same as
+      Payment History - no new table CSS needed here
    ════════════════════════════════════ */
-.adm-log-timeline {
+.adm-log-pagination {
   display: flex;
-  flex-direction: column;
-  gap: 0;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  flex-wrap: wrap;
 }
 
-.adm-log-item {
-  display: flex;
-  gap: 14px;
-  padding: 14px 0;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.adm-log-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.adm-log-item:first-child {
-  padding-top: 0;
-}
-
-.adm-log-dot {
-  flex-shrink: 0;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--sidebar-bg, #1a56db);
-  margin-top: 6px;
-}
-
-.adm-log-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.adm-log-action {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 3px;
-}
-
-.adm-log-status-change {
-  font-weight: 500;
-  color: #4b5563;
-}
-
-.adm-log-meta {
-  font-size: 0.78rem;
-  color: #9ca3af;
-  margin: 0;
-}
-
-.adm-log-remarks {
-  font-size: 0.8125rem;
+.adm-log-page-btn {
+  min-width: 32px;
+  padding: 6px 10px;
+  background: #fff;
   color: #374151;
-  margin: 6px 0 0;
-  background: #f9fafb;
-  border-radius: 6px;
-  padding: 8px 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.adm-log-page-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.adm-log-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.adm-log-page-btn--active {
+  background: var(--sidebar-bg, #1a56db);
+  border-color: var(--sidebar-bg, #1a56db);
+  color: #fff;
 }
 
 .adm-hero-badges {
@@ -954,6 +993,19 @@
 
 .adm-hero-type-badge--tesda { background: #e0e7ff; color: #3730a3; }
 .adm-hero-type-badge--shs   { background: #fce7f3; color: #9d174d; }
+
+.adm-hero-balance-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.adm-hero-balance-badge--paid   { background: #d1fae5; color: #065f46; }
+.adm-hero-balance-badge--unpaid { background: #fef3c7; color: #92400e; }
 
 .adm-edit-input--error {
   border-color: #dc2626;

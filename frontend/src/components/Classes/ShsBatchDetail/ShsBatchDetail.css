@@ -461,6 +461,43 @@
 .adm-td-date          { white-space: nowrap; color: #6b7280; }
 .adm-td-arrow          { color: #d1d5db; font-size: 1.1rem; text-align: right; padding-right: 14px; }
 
+/* => Miscellaneous Fees section */
+.adm-fee-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.6;
+  transition: opacity 0.12s;
+}
+
+.adm-fee-delete-btn:hover {
+  opacity: 1;
+}
+
+.adm-fee-total {
+  margin: 12px 0 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #111827;
+  text-align: right;
+}
+
+.adm-fee-add-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.adm-fee-add-row .adm-form-input {
+  flex: 1;
+  min-width: 160px;
+}
+
 .adm-sub-table-row:hover .adm-td-arrow { color: #1a56db; }
 
 .adm-badge {

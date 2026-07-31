@@ -138,16 +138,34 @@ function PaymentDetail() {
         </div>
       </div>
 
-      <div className="payment-detail-card">
-        <h2>Student</h2>
-        <p><strong>{payment.studentName}</strong></p>
-        <p>{payment.studentEmail}</p>
-      </div>
+      <div className="payment-detail-top-row">
+        <div className="payment-detail-card">
+          <h2>Student</h2>
+          <div className="payment-detail-grid">
+            <div>
+              <span className="payment-detail-label">Name</span>
+              <span className="payment-detail-value">{payment.studentName}</span>
+            </div>
+            <div>
+              <span className="payment-detail-label">Email</span>
+              <span className="payment-detail-value">{payment.studentEmail}</span>
+            </div>
+          </div>
+        </div>
 
-      <div className="payment-detail-card">
-        <h2>Enrollment</h2>
-        <p>{payment.courseTitle} - {payment.batchName}</p>
-        <p>Total Fee: {formatCurrency(payment.feeAtEnrollment)}</p>
+        <div className="payment-detail-card">
+          <h2>Enrollment</h2>
+          <div className="payment-detail-grid">
+            <div>
+              <span className="payment-detail-label">Batch</span>
+              <span className="payment-detail-value">{payment.batchName}</span>
+            </div>
+            <div>
+              <span className="payment-detail-label">Total Fee</span>
+              <span className="payment-detail-value">{formatCurrency(payment.totalDue)}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="payment-detail-card">
@@ -186,9 +204,20 @@ function PaymentDetail() {
       {payment.status === 'Voided' && (
         <div className="payment-detail-card payment-detail-void-card">
           <h2>Void Details</h2>
-          <p><strong>Reason:</strong> {payment.voidReason}</p>
-          <p><strong>Voided By:</strong> {payment.voidedByName}</p>
-          <p><strong>Voided At:</strong> {formatDateTime(payment.voidedAt)}</p>
+          <div className="payment-detail-grid">
+            <div>
+              <span className="payment-detail-label">Reason</span>
+              <span className="payment-detail-value">{payment.voidReason}</span>
+            </div>
+            <div>
+              <span className="payment-detail-label">Voided By</span>
+              <span className="payment-detail-value">{payment.voidedByName}</span>
+            </div>
+            <div>
+              <span className="payment-detail-label">Voided At</span>
+              <span className="payment-detail-value">{formatDateTime(payment.voidedAt)}</span>
+            </div>
+          </div>
         </div>
       )}
 

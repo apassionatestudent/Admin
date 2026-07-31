@@ -20,6 +20,7 @@ import {
   patchTesdaDocument,
   deleteTesdaDocumentController,
   getAvailableTesdaClassesController,
+  getTesdaPaymentHistory,
 } from '../../controllers/Enrollments/tesdaEnrollmentController.js';
 import { upload } from '../../middleware/upload.js';
 
@@ -32,6 +33,9 @@ router.get('/classes/available', adminApiRateLimit, protectAdmin, getAvailableTe
 
 // => GET /api/admin/enrollments/tesda/:publicId
 router.get('/:publicId', adminApiRateLimit, protectAdmin, getTesdaEnrollmentDetail);
+
+// => GET /api/admin/enrollments/tesda/:publicId/payment-history
+router.get('/:publicId/payment-history', adminApiRateLimit, protectAdmin, getTesdaPaymentHistory);
 
 // => PATCH /api/admin/enrollments/tesda/:publicId/status
 // => Body: { status: string }

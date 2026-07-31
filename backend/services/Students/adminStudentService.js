@@ -1,8 +1,8 @@
-// => admin/services/adminStudentService.js
+// => admin/services/Students/adminStudentService.js
 // => Mirrors adminClassService.js pattern
 // => pool is imported here so controllers stay thin
 
-import { pool } from '../../backend/config/db.js';
+import { pool } from '../../config/db.js';
 
 import {
   getPaginatedStudents,
@@ -12,10 +12,11 @@ import {
   toggleStudentActive,
   updateStudentProfile,
   updateStudentAccount,
-} from '../../../models/Students/adminStudentModel.js';
+} from '../../models/Students/adminStudentModel.js';
 
 // => Payment History section pulls from both Payments and Refunds -
 //    same merge-in-the-service pattern as tesdaEnrollmentService.js.
+//    Each model stays strictly single-table, the merge happens here.
 import * as paymentsModel from '../../models/Payments/paymentsModel.js';
 import * as refundsModel from '../../models/Payments/refundsModel.js';
 
@@ -108,4 +109,44 @@ export const updateStudentRecord = async (publicId, body) => {
   ]);
 
   return { updatedProfile, updatedAccount };
+};
+
+//
+// PAYMENT & REFUND HISTORY
+// => Resolves publicId to student_id, then fetches Payments and Refunds
+//    across BOTH TESDA and SHS enrollments in parallel, tags each row
+//    with record_type and program_type, and merges into one sorted
+//    timeline. Mirrors tesdaEnrollmentService's fetchTesdaPaymentHistory.
+//
+export const fetchStudentPaymentHistory = async (publicId) => {
+  const studentRow = await getStudentByPublicId(pool, publicId);
+  if (!studentRow) return null;
+
+  const [payments, refunds] = await Promise.all([
+    paymentsModel.findPaymentsForStudent(studentRow.student_id),
+    refundsModel.findRefundsForStudent(studentRow.student_id),
+  ]);
+
+  const records = [
+    ...payments.map(p => ({
+      public_id: p.public_id,
+      reference_number: p.or_number,
+      amount: Number(p.amount),
+      record_date: p.payment_date,
+      status: p.status,
+      record_type: 'Payment',
+      program_type: p.program_type,
+    })),
+    ...refunds.map(r => ({
+      public_id: r.public_id,
+      reference_number: r.refund_number,
+      amount: Number(r.amount),
+      record_date: r.created_at,
+      status: r.status,
+      record_type: 'Refund',
+      program_type: r.program_type,
+    })),
+  ].sort((a, b) => new Date(b.record_date) - new Date(a.record_date));
+
+  return { records };
 };

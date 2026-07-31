@@ -22,9 +22,10 @@ export async function getRefundableEnrollments(req, res, next) {
 
 export async function createRefund(req, res, next) {
   try {
-    const { enrollmentId, refundType, percentageValue, amount, reason, remarks } = req.body;
+    const { enrollmentType, enrollmentId, refundType, percentageValue, amount, reason, remarks } = req.body;
 
     const refund = await refundsService.createRefund({
+      enrollmentType,
       enrollmentId,
       refundType,
       percentageValue,

@@ -15,6 +15,7 @@ import {
   deleteShsDocumentSection,
   fetchAvailableShsClasses,
   fetchShsTracksAndClusters,
+  fetchShsPaymentHistory,
 } from '../../services/Enrollments/shsEnrollmentService.js';
 
 import { uploadToR2 } from '../../middleware/upload.js';
@@ -54,13 +55,33 @@ export const patchShsEnrollmentStatus = async (req, res) => {
   try {
     // => external_remarks is forwarded together with status - same
     //    bundling behavior as the TESDA version of this handler
-    const updated = await changeShsEnrollmentStatus(publicId, status, external_remarks);
+    const updated = await changeShsEnrollmentStatus(publicId, status, external_remarks, req.admin?.admin_id ?? null);
     if (!updated) {
       return res.status(404).json({ error: 'Enrollment not found.' });
     }
     return res.status(200).json({ success: true, updated });
   } catch (err) {
     if (err.message?.startsWith('Invalid status')) {
+      return res.status(400).json({ error: err.message });
+    }
+    // => Reserved-without-batch gate failure - same 400 treatment as TESDA
+    if (err.message?.startsWith('Cannot set status to Reserved')) {
+      return res.status(400).json({ error: err.message });
+    }
+    // => Approval-before-Reviewed sequencing failure - same 400 treatment
+    if (err.message?.startsWith('Cannot approve')) {
+      return res.status(400).json({ error: err.message });
+    }
+    // => Missing external remarks on Needs Clarification - same 400 treatment
+    if (err.message?.startsWith('External remarks are required')) {
+      return res.status(400).json({ error: err.message });
+    }
+    // => For Assessment gate failure - covers both sequencing and balance
+    if (err.message?.startsWith('Cannot set status to "For Assessment"')) {
+      return res.status(400).json({ error: err.message });
+    }
+    // => Failed Assessment sequencing failure
+    if (err.message?.startsWith('Cannot set status to "Failed Assessment"')) {
       return res.status(400).json({ error: err.message });
     }
     console.error('patchShsEnrollmentStatus error:', err);
@@ -210,5 +231,24 @@ export const getShsLookupsController = async (req, res) => {
   } catch (err) {
     console.error('getShsLookupsController error:', err);
     return res.status(500).json({ error: 'Failed to fetch SHS lookups.' });
+  }
+};
+
+//
+// GET /api/admin/enrollments/shs/:publicId/payment-history
+// => Read-only. Returns { records: [...], batchMiscFeeTotal: number }
+//
+export const getShsPaymentHistory = async (req, res) => {
+  const { publicId } = req.params;
+  try {
+    const data = await fetchShsPaymentHistory(publicId);
+    if (!data) {
+      return res.status(404).json({ error: 'Enrollment not found.' });
+    }
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json(data);
+  } catch (err) {
+    console.error('getShsPaymentHistory error:', err);
+    return res.status(500).json({ error: 'Failed to fetch payment history.' });
   }
 };

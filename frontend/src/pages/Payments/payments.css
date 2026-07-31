@@ -319,6 +319,20 @@
   white-space: nowrap;
 }
 
+/* => Small tag next to a batch name showing its actual batch_sequence
+      column value - distinct from batch_name itself, which is admin-typed
+      free text and not guaranteed to spell out a number */
+.adm-batch-seq-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
 /* Maroon header variant, matches Facilities/Trainers tables in Classes.css */
 .adm-table-wrap--maroon .adm-table thead tr {
   background: var(--sidebar-bg, #660911);

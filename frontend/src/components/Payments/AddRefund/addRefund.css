@@ -17,6 +17,22 @@
   padding: var(--spacing-lg, 24px);
 }
 
+/* => Same blanket override as addPaymentModal.css - a dashboard-wide
+      global rule keeps forcing white text onto elements inside this
+      modal (confirmed on labels, spans, li results), and targeted fixes
+      kept missing new spots. Forces every descendant back to dark text
+      by default; the specific muted-gray/accent color rules further
+      down this file still apply since they come later at equal
+      specificity. */
+.add-refund-modal * {
+  color: var(--text-h, #08060d) !important;
+}
+
+.add-refund-field input,
+.add-refund-field textarea {
+  color: var(--text-h, #08060d) !important;
+}
+
 .add-refund-header {
   display: flex;
   align-items: center;
@@ -44,6 +60,7 @@
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 6px;
+  color: var(--text-h, #08060d);
 }
 
 .add-refund-required {
@@ -60,7 +77,7 @@
 .add-refund-field textarea {
   width: 100%;
   border: 1px solid var(--color-border, #ddd);
-  border-radius: var(--radius-md, 8px);
+  border-radius: 0;
   padding: 8px 12px;
   box-sizing: border-box;
   font-family: inherit;
@@ -86,6 +103,8 @@
 }
 
 .add-refund-icon {
+  /* => flex: 0 0 18px pins the icon at exactly 18px so it can't grow and
+        sit on top of the typed text - same fix as addPaymentModal.css */
   flex: 0 0 18px;
   width: 18px;
   height: 18px;
@@ -128,7 +147,27 @@
 
 .add-refund-result-name {
   font-weight: 600;
+  /* => !important for the same reason as addPaymentModal.css's
+        .add-payment-result-name - a stronger global rule was overriding
+        this specific spot even before the blanket override existed */
+  color: var(--text-h, #08060d) !important;
 }
+
+/* => TESDA/SHS badge in the refundable-enrollments search results -
+      same naming convention and color pairing as
+      .add-payment-result-type-badge in addPaymentModal.css */
+.add-refund-result-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-right: 6px;
+  color: var(--text-h, #08060d) !important;
+}
+.add-refund-result-type-badge--tesda { background: #e0e7ff !important; color: #3730a3 !important; }
+.add-refund-result-type-badge--shs   { background: #fce7f3 !important; color: #9d174d !important; }
 
 .add-refund-result-course {
   font-size: 13px;
@@ -137,7 +176,7 @@
 
 .add-refund-result-balance {
   font-size: 12px;
-  color: var(--color-primary);
+  color: var(--accent-hover, #8a0d17);
 }
 
 .add-refund-selected-card {
@@ -159,7 +198,7 @@
 .add-refund-change-btn {
   border: none;
   background: transparent;
-  color: var(--color-primary);
+  color: var(--accent-hover, #8a0d17);
   cursor: pointer;
   font-weight: 600;
   font-size: 13px;
@@ -170,6 +209,7 @@
   justify-content: space-between;
   font-size: 14px;
   padding: 4px 0;
+  color: var(--text-h, #08060d);
 }
 
 .add-refund-balance-remaining {
@@ -189,7 +229,7 @@
   flex: 1;
   padding: 9px 14px;
   background: #fff;
-  color: #374151;
+  color: #374151 !important;
   font-size: 0.8125rem;
   font-weight: 600;
   border: 1.5px solid #e5e7eb;
@@ -202,7 +242,7 @@
 .add-refund-type-btn--active {
   background: var(--sidebar-bg, #660911);
   border-color: var(--sidebar-bg, #660911);
-  color: #fff;
+  color: #fff !important;
 }
 
 .add-refund-preview-row {
@@ -233,8 +273,8 @@
 
 .add-refund-submit-btn {
   border: none;
-  background: var(--color-primary);
-  color: var(--color-on-primary, #fff);
+  background: var(--accent-hover, #8a0d17);
+  color: #fff !important;
   border-radius: var(--radius-md, 8px);
   padding: 10px 16px;
   font-weight: 600;

@@ -15,6 +15,7 @@ import {
   replaceTesdaDocumentSection,
   deleteTesdaDocumentSection,
   fetchAvailableTesdaClasses,
+  fetchTesdaPaymentHistory,
 } from '../../services/Enrollments/tesdaEnrollmentService.js';
 
 import { uploadToR2 } from '../../middleware/upload.js';
@@ -55,13 +56,41 @@ export const patchTesdaEnrollmentStatus = async (req, res) => {
     // => external_remarks is destructured and forwarded together with
     //    status - keeping both in the same call is what makes the
     //    external remarks bundling behavior work
-    const updated = await changeTesdaEnrollmentStatus(publicId, status, external_remarks);
+    // => admin_id threaded through for the activity log entry - same
+    //    pattern as adminBatchController.js's status-change handlers
+    const updated = await changeTesdaEnrollmentStatus(publicId, status, external_remarks, req.admin?.admin_id ?? null);
     if (!updated) {
       return res.status(404).json({ error: 'Enrollment not found.' });
     }
     return res.status(200).json({ success: true, updated });
   } catch (err) {
     if (err.message?.startsWith('Invalid status')) {
+      return res.status(400).json({ error: err.message });
+    }
+    // => Reservation fee gate failure - same 400 treatment as an invalid
+    //    status, since both are client-correctable, not server errors
+    if (err.message?.startsWith('Reservation fee not fully paid')) {
+      return res.status(400).json({ error: err.message });
+    }
+    // => Reserved-without-batch gate failure - same 400 treatment
+    if (err.message?.startsWith('Cannot set status to Reserved')) {
+      return res.status(400).json({ error: err.message });
+    }
+    // => Approval-before-Reviewed sequencing failure - same 400 treatment
+    if (err.message?.startsWith('Cannot approve')) {
+      return res.status(400).json({ error: err.message });
+    }
+    // => Missing external remarks on Needs Clarification - same 400 treatment
+    if (err.message?.startsWith('External remarks are required')) {
+      return res.status(400).json({ error: err.message });
+    }
+    // => For Assessment gate failure - covers both the sequencing check
+    //    and the balance check, since both error messages share this prefix
+    if (err.message?.startsWith('Cannot set status to "For Assessment"')) {
+      return res.status(400).json({ error: err.message });
+    }
+    // => Failed Assessment sequencing failure
+    if (err.message?.startsWith('Cannot set status to "Failed Assessment"')) {
       return res.status(400).json({ error: err.message });
     }
     console.error('patchTesdaEnrollmentStatus error:', err);
@@ -211,5 +240,24 @@ export const getAvailableTesdaClassesController = async (req, res) => {
   } catch (err) {
     console.error('getAvailableTesdaClassesController error:', err);
     return res.status(500).json({ error: 'Failed to fetch available classes.' });
+  }
+};
+
+//
+// GET /api/admin/enrollments/tesda/:publicId/payment-history
+// => Read-only. Returns { records: [...], totalPaid: number }
+//
+export const getTesdaPaymentHistory = async (req, res) => {
+  const { publicId } = req.params;
+  try {
+    const data = await fetchTesdaPaymentHistory(publicId);
+    if (!data) {
+      return res.status(404).json({ error: 'Enrollment not found.' });
+    }
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json(data);
+  } catch (err) {
+    console.error('getTesdaPaymentHistory error:', err);
+    return res.status(500).json({ error: 'Failed to fetch payment history.' });
   }
 };

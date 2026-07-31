@@ -110,16 +110,34 @@ function RefundDetail() {
         )}
       </div>
 
-      <div className="refund-detail-card">
-        <h2>Student</h2>
-        <p><strong>{refund.studentName}</strong></p>
-        <p>{refund.studentEmail}</p>
-      </div>
+      <div className="refund-detail-top-row">
+        <div className="refund-detail-card">
+          <h2>Student</h2>
+          <div className="refund-detail-grid">
+            <div>
+              <span className="refund-detail-label">Name</span>
+              <span className="refund-detail-value">{refund.studentName}</span>
+            </div>
+            <div>
+              <span className="refund-detail-label">Email</span>
+              <span className="refund-detail-value">{refund.studentEmail}</span>
+            </div>
+          </div>
+        </div>
 
-      <div className="refund-detail-card">
-        <h2>Enrollment</h2>
-        <p>{refund.courseTitle} - {refund.batchName}</p>
-        <p>Course Fee: {formatCurrency(refund.feeAtEnrollment)}</p>
+        <div className="refund-detail-card">
+          <h2>Enrollment</h2>
+          <div className="refund-detail-grid">
+            <div>
+              <span className="refund-detail-label">Batch</span>
+              <span className="refund-detail-value">{refund.batchName}</span>
+            </div>
+            <div>
+              <span className="refund-detail-label">Course Fee</span>
+              <span className="refund-detail-value">{formatCurrency(refund.totalDue)}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="refund-detail-card">
@@ -163,9 +181,20 @@ function RefundDetail() {
       {refund.status === 'Voided' && (
         <div className="refund-detail-card refund-detail-void-card">
           <h2>Void Details</h2>
-          <p><strong>Reason:</strong> {refund.voidReason}</p>
-          <p><strong>Voided By:</strong> {refund.voidedByName}</p>
-          <p><strong>Voided At:</strong> {formatDateTime(refund.voidedAt)}</p>
+          <div className="refund-detail-grid">
+            <div>
+              <span className="refund-detail-label">Reason</span>
+              <span className="refund-detail-value">{refund.voidReason}</span>
+            </div>
+            <div>
+              <span className="refund-detail-label">Voided By</span>
+              <span className="refund-detail-value">{refund.voidedByName}</span>
+            </div>
+            <div>
+              <span className="refund-detail-label">Voided At</span>
+              <span className="refund-detail-value">{formatDateTime(refund.voidedAt)}</span>
+            </div>
+          </div>
         </div>
       )}
 
