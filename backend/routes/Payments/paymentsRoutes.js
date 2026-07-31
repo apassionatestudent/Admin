@@ -6,7 +6,8 @@ import {
   createPayment,
   listPayments,
   getPaymentDetail,
-  voidPayment
+  voidPayment,
+  downloadPaymentReceipt
 } from '../../controllers/Payments/paymentsController.js';
 
 import { protectAdmin } from '../../middleware/adminAuth.js';
@@ -28,6 +29,7 @@ router.use(csrfProtection);
 router.get('/course-options', readRateLimit, getTesdaCourseOptions);
 router.get('/eligible-enrollments', readRateLimit, getEligibleEnrollments);
 router.get('/:publicId', readRateLimit, getPaymentDetail);
+router.get('/:publicId/receipt', readRateLimit, downloadPaymentReceipt);
 router.get('/', readRateLimit, listPayments);
 
 router.post('/', adminApiRateLimit, createPayment);

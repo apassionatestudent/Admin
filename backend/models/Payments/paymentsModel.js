@@ -28,6 +28,7 @@ export async function findEligibleEnrollments(searchTerm) {
       te.enrollment_id,
       te.public_id,
       te.fee_at_enrollment,
+      COALESCE(tesda_fee.total_misc_fee, 0) AS total_misc_fee,
       tb.batch_name,
       tc.title AS course_title,
       sp.first_name,
@@ -39,6 +40,13 @@ export async function findEligibleEnrollments(searchTerm) {
     LEFT JOIN tesda_courses tc ON tc.course_id = te.course_id
     LEFT JOIN student_profile sp ON sp.student_id = te.student_id
     LEFT JOIN payments p ON p.enrollment_id = te.enrollment_id
+    -- => TESDA batches can carry batch_misc_fees rows too now, same
+    -- => LATERAL pattern already used for SHS below
+    LEFT JOIN LATERAL (
+      SELECT SUM(fee_amount) AS total_misc_fee
+      FROM batch_misc_fees
+      WHERE batch_type = 'TESDA' AND batch_id = tb.batch_id
+    ) tesda_fee ON true
     WHERE tb.class_type = 'Regular'
       AND te.is_tesda_scholar = FALSE
       -- => Payment must be collectible BEFORE approval now, since the
@@ -50,9 +58,10 @@ export async function findEligibleEnrollments(searchTerm) {
         OR sp.last_name ILIKE ${term}
         OR tc.title ILIKE ${term}
       )
-    GROUP BY te.enrollment_id, tb.batch_name, tc.title, sp.first_name, sp.last_name, sp.middle_name
-    -- => hide enrollments already fully paid
-    HAVING COALESCE(SUM(p.amount) FILTER (WHERE p.status = 'Completed'), 0) < te.fee_at_enrollment
+    GROUP BY te.enrollment_id, tb.batch_name, tc.title, sp.first_name, sp.last_name, sp.middle_name, tesda_fee.total_misc_fee
+    -- => hide enrollments already fully paid - total owed is course fee
+    -- => plus any misc fees configured on this TESDA batch
+    HAVING COALESCE(SUM(p.amount) FILTER (WHERE p.status = 'Completed'), 0) < (te.fee_at_enrollment + COALESCE(tesda_fee.total_misc_fee, 0))
     ORDER BY sp.last_name ASC
     LIMIT 20
   `;
@@ -159,6 +168,7 @@ export async function lockEnrollmentBalance(client, enrollmentId) {
     `SELECT te.enrollment_id,
             te.fee_at_enrollment,
             te.is_tesda_scholar,
+            tb.batch_id,
             tb.class_type
      FROM tesda_enrollments te
      JOIN tesda_batches tb ON tb.batch_id = te.batch_id
@@ -178,9 +188,19 @@ export async function lockEnrollmentBalance(client, enrollmentId) {
     [enrollmentId]
   );
 
+  // => Misc fees configured on this TESDA batch, same table/shape SHS
+  // => already reads via lockShsEnrollmentBalance above
+  const feeResult = await client.query(
+    `SELECT COALESCE(SUM(fee_amount), 0) AS total_misc_fee
+     FROM batch_misc_fees
+     WHERE batch_type = 'TESDA' AND batch_id = $1`,
+    [enrollment.batch_id]
+  );
+
   return {
     enrollment_id: enrollment.enrollment_id,
     fee_at_enrollment: enrollment.fee_at_enrollment,
+    total_misc_fee: feeResult.rows[0].total_misc_fee,
     is_tesda_scholar: enrollment.is_tesda_scholar,
     class_type: enrollment.class_type,
     total_paid: aggResult.rows[0].total_paid
@@ -290,8 +310,11 @@ export async function findPaymentByPublicId(publicId) {
       sp.email AS student_email,
       creator.full_name AS created_by_name,
       voider.full_name AS voided_by_name,
-      -- => TESDA-side fields, NULL when this payment is SHS
+      -- => TESDA-side fields, NULL when this payment is SHS. Misc fees
+      -- => summed via LATERAL the same way SHS's are below, since TESDA
+      -- => batches can now carry batch_misc_fees rows too.
       te.fee_at_enrollment,
+      tesda_fee.total_misc_fee AS tesda_total_misc_fee,
       tb.batch_name AS tesda_batch_name,
       tb.batch_sequence AS tesda_batch_sequence,
       -- => SHS-side fields, NULL when this payment is TESDA. SHS has no
@@ -303,6 +326,11 @@ export async function findPaymentByPublicId(publicId) {
     FROM payments p
     LEFT JOIN tesda_enrollments te ON te.enrollment_id = p.enrollment_id AND p.enrollment_type = 'TESDA'
     LEFT JOIN tesda_batches tb ON tb.batch_id = te.batch_id
+    LEFT JOIN LATERAL (
+      SELECT SUM(fee_amount) AS total_misc_fee
+      FROM batch_misc_fees
+      WHERE batch_type = 'TESDA' AND batch_id = tb.batch_id
+    ) tesda_fee ON p.enrollment_type = 'TESDA'
     LEFT JOIN shs_enrollments se ON se.enrollment_id = p.enrollment_id AND p.enrollment_type = 'SHS'
     LEFT JOIN shs_batches sb ON sb.batch_id = se.batch_id
     LEFT JOIN LATERAL (

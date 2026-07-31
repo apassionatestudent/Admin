@@ -6,7 +6,8 @@ import {
   createRefund,
   listRefunds,
   getRefundDetail,
-  voidRefund
+  voidRefund,
+  downloadRefundReceipt
 } from '../../controllers/Payments/refundsController.js';
 
 import { protectAdmin } from '../../middleware/adminAuth.js';
@@ -33,6 +34,7 @@ router.use(csrfProtection);
 router.get('/course-options', readRateLimit, getTesdaCourseOptions);
 router.get('/refundable-enrollments', readRateLimit, getRefundableEnrollments);
 router.get('/:publicId', readRateLimit, getRefundDetail);
+router.get('/:publicId/receipt', readRateLimit, downloadRefundReceipt);
 router.get('/', readRateLimit, listRefunds);
 
 router.post('/', adminApiRateLimit, createRefund);
