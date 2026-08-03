@@ -12,7 +12,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useParams, useNavigate } from 'react-router-dom';
-import axiosAdmin from '../../../api/axiosAdmin.js';
+import axiosAdmin from '../../../utils/axiosAdmin.js';
 import BackButton from '../../BackButton/BackButton.jsx';
 import ConfirmModal from '../../ConfirmModal/ConfirmModal.jsx';
 import pencilIcon from '../../../assets/icons/pencil.png';

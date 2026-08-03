@@ -16,7 +16,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import BackButton from '../BackButton/BackButton.jsx';
-import axiosAdmin from '../../api/axiosAdmin.js';
+import axiosAdmin from '../../utils/axiosAdmin.js';
 import toast from 'react-hot-toast';
 
 import './shsEnrollmentDetail.css';

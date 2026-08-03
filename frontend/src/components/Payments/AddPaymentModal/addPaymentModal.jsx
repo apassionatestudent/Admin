@@ -4,7 +4,7 @@ import searchIcon from '../../../assets/icons/magnifying-glass.png';
 import pesoIcon from '../../../assets/icons/peso.png';
 import toast from 'react-hot-toast';
 
-import axiosAdmin from '../../../api/axiosAdmin.js';
+import axiosAdmin from '../../../utils/axiosAdmin.js';
 
 import './addPaymentModal.css';
 

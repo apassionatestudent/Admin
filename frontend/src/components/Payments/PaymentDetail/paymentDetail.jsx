@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
-import axiosAdmin from '../../../api/axiosAdmin.js';
+import axiosAdmin from '../../../utils/axiosAdmin.js';
 
 // => Reuses the shared BackButton component instead of a one-off button,
 import BackButton from '../../BackButton/BackButton.jsx';

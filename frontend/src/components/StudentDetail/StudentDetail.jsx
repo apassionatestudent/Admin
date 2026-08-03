@@ -11,7 +11,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import BackButton from '../BackButton/BackButton.jsx';
 // => axiosAdmin auto-attaches credentials + x-csrf-token on every mutating
 //    call - required or csrfProtection middleware silently rejects PATCH/PUT.
-import axiosAdmin from '../../api/axiosAdmin.js';
+import axiosAdmin from '../../utils/axiosAdmin.js';
 
 import './StudentDetail.css';
 

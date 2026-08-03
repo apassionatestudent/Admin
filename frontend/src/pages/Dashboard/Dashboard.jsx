@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 // => axiosAdmin attaches CSRF token and handles 401s centrally, same as every other admin request
-import axiosAdmin from '../../api/axiosAdmin.js';
+import axiosAdmin from '../../utils/axiosAdmin.js';
 import { useNavigate, Outlet } from 'react-router-dom';
 import Sidebar from '../../components/SideBar/SideBar.jsx';
 import './Dashboard.css';

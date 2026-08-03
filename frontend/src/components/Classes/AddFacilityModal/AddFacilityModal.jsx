@@ -22,7 +22,7 @@
 //    in loadOptions() if the real shape differs.
 
 import React, { useEffect, useState } from 'react';
-import axiosAdmin from '../../../api/axiosAdmin.js'; 
+import axiosAdmin from '../../../utils/axiosAdmin.js'; 
 import closeIcon from '../../../assets/icons/close.png'; 
 import warningIcon from '../../../assets/icons/warning.png'; 
 import './AddFacilityModal.css';

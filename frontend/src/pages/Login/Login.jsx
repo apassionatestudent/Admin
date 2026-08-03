@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 // import axios from 'axios';
 // => axiosAdmin automatically attaches withCredentials and x-csrf-token header
-import axiosAdmin from '../../api/axiosAdmin.js';
+import axiosAdmin from '../../utils/axiosAdmin.js';
 
 import { useNavigate } from 'react-router-dom';
 

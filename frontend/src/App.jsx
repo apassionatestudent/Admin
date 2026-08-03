@@ -16,6 +16,7 @@ import Pages         from './pages/Pages/Pages.jsx';
 import Logs          from './pages/Logs/Logs.jsx';
 import Chatbots      from './pages/Chatbots/Chatbots.jsx';
 import Admins        from './pages/Admins/Admins.jsx';
+import Account from './pages/Account/account.jsx';
 
 // components 
 // import EnrollmentDetail from './components/EnrollmentDetail/EnrollmentDetail.jsx';
@@ -85,6 +86,7 @@ function App() {
                     <Route path="logs"                  element={<Logs />} />
                     <Route path="chatbots"              element={<Chatbots />} />
                     <Route path="admins"                element={<Admins />} />
+                    <Route path="account" element={<Account />} />
                 </Route>
                 
             </Routes>

@@ -9,7 +9,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
-import axiosAdmin from '../../api/axiosAdmin.js';
+import axiosAdmin from '../../utils/axiosAdmin.js';
 
 import emptyPaymentsIcon from '../../assets/icons/empty-classes.png';
 import warningIcon from '../../assets/icons/warning.png';

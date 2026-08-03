@@ -1,4 +1,4 @@
-// => admin/frontend/src/api/axiosAdmin.js
+// => admin/frontend/src/utils/axiosAdmin.js
 // => Central axios instance for all admin API requests
 // => Automatically attaches the CSRF token and admin_token cookie to every request
 
