@@ -13,15 +13,17 @@ import {
 
 const router = express.Router();
 
-// => GET only needs auth and read rate limiting
-router.get('/', protectAdmin, readRateLimit, getAccount);
+// => Rate limiter runs first on every route below, so abusive/unauthenticated
+//    requests get throttled before the more expensive JWT verification in
+//    protectAdmin ever runs
+router.get('/', readRateLimit, protectAdmin, getAccount);
 
 // => Note: csrfProtection is already applied globally in server.js for all
 // => POST/PATCH/PUT/DELETE requests, so it is not re-applied here to avoid
 // => double middleware. Confirm this matches your actual adminCsrf.js setup.
-router.patch('/profile', protectAdmin, adminApiRateLimit, updateProfile);
-router.patch('/theme', protectAdmin, adminApiRateLimit, updateTheme);
-router.patch('/password', protectAdmin, adminApiRateLimit, changePassword);
-router.get('/logs', protectAdmin, readRateLimit, getLogs);
+router.patch('/profile', adminApiRateLimit, protectAdmin, updateProfile);
+router.patch('/theme', adminApiRateLimit, protectAdmin, updateTheme);
+router.patch('/password', adminApiRateLimit, protectAdmin, changePassword);
+router.get('/logs', readRateLimit, protectAdmin, getLogs);
 
 export default router;
