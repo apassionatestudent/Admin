@@ -21,7 +21,12 @@ export default function AddFAQModal({ faq, sections, defaultSectionId, onClose, 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  const canSave = question.trim().length > 0 && answer.replace(/<[^>]*>/g, '').trim().length > 0 && sectionId !== '';
+  const getPlainTextFromHtml = (html) => {
+    const doc = new DOMParser().parseFromString(html || '', 'text/html');
+    return doc.body.textContent || '';
+  };
+
+  const canSave = question.trim().length > 0 && getPlainTextFromHtml(answer).trim().length > 0 && sectionId !== '';
 
   const handleSave = async () => {
     setError(null);
