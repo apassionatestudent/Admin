@@ -1,0 +1,109 @@
+/* => pages/Pages/pages.css */
+
+.adm-pages-page {
+  padding: 24px 32px 48px;
+  color: var(--text);
+  font-family: var(--font-body), sans-serif; /* => matches Courses.css's base page font */
+}
+
+.adm-pages-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.adm-pages-title {
+  font-family: var(--font-body), sans-serif; /* => was font-display - switched per feedback, matches Courses.css's h2 */
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-h);
+  margin: 0 0 4px;
+}
+
+.adm-pages-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-muted, var(--text));
+  margin: 0;
+}
+
+.adm-pages-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.adm-pages-btn-solid {
+  background: var(--accent-hover, #8a0d17);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+}
+
+.adm-pages-btn-solid:hover:not(:disabled) {
+  background: var(--sidebar-hover-bg, #262626);
+}
+
+.adm-pages-btn-solid:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.adm-pages-btn-outline {
+  background: transparent;
+  color: var(--accent-hover, #8a0d17);
+  border: 1px solid var(--accent-hover, #8a0d17);
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+}
+
+.adm-pages-btn-outline:hover {
+  background: var(--sidebar-hover-bg, #262626);
+  color: #fff;
+  border-color: var(--sidebar-hover-bg, #262626);
+}
+
+/* => Active/Inactive view toggle - ported from Courses.css's .view-toggle,
+      only ever showing 2 options here (no "Deleted" - Announcements use
+      hard delete, not soft-delete + restore) */
+.view-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--code-bg, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.view-toggle-btn {
+  background: none;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted, var(--text));
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+}
+
+.view-toggle-btn.view-toggle-active {
+  background: var(--accent-hover, #8a0d17);
+  color: #fff;
+}
+
+.adm-pages-body {
+  margin-top: 20px;
+}

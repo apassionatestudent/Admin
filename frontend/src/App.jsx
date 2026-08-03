@@ -12,7 +12,7 @@ import Students      from './pages/Students/Students.jsx';
 import Reports       from './pages/Reports/Reports.jsx';
 import Payments      from './pages/Payments/payments.jsx';
 import Courses       from './pages/Courses/Courses.jsx';
-import Pages         from './pages/Pages/Pages.jsx';
+import Pages         from './pages/Pages/pages.jsx';
 import Logs          from './pages/Logs/Logs.jsx';
 import Chatbots      from './pages/Chatbots/Chatbots.jsx';
 import Admins        from './pages/Admins/Admins.jsx';

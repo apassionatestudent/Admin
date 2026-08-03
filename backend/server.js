@@ -38,6 +38,12 @@ import { runAutoPromoteBatches } from './jobs/batchAutoPromoteJob.js';
 import paymentsRoutes from './routes/Payments/paymentsRoutes.js';
 import refundsRoutes from './routes/Payments/refundsRoutes.js';
 
+// Page: Pages (Announcements / Privacy Policy / FAQs)
+import announcementRoutes from './routes/Pages/announcementRoutes.js';
+import cmsPageRoutes from './routes/Pages/cmsPageRoutes.js';
+import faqSectionRoutes from './routes/Pages/faqSectionRoutes.js';
+import faqRoutes from './routes/Pages/faqRoutes.js';
+
 dotenv.config(); // => moved up - must run before any module reads process.env
 
 // => CSRF validation middleware - token is generated in adminAuthController on login
@@ -53,7 +59,11 @@ app.use(cors({
 }));
 app.use(helmet());
 app.use(morgan('dev'));
-app.use(express.json());
+// => Raised from Express's 100kb default - RichTextEditor content can
+//    embed multiple base64 images (each up to ~665KB after base64's ~33%
+//    inflation on a 500KB source file, per MAX_IMAGE_BYTES in
+//    richTextEditor.jsx), so a page with several images needs real headroom
+app.use(express.json({ limit: '5mb' }));
 app.use(cookieParser());
 // => CSRF validation: must come after cookieParser() and express.json()
 // => Rejects POST/PATCH/PUT/DELETE without a valid x-csrf-token header
@@ -92,6 +102,12 @@ app.use('/api/admin/class-sessions', adminClassSessionRouter);
 // Payments 
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/refunds', refundsRoutes);
+
+// Pages
+app.use('/api/admin/pages/announcements', announcementRoutes);
+app.use('/api/admin/pages/privacy-policy', cmsPageRoutes);
+app.use('/api/admin/pages/faqs-sections', faqSectionRoutes);
+app.use('/api/admin/pages/faqs', faqRoutes);
 
 
 // => Initialize DB tables that the admin backend needs
