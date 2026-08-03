@@ -1,0 +1,54 @@
+/* => components/LoadingState/loadingState.css
+   => Shared spinner/error block - uses your real tokens (--text-muted,
+      --border, --accent-hover) so it inherits whichever maroon the page
+      that imports it already defines, instead of a hardcoded color
+      copy-pasted into every file that needs a loading state. */
+
+.ls-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 0;
+  color: var(--text-muted, #666);
+  font-size: 0.9375rem;
+  text-align: center;
+}
+
+.ls-wrap--error {
+  color: #b91c1c;
+}
+
+.ls-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.ls-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e5e7eb;
+  border-top-color: var(--accent-hover, #8a0d17);
+  border-radius: 50%;
+  animation: ls-spin 0.8s linear infinite;
+}
+
+@keyframes ls-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ls-retry-btn {
+  margin-top: 4px;
+  padding: 8px 20px;
+  border: 1px solid var(--border, #e0d8d0);
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ls-retry-btn:hover {
+  background: var(--code-bg, #faf7f5);
+}

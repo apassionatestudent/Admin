@@ -1,0 +1,15 @@
+/* => components/Pages/AddFAQModal/addFAQModal.css
+   => Only parts unique to this modal - adm-modal-* / adm-form-* shell
+      classes assumed global, same as addSessionModal.css. */
+
+.afm-modal-box {
+  width: 640px; /* => wider than the default form modal since it holds the RichTextEditor */
+  max-width: 92vw;
+}
+
+.afm-inline-icon {
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
+  margin-right: 4px;
+}
