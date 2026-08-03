@@ -19,7 +19,12 @@ export default function AddAnnouncementModal({ announcement, onClose, onSaved })
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  const canSave = title.trim().length > 0 && message.replace(/<[^>]*>/g, '').trim().length > 0;
+  const getPlainTextFromHtml = (html) => {
+    const doc = new DOMParser().parseFromString(html || '', 'text/html');
+    return (doc.body.textContent || '').trim();
+  };
+
+  const canSave = title.trim().length > 0 && getPlainTextFromHtml(message).length > 0;
 
   const handleSave = async () => {
     setError(null);
