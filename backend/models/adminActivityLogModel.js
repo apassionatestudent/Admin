@@ -62,3 +62,60 @@ export const getActivityLogsForEntity = async (pool, entityType, entityId) => {
   );
   return result.rows;
 };
+
+// => Paginated variant, 10 rows per page by default
+// => Returns both the page of rows and the total count, so the frontend
+//    can compute whether a Next button should be enabled
+export const getActivityLogsForEntityPaginated = async (pool, entityType, entityId, page = 1, pageSize = 10) => {
+  const offset = (page - 1) * pageSize;
+
+  const rowsResult = await pool.query(
+    `SELECT log_id, actor_type, actor_name, action, action_detail, created_at
+       FROM activity_logs
+      WHERE entity_type = $1 AND entity_id = $2
+      ORDER BY created_at DESC
+      LIMIT $3 OFFSET $4`,
+    [entityType, entityId, pageSize, offset]
+  );
+
+  const countResult = await pool.query(
+    `SELECT COUNT(*)::int AS total
+       FROM activity_logs
+      WHERE entity_type = $1 AND entity_id = $2`,
+    [entityType, entityId]
+  );
+
+  return {
+    logs: rowsResult.rows,
+    total: countResult.rows[0].total,
+  };
+};
+
+// => Paginated logs for everything a specific actor has done, regardless
+//    of which entity_type each action touched. Used by the Account page
+//    to show "my activity" across the whole system, not just actions
+//    taken on the admin's own account record.
+export const getActivityLogsByActorPaginated = async (pool, actorType, actorId, page = 1, pageSize = 10) => {
+  const offset = (page - 1) * pageSize;
+
+  const rowsResult = await pool.query(
+    `SELECT log_id, entity_type, entity_id, actor_type, actor_name, action, action_detail, created_at
+       FROM activity_logs
+      WHERE actor_type = $1 AND actor_id = $2
+      ORDER BY created_at DESC
+      LIMIT $3 OFFSET $4`,
+    [actorType, actorId, pageSize, offset]
+  );
+
+  const countResult = await pool.query(
+    `SELECT COUNT(*)::int AS total
+       FROM activity_logs
+      WHERE actor_type = $1 AND actor_id = $2`,
+    [actorType, actorId]
+  );
+
+  return {
+    logs: rowsResult.rows,
+    total: countResult.rows[0].total,
+  };
+};

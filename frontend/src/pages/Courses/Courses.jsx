@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axiosAdmin from '../../api/axiosAdmin.js';
+import axiosAdmin from '../../utils/axiosAdmin.js';
 import CreateTesdaCourseModal from '../../components/CreateTesdaCourseModal/CreateTesdaCourseModal.jsx';
 import CreateShsCourseModal from '../../components/CreateShsCourseModal/CreateShsCourseModal.jsx';
 import AddClusterModal from '../../components/AddClusterModal/AddClusterModal.jsx';

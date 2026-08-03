@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom'; 
-import axiosAdmin from '../../api/axiosAdmin.js'; 
+import axiosAdmin from '../../utils/axiosAdmin.js'; 
 import pencilIcon from '../../assets/icons/pencil.png'; 
 import trashIcon from '../../assets/icons/trash.png'; 
 import BackButton from '../BackButton/BackButton.jsx';

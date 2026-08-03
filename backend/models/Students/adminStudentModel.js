@@ -23,7 +23,7 @@ export const getPaginatedStudents = async (pool, page = 1, onlyActive = false) =
         sa.student_id,
         sa.username,
         sa.is_active,
-        sa.is_email_confirmed,
+        
         sa.created_at,
         sa.last_login_at,
         sp.last_name,
@@ -37,7 +37,7 @@ export const getPaginatedStudents = async (pool, page = 1, onlyActive = false) =
       ${activeClause}
       GROUP BY
         sa.public_id, sa.student_id, sa.username,
-        sa.is_active, sa.is_email_confirmed, sa.created_at, sa.last_login_at,
+        sa.is_active,  sa.created_at, sa.last_login_at,
         sp.last_name, sp.first_name, sp.middle_name, sp.name_extension
       ORDER BY sa.created_at DESC
       LIMIT  $1
@@ -113,7 +113,7 @@ export const searchStudents = async (pool, filters, page = 1) => {
         sa.student_id,
         sa.username,
         sa.is_active,
-        sa.is_email_confirmed,
+        
         sa.created_at,
         sa.last_login_at,
         sp.last_name,
@@ -127,7 +127,7 @@ export const searchStudents = async (pool, filters, page = 1) => {
       ${whereClause}
       GROUP BY
         sa.public_id, sa.student_id, sa.username,
-        sa.is_active, sa.is_email_confirmed, sa.created_at, sa.last_login_at,
+        sa.is_active,  sa.created_at, sa.last_login_at,
         sp.last_name, sp.first_name, sp.middle_name, sp.name_extension
       ORDER BY sa.created_at DESC
       LIMIT  $${limitParam}
@@ -164,7 +164,7 @@ export const getStudentByPublicId = async (pool, publicId) => {
         sa.student_id,
         sa.username,
         sa.is_active,
-        sa.is_email_confirmed,
+        
         sa.created_at,
         sa.updated_at,
         sa.last_login_at,
@@ -243,7 +243,7 @@ export const toggleStudentActive = async (pool, publicId, isActive) => {
 // 
 // UPDATE STUDENT PROFILE
 // => Upserts profile fields; if no profile row exists yet, inserts one
-// => account-level fields (username, is_email_confirmed) updated separately
+// => account-level fields (username, ) updated separately
 // 
 export const updateStudentProfile = async (pool, studentId, profileFields) => {
   const {
@@ -313,21 +313,20 @@ export const updateStudentProfile = async (pool, studentId, profileFields) => {
 
 // 
 // UPDATE STUDENT ACCOUNT FIELDS
-// => Updates username and/or is_email_confirmed on student_accounts
+// => Updates username and/or  on student_accounts
 // 
 export const updateStudentAccount = async (pool, studentId, accountFields) => {
-  const { username, is_email_confirmed } = accountFields;
+  const { username,  } = accountFields;
 
   const result = await pool.query(
     `UPDATE student_accounts
         SET username           = COALESCE($1, username),
-            is_email_confirmed = COALESCE($2, is_email_confirmed),
+             = COALESCE($2, ),
             updated_at         = NOW()
       WHERE student_id = $3
-      RETURNING public_id, student_id, username, is_email_confirmed, is_active, updated_at`,
+      RETURNING public_id, student_id, username, , is_active, updated_at`,
     [
       username           ?? null,
-      is_email_confirmed ?? null,
       studentId,
     ]
   );

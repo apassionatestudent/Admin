@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
-import axiosAdmin from '../../../api/axiosAdmin.js';
+import axiosAdmin from '../../../utils/axiosAdmin.js';
 
 import closeIcon from '../../../assets/icons/close.png';
 import searchIcon from '../../../assets/icons/magnifying-glass.png';

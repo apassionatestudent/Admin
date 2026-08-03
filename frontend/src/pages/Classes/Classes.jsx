@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 import './Classes.css';
-import axiosAdmin from '../../api/axiosAdmin.js'; 
+import axiosAdmin from '../../utils/axiosAdmin.js'; 
 
 import searchIcon from '../../assets/icons/magnifying-glass.png';
 // => Replace each of these with your actual icon assets - they just need to live at these paths

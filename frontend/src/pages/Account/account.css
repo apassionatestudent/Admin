@@ -1,0 +1,440 @@
+/* =========================================================
+   account.css - Admin self-service account page
+   Structure mirrors the student dashboard's Account.css
+   (acct-card / acct-field-group / acct-actions pattern),
+   remapped to the admin's own tokens: --sidebar-bg, --text-h,
+   --bg, --border, --font-body. No heavy box-shadow, plain border only.
+   ========================================================= */
+
+.adm-account-page {
+  font-family: var(--font-body), sans-serif;
+  color: #0f1724;
+  padding: 2.5rem 2rem;
+  min-height: 100vh;
+  background: #f4f5f8;
+}
+
+.adm-account-header {
+  margin-bottom: 2rem;
+}
+
+.adm-account-title {
+  font-family: var(--font-body), sans-serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0f1724;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.02em;
+}
+
+.adm-account-subtitle {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.adm-account-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.6rem 1.8rem 1.8rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.adm-account-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sidebar-bg);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0 0 1.2rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-body), sans-serif;
+  opacity: 0.9;
+}
+
+.adm-account-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  opacity: 0.85;
+}
+
+.adm-account-card-desc {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: -0.6rem 0 1.2rem;
+}
+
+.adm-account-grid {
+  display: grid;
+  gap: 0 1.2rem;
+}
+
+.adm-account-g2 { grid-template-columns: 1fr 1fr; }
+.adm-account-g3 { grid-template-columns: 1fr 1fr 1fr; }
+
+.adm-account-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 1.2rem;
+}
+
+.adm-account-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.adm-account-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f1724;
+  font-family: var(--font-body), sans-serif;
+}
+
+.adm-account-box {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0 12px;
+  font-size: 15px;
+  font-family: var(--font-body), sans-serif;
+  background: #f9fafb;
+  color: #374151;
+}
+
+.adm-account-input {
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0 12px;
+  font-size: 15px;
+  font-family: var(--font-body), sans-serif;
+  background: var(--bg);
+  color: #0f1724;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.adm-account-input:focus {
+  border-color: var(--sidebar-bg);
+  box-shadow: 0 0 0 3px rgba(139, 26, 26, 0.1);
+}
+
+.adm-account-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #f9fafb;
+  border: 1px solid var(--sidebar-bg);
+  color: var(--sidebar-bg);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.adm-account-btn-icon {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--sidebar-bg);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-body), sans-serif;
+  padding: 0;
+}
+
+.adm-account-btn-icon img {
+  width: 14px;
+  height: 14px;
+}
+
+.adm-account-field-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.adm-account-appearance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.adm-account-appearance-row span {
+  font-size: 15px;
+  color: #0f1724;
+  font-weight: 600;
+}
+
+.adm-account-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.adm-account-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: var(--sidebar-bg);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.adm-account-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.adm-account-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.adm-account-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.adm-account-btn-secondary {
+  padding: 10px 20px;
+  background: #f9fafb;
+  color: #374151;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.adm-account-btn-secondary:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.adm-account-btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   LOGS SECTION
+   Mirrors the ACTIVITY LOGS table seen on the enrollment
+   detail page: uppercase title + count pill, then a plain
+   DATE / ACTOR / ACTION / DETAILS table.
+   ========================================================= */
+
+.adm-account-logs-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* => Same title styling as other cards, but no bottom border since the
+      count pill sits on the same line and the divider is a separate element */
+.adm-account-card-title--no-border {
+  margin: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.adm-account-logs-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.adm-account-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0.6rem 0 1.2rem;
+}
+
+.adm-account-logs-empty {
+  font-size: 14px;
+  color: #6b7280;
+  padding: 1rem 0;
+  margin: 0;
+}
+
+.adm-account-logs-table-wrap {
+  overflow-x: auto;
+}
+
+.adm-account-logs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.adm-account-logs-table thead tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.adm-account-logs-table th {
+  text-align: left;
+  padding: 8px 12px 8px 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.adm-account-logs-table td {
+  padding: 12px 12px 12px 0;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+  vertical-align: top;
+}
+
+.adm-account-logs-table tr:last-child td {
+  border-bottom: none;
+}
+
+.adm-account-logs-date {
+  color: var(--sidebar-bg);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.adm-account-logs-action {
+  color: var(--sidebar-bg);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.adm-account-logs-detail {
+  color: #6b7280;
+}
+
+.adm-account-logs-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.adm-account-logs-page-label {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.adm-account-logs-entity {
+  display: inline-block;
+  text-transform: capitalize;
+  font-weight: 700;
+  color: var(--sidebar-bg);
+  margin-right: 6px;
+}
+
+/* =========================================================
+   LOADING / ERROR STATE
+   Matches Enrollments.css's adm-enroll-state / adm-spinner /
+   adm-state-icon pattern exactly.
+   ========================================================= */
+
+.adm-account-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 0;
+  color: #6b7280;
+  font-size: 0.9375rem;
+}
+
+.adm-account-state--error {
+  color: #b91c1c;
+}
+
+.adm-account-state-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.adm-account-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e5e7eb;
+  border-top-color: var(--sidebar-bg);
+  border-radius: 50%;
+  animation: adm-account-spin 0.8s linear infinite;
+}
+
+@keyframes adm-account-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* => Same spinner, smaller, for the logs table area inside its own card */
+.adm-account-logs-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 32px 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.adm-account-logs-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2.5px solid #e5e7eb;
+  border-top-color: var(--sidebar-bg);
+  border-radius: 50%;
+  animation: adm-account-spin 0.8s linear infinite;
+}
+
+@media (max-width: 700px) {
+  .adm-account-page { padding: 1.5rem 1rem; }
+  .adm-account-card { padding: 1.3rem 1.2rem 1.5rem; }
+  .adm-account-g2 { grid-template-columns: 1fr; }
+  .adm-account-g3 { grid-template-columns: 1fr; }
+}

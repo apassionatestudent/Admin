@@ -14,6 +14,8 @@ import sharedEnrollmentRouter from './routes/Enrollments/sharedEnrollmentRoute.j
 import tesdaEnrollmentRouter from './routes/Enrollments/tesdaEnrollmentRoute.js';
 import shsEnrollmentRouter from './routes/Enrollments/shsEnrollmentRoute.js';
 import adminAuthRouter from './routes/adminAuthRoute.js';
+// => Self-service account routes for the logged-in admin (profile, theme, password)
+import adminAccountRouter from './routes/Account/adminAccountRoutes.js';
 // => Location router for resolving PSGC codes to readable names in EnrollmentDetail
 import locationRouter, { loadLocationCache } from './routes/locationRoutes.js';
 import tesdaCoursesRouter from './routes/tesdaCoursesRoutes.js';
@@ -59,6 +61,7 @@ app.use(csrfProtection);
 
 // => Routes
 app.use('/api/admin-auth', adminAuthRouter);
+app.use('/api/admin/account', adminAccountRouter);
 // => Shared router handles GET / (combined list), GET /search (combined
 //    search), and GET /docs/:documentKey (generic R2 proxy for both types)
 app.use('/api/admin/enrollments', sharedEnrollmentRouter);
@@ -108,6 +111,7 @@ async function initDB() {
                                 CHECK (role IN ('admin', 'super_admin')),
                 status          VARCHAR(10)   NOT NULL DEFAULT 'active'
                                 CHECK (status IN ('active', 'suspended')),
+                is_night_mode   BOOLEAN       NOT NULL DEFAULT false,
                 created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
                 updated_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
                 last_login_at   TIMESTAMPTZ,
