@@ -5,7 +5,7 @@
 import * as cmsPageModel from '../../models/Pages/cmsPageModel.js';
 import { sanitizeEditorHtml } from './htmlSanitizer.js';
 
-const PRIVACY_POLICY_SLUG = 'privacy_policy';
+const PRIVACY_POLICY_SLUG = 'privacy-policy';
 
 export async function getPrivacyPolicy() {
   const page = await cmsPageModel.getPageBySlug(PRIVACY_POLICY_SLUG);
