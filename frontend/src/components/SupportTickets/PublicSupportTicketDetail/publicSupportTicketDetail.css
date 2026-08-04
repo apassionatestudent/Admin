@@ -1,0 +1,287 @@
+.ticket-detail-page {
+  padding: 32px;
+  color: var(--text);
+  font-family: var(--font-body), sans-serif;
+}
+
+.ticket-detail-header {
+  margin-bottom: 20px;
+}
+
+.ticket-detail-header h2 {
+  margin: 0 0 4px;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.ticket-detail-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-muted, var(--text));
+  margin: 0;
+}
+
+.ticket-detail-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 28px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px 32px;
+}
+
+.ticket-detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* => Concern and Status rows span every column, so they stay readable
+   => at full width instead of being squeezed into one grid cell */
+.ticket-detail-row-full {
+  grid-column: 1 / -1;
+}
+
+.ticket-detail-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #6b7280);
+}
+
+.ticket-detail-value {
+  font-size: 0.9375rem;
+  color: var(--text);
+}
+
+/* => Copy-to-clipboard row for Full Name, Contact Number, Email - same
+      behavior as tesdaEnrollmentDetail.css's .adm-copy-btn, own copy under
+      this page's own class prefix */
+.ticket-detail-value-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ticket-detail-copy-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  color: #9ca3af;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.12s, background 0.12s;
+  margin-top: 1px;
+}
+
+.ticket-detail-copy-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.ticket-detail-copy-btn:hover {
+  color: #374151;
+  background: #f3f4f6;
+}
+
+.ticket-detail-copy-btn--copied {
+  color: #059669;
+}
+
+.ticket-detail-concern {
+  font-size: 0.9375rem;
+  color: var(--text);
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.ticket-detail-edit-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ticket-detail-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.ticket-detail-edit-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.ticket-detail-status-select {
+  padding: 6px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: var(--font-body), sans-serif;
+  width: fit-content;
+}
+
+.ticket-detail-remarks-text {
+  font-size: 0.9375rem;
+  color: var(--text);
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.ticket-detail-remarks-input {
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: var(--font-body), sans-serif;
+  resize: vertical;
+  width: 100%;
+}
+
+.ticket-detail-edit-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+/* => Save and Cancel split 50/50 on the same line, scoped to this row only
+      so it doesn't affect btn-secondary/btn-create-course used elsewhere */
+.ticket-detail-edit-actions .btn-create-course,
+.ticket-detail-edit-actions .btn-secondary {
+  flex: 1;
+}
+
+.ticket-detail-save-error {
+  color: #b91c1c;
+  font-size: 0.8125rem;
+  margin: 0;
+}
+
+/* ════════════════════════════════════
+   ACTIVITY LOGS
+   => Same section styling as tesdaEnrollmentDetail.css's .adm-section
+      block, own copy under this file's ticket-detail-* prefix
+   ════════════════════════════════════ */
+.ticket-detail-section {
+  background: var(--bg);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 24px 28px;
+  margin-top: 24px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.ticket-detail-section-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted, #6b7280);
+  margin: 0 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ticket-detail-section-count-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 0.75rem;
+}
+
+.ticket-detail-empty-note {
+  font-size: 0.875rem;
+  color: var(--text-muted, #9ca3af);
+  margin: 0;
+}
+
+.ticket-detail-sub-table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.ticket-detail-sub-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8375rem;
+  color: var(--text);
+  min-width: 600px;
+}
+
+.ticket-detail-sub-table thead tr {
+  background: #f9fafb;
+  border-bottom: 1px solid var(--border);
+}
+
+.ticket-detail-sub-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #6b7280);
+  white-space: nowrap;
+}
+
+.ticket-detail-sub-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+
+.ticket-detail-sub-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ticket-detail-log-pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.ticket-detail-log-page-btn {
+  min-width: 32px;
+  padding: 6px 10px;
+  background: var(--bg, #fff);
+  color: var(--text, #374151);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1.5px solid var(--border, #e5e7eb);
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+}
+
+.ticket-detail-log-page-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.ticket-detail-log-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ticket-detail-log-page-btn--active {
+  background: var(--sidebar-bg, #660911);
+  border-color: var(--sidebar-bg, #660911);
+  color: #fff;
+}

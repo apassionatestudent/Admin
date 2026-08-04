@@ -21,6 +21,10 @@ import locationRouter, { loadLocationCache } from './routes/locationRoutes.js';
 import tesdaCoursesRouter from './routes/tesdaCoursesRoutes.js';
 import shsCoursesRouter from './routes/shsCoursesRoutes.js';
 import adminBatchRouter from './routes/Classes/adminBatchRoutes.js';
+import publicSupportTicketRouter from './routes/SupportTickets/publicSupportTicketRoutes.js';
+// => Admin-side read + status update for anonymous public support tickets.
+// => Separate route/table from the private, student-scoped support_tickets,
+// => which will get its own router later when the Students tab is built.
 import adminStudentRouter from './routes/Students/adminStudentRoute.js';
 import nationalityRoutes from './routes/nationalityRoutes.js';
 import sectorClusterRoutes from './routes/sectorClusterRoutes.js';
@@ -88,6 +92,7 @@ app.use('/api/admin/shs-courses', shsCoursesRouter);
 app.use('/api/location', locationRouter);
 
 app.use('/api/admin/batches', adminBatchRouter);
+app.use('/api/admin/public-support-tickets', publicSupportTicketRouter);
 
 app.use('/api/admin/students', adminStudentRouter);
 app.use('/api/admin', sectorClusterRoutes);

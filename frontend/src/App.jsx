@@ -34,6 +34,8 @@ import PaymentDetail  from './components/Payments/PaymentDetail/paymentDetail.js
 
 import RefundDetail   from './components/Payments/RefundDetail/refundDetail.jsx';
 
+import PublicSupportTicketDetail from './components/SupportTickets/PublicSupportTicketDetail/publicSupportTicketDetail.jsx';
+
 import { Toaster } from "react-hot-toast";
 
 
@@ -71,6 +73,7 @@ function App() {
                     <Route path="trainers/:publicId" element={<TrainerDetail />} />
 
                     <Route path="support-tickets"       element={<SupportTickets />} />
+                    <Route path="support-tickets/:publicId" element={<PublicSupportTicketDetail />} />
 
                     <Route path="students"              element={<Students />} />
                     <Route path="students/:publicId"    element={<StudentDetail />} />
