@@ -35,6 +35,7 @@ import PaymentDetail  from './components/Payments/PaymentDetail/paymentDetail.js
 import RefundDetail   from './components/Payments/RefundDetail/refundDetail.jsx';
 
 import PublicSupportTicketDetail from './components/SupportTickets/PublicSupportTicketDetail/publicSupportTicketDetail.jsx';
+import StudentSupportTicketDetail from './components/SupportTickets/StudentSupportTicketDetail/studentSupportTicketDetail.jsx';
 
 import { Toaster } from "react-hot-toast";
 
@@ -74,6 +75,7 @@ function App() {
 
                     <Route path="support-tickets"       element={<SupportTickets />} />
                     <Route path="support-tickets/:publicId" element={<PublicSupportTicketDetail />} />
+                    <Route path="support-tickets/students/:publicId" element={<StudentSupportTicketDetail />} />
 
                     <Route path="students"              element={<Students />} />
                     <Route path="students/:publicId"    element={<StudentDetail />} />

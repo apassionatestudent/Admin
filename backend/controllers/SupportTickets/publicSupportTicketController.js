@@ -2,17 +2,25 @@
 
 import { pool } from '../../config/db.js';
 import {
-  fetchAllPublicSupportTickets,
+  fetchPublicSupportTicketsPage,
   fetchPublicSupportTicketByPublicId,
   changePublicSupportTicketFields,
   ValidationError,
 } from '../../services/SupportTickets/publicSupportTicketService.js';
 
-// => GET /api/admin/public-support-tickets
+// => GET /api/admin/public-support-tickets?page=1&limit=10&search=&concernType=ALL&status=ALL&hideClosed=true
 export const getPublicSupportTickets = async (req, res) => {
   try {
-    const tickets = await fetchAllPublicSupportTickets(pool);
-    res.json({ data: tickets }); // => wrapped to match the { data: [...] } shape Courses.jsx already expects from other admin endpoints
+    const { page, limit, search, concernType, status, hideClosed } = req.query;
+    const result = await fetchPublicSupportTicketsPage(pool, {
+      page,
+      limit,
+      search,
+      concernType,
+      status,
+      hideClosed: hideClosed === 'true',
+    });
+    res.json(result);
   } catch (error) {
     console.error('Error fetching public support tickets:', error);
     res.status(500).json({ message: 'Failed to fetch support tickets.' });

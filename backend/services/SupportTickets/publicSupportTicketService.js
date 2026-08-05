@@ -4,7 +4,9 @@
 //    project's recent convention shift.
 
 import {
-  getAllPublicSupportTickets,
+  getPublicSupportTicketsPage,
+  getPublicSupportTicketStatusCounts,
+  getDistinctPublicConcernTypes,
   getPublicSupportTicketByPublicId,
   updatePublicSupportTicketFields,
 } from '../../models/SupportTickets/publicSupportTicketModel.js';
@@ -25,11 +27,35 @@ export class ValidationError extends Error {
 // => DB constraint and this array must be updated together.
 export const ALLOWED_STATUSES = ['Open', 'In Progress', 'Resolved', 'Unresolved'];
 
-// => Simple pass-through for now - kept as its own service function
-// => (rather than calling the model directly from the controller) so
-// => future logic like pagination or filtering has a natural home here
-export const fetchAllPublicSupportTickets = async (pool) => {
-  return await getAllPublicSupportTickets(pool);
+// => Bounds page/limit so a malformed query param can't be abused -
+// => limit capped at 100 regardless of what's requested
+export const fetchPublicSupportTicketsPage = async (pool, { page, limit, search, concernType, status, hideClosed }) => {
+  const safePage = Math.max(1, parseInt(page, 10) || 1);
+  const safeLimit = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+
+  const { rows, totalCount } = await getPublicSupportTicketsPage(pool, {
+    page: safePage,
+    limit: safeLimit,
+    search,
+    concernType,
+    status,
+    hideClosed,
+  });
+
+  const [{ openCount, inProgressCount }, concernTypeOptions] = await Promise.all([
+    getPublicSupportTicketStatusCounts(pool),
+    getDistinctPublicConcernTypes(pool),
+  ]);
+
+  return {
+    data: rows,
+    totalCount,
+    totalPages: Math.max(1, Math.ceil(totalCount / safeLimit)),
+    page: safePage,
+    openCount,
+    inProgressCount,
+    concernTypeOptions,
+  };
 };
 
 // => Used by the new detail page - simple pass-through, kept as its own
