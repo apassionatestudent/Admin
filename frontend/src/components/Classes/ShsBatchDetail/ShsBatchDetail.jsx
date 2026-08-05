@@ -15,6 +15,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axiosAdmin from '../../../utils/axiosAdmin.js';
 import BackButton from '../../BackButton/BackButton.jsx';
 import ConfirmModal from '../../ConfirmModal/ConfirmModal.jsx';
+// => Shared spinner/error block, replaces the local adm-batch-detail-state markup below
+import LoadingState from '../../LoadingState/loadingState.jsx';
 import pencilIcon from '../../../assets/icons/pencil.png';
 import trashIcon from '../../../assets/icons/trash.png';
 
@@ -477,13 +479,12 @@ export default function ShsBatchDetail() {
     }
   };
 
+  // => Swapped local adm-batch-detail-state spinner/warning markup for the
+  //    shared LoadingState component, same variant pattern used elsewhere
   if (loading) {
     return (
       <div className="adm-shs-batch-detail-page">
-        <div className="adm-batch-detail-state">
-          <div className="adm-spinner" />
-          <p>Loading batch details…</p>
-        </div>
+        <LoadingState message="Loading batch details…" />
       </div>
     );
   }
@@ -492,9 +493,7 @@ export default function ShsBatchDetail() {
     return (
       <div className="adm-shs-batch-detail-page">
         <BackButton destination="Classes" onClick={() => navigate('/dashboard/classes')} />
-        <div className="adm-batch-detail-state adm-batch-detail-state--error">
-          <span>⚠ {error}</span>
-        </div>
+        <LoadingState variant="error" message={error} />
       </div>
     );
   }

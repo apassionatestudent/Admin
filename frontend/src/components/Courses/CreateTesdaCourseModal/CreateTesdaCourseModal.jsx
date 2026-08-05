@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axiosAdmin from '../../utils/axiosAdmin.js';
+import axiosAdmin from '../../../utils/axiosAdmin.js';
 import '../CreateTesdaCourseModal/CreateTesdaCourseModal.css';
 
 const emptyCompetencyRow = () => ({ code: '', competency: '' });

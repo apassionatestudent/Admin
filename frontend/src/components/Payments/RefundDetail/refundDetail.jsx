@@ -9,6 +9,8 @@ import toast from 'react-hot-toast';
 import axiosAdmin from '../../../utils/axiosAdmin.js';
 
 import BackButton from '../../BackButton/BackButton.jsx';
+// => Shared spinner/error block, replaces the bare loading/not-found text below
+import LoadingState from '../../LoadingState/loadingState.jsx';
 
 import banIcon from '../../../assets/icons/ban.png';
 import downloadIcon from '../../../assets/icons/download.png';
@@ -108,12 +110,22 @@ function RefundDetail() {
       : 'Fixed amount';
   };
 
+  // => Swapped bare loading/not-found text for the shared LoadingState
+  //    component, same variant pattern used elsewhere
   if (loading) {
-    return <div className="refund-detail-page">Loading refund...</div>;
+    return (
+      <div className="refund-detail-page">
+        <LoadingState message="Loading refund…" />
+      </div>
+    );
   }
 
   if (!refund) {
-    return <div className="refund-detail-page">Refund not found.</div>;
+    return (
+      <div className="refund-detail-page">
+        <LoadingState variant="error" message="Refund not found." />
+      </div>
+    );
   }
 
   return (

@@ -6,6 +6,8 @@ import axiosAdmin from '../../../utils/axiosAdmin.js';
 
 // => Reuses the shared BackButton component instead of a one-off button,
 import BackButton from '../../BackButton/BackButton.jsx';
+// => Shared spinner/error block, replaces the bare loading/not-found text below
+import LoadingState from '../../LoadingState/loadingState.jsx';
 
 import banIcon from '../../../assets/icons/ban.png';
 import downloadIcon from '../../../assets/icons/download.png';
@@ -103,12 +105,22 @@ function PaymentDetail() {
     return new Date(value).toLocaleString('en-PH');
   };
 
+  // => Swapped bare loading/not-found text for the shared LoadingState
+  //    component, same variant pattern used elsewhere
   if (loading) {
-    return <div className="payment-detail-page">Loading payment...</div>;
+    return (
+      <div className="payment-detail-page">
+        <LoadingState message="Loading payment…" />
+      </div>
+    );
   }
 
   if (!payment) {
-    return <div className="payment-detail-page">Payment not found.</div>;
+    return (
+      <div className="payment-detail-page">
+        <LoadingState variant="error" message="Payment not found." />
+      </div>
+    );
   }
 
   return (

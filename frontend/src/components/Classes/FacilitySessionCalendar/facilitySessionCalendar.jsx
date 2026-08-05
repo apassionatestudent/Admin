@@ -18,7 +18,8 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import axiosAdmin from '../../../utils/axiosAdmin.js'; 
 import BackButton from '../../BackButton/BackButton.jsx';
 import AddSessionModal from '../AddSessionModal/addSessionModal.jsx';
-import warningIcon from '../../../assets/icons/warning.png'; 
+// => Shared spinner/error block, replaces the local fsc-state markup below
+import LoadingState from '../../LoadingState/loadingState.jsx'; 
 import calendarIcon from '../../../assets/icons/calendar.png'; 
 import './facilitySessionCalendar.css';
 
@@ -231,22 +232,14 @@ export default function FacilitySessionCalendar() {
     </div>
   );
 
+  // => Swapped local fsc-state spinner/warning markup for the shared
+  //    LoadingState component, same variant pattern used elsewhere
   if (loading && !facility) {
-    return (
-      <div className="fsc-state">
-        <div className="fsc-spinner" />
-        <p>Loading facility calendar…</p>
-      </div>
-    );
+    return <LoadingState message="Loading facility calendar…" />;
   }
 
   if (error && !facility) {
-    return (
-      <div className="fsc-state fsc-state--error">
-        <img className="fsc-inline-icon" src={warningIcon} alt="" />
-        <p>{error}</p>
-      </div>
-    );
+    return <LoadingState variant="error" message={error} />;
   }
 
   return (

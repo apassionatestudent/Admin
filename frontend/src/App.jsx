@@ -20,13 +20,13 @@ import Account from './pages/Account/account.jsx';
 
 // components 
 // import EnrollmentDetail from './components/EnrollmentDetail/EnrollmentDetail.jsx';
-import TESDAEnrollmentDetail from './components/TESDAEnrollmentDetail/tesdaEnrollmentDetail.jsx';
-import SHSEnrollmentDetail   from './components/SHSEnrollmentDetail/shsEnrollmentDetail.jsx';
+import TESDAEnrollmentDetail from './components/Enrollments/TESDAEnrollmentDetail/tesdaEnrollmentDetail.jsx';
+import SHSEnrollmentDetail   from './components/Enrollments/SHSEnrollmentDetail/shsEnrollmentDetail.jsx';
 import TesdaBatchDetail from './components/Classes/TesdaBatchDetail/TesdaBatchDetail.jsx';
 import ShsBatchDetail   from './components/Classes/ShsBatchDetail/ShsBatchDetail.jsx';
 import StudentDetail from './components/StudentDetail/StudentDetail.jsx';
-import TesdaCourseDetail from './components/TESDACourseDetail/TesdaCourseDetail.jsx';
-import ShsCourseDetail   from './components/ShsCourseDetail/ShsCourseDetail.jsx';
+import TesdaCourseDetail from './components/Courses/TESDACourseDetail/TesdaCourseDetail.jsx';
+import ShsCourseDetail   from './components/Courses/ShsCourseDetail/ShsCourseDetail.jsx';
 import FacilityDetail    from './components/Classes/FacilityDetail/FacilityDetail.jsx';
 import FacilitySessionCalendar from './components/Classes/FacilitySessionCalendar/facilitySessionCalendar.jsx';
 import TrainerDetail  from './components/Classes/TrainerDetail/trainerDetail.jsx';

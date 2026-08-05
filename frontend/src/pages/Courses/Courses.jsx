@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosAdmin from '../../utils/axiosAdmin.js';
-import CreateTesdaCourseModal from '../../components/CreateTesdaCourseModal/CreateTesdaCourseModal.jsx';
-import CreateShsCourseModal from '../../components/CreateShsCourseModal/CreateShsCourseModal.jsx';
-import AddClusterModal from '../../components/AddClusterModal/AddClusterModal.jsx';
-import AddSectorModal from '../../components/AddSectorModal/AddSectorModal.jsx';
+import CreateTesdaCourseModal from '../../components/Courses/CreateTesdaCourseModal/CreateTesdaCourseModal.jsx';
+import CreateShsCourseModal from '../../components/Courses/CreateShsCourseModal/CreateShsCourseModal.jsx';
+import AddClusterModal from '../../components/Courses/AddClusterModal/AddClusterModal.jsx';
+import AddSectorModal from '../../components/Courses/AddSectorModal/AddSectorModal.jsx';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal.jsx';
+// => Shared spinner/error block, replaces the local courses-state markup below
+import LoadingState from '../../components/LoadingState/loadingState.jsx';
 import './Courses.css';
 
 export default function Courses() {
@@ -360,17 +362,11 @@ export default function Courses() {
       )}
 
       {loading ? (
-        <div className="courses-state">
-          <div className="courses-spinner" />
-          <p>Loading courses…</p>
-        </div>
+        <LoadingState message="Loading courses…" />
       ) : fetchError ? (
-        <div className="courses-status-block courses-status-error">
-          <p>{fetchError}</p>
-          <button className="btn-secondary" onClick={fetchCourses}>
-            Retry
-          </button>
-        </div>
+        // => Kept the existing Retry button behavior, now wired through
+        //    LoadingState's onRetry prop instead of a local btn-secondary
+        <LoadingState variant="error" message={fetchError} onRetry={fetchCourses} />
       ) : (
         <table className="courses-table">
           <thead>
