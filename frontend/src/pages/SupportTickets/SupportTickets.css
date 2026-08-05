@@ -291,3 +291,59 @@
   outline: none;
   border-color: var(--accent-hover, #8a0d17);
 }
+
+/* => Checkbox + label pairing for the "Hide Resolved / Unresolved" toggle,
+   => reuses adm-filter-group's flex/gap but needs cursor:pointer since it's
+   => a <label> wrapping the checkbox */
+.tickets-hide-closed-toggle {
+  cursor: pointer;
+}
+
+.tickets-hide-closed-toggle input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: var(--accent-hover, #8a0d17);
+}
+
+/* ════════════════════════════════════
+   PAGINATION
+   => Own copy, same visual pattern as publicSupportTicketDetail.css's
+      Activity Logs pagination (ticket-detail-log-page-btn), scoped under
+      this page's own class prefix
+   ════════════════════════════════════ */
+.tickets-pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.tickets-page-btn {
+  min-width: 34px;
+  padding: 7px 12px;
+  background: var(--bg, #fff);
+  color: var(--text, #374151);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1.5px solid var(--border, #e5e7eb);
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+}
+
+.tickets-page-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.tickets-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tickets-page-btn--active {
+  background: var(--sidebar-bg, #660911);
+  border-color: var(--sidebar-bg, #660911);
+  color: #fff;
+}

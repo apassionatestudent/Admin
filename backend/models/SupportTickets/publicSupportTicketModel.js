@@ -6,10 +6,47 @@
 // => Uses pool, not sql, per project convention - mirrors the pattern in
 //    sharedEnrollmentModel.js (pool.query, $1/$2 placeholders, .rows destructuring)
 
-// => Fetch every public support ticket, newest first
-// => No student join needed here since these tickets have no student_id
-export const getAllPublicSupportTickets = async (pool) => {
-  const result = await pool.query(
+// => Builds the WHERE clause + params shared by the paginated list query
+// => and its matching count query - own copy, no shared code with
+// => supportTicketModel.js's buildTicketFilters per project convention
+const buildPublicTicketFilters = ({ search, concernType, status, hideClosed }) => {
+  const conditions = [];
+  const values = [];
+  let idx = 1;
+
+  if (concernType && concernType !== 'ALL') {
+    conditions.push(`concern_type = $${idx}`);
+    values.push(concernType);
+    idx++;
+  }
+
+  if (status && status !== 'ALL') {
+    conditions.push(`status = $${idx}`);
+    values.push(status);
+    idx++;
+  } else if (hideClosed) {
+    conditions.push(`status NOT IN ('Resolved', 'Unresolved')`);
+  }
+
+  if (search && search.trim() !== '') {
+    conditions.push(
+      `(full_name ILIKE $${idx} OR email ILIKE $${idx} OR contact_number ILIKE $${idx})`
+    );
+    values.push(`%${search.trim()}%`);
+    idx++;
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  return { whereClause, values, nextIdx: idx };
+};
+
+// => Fetch one page of public support tickets matching the given filters,
+// => plus the total matching count for pagination controls
+export const getPublicSupportTicketsPage = async (pool, { page, limit, search, concernType, status, hideClosed }) => {
+  const { whereClause, values, nextIdx } = buildPublicTicketFilters({ search, concernType, status, hideClosed });
+  const offset = (page - 1) * limit;
+
+  const dataResult = await pool.query(
     `SELECT
         ticket_id,
         public_id,
@@ -23,9 +60,45 @@ export const getAllPublicSupportTickets = async (pool) => {
         created_at,
         updated_at
       FROM public_support_tickets
-      ORDER BY created_at DESC`
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT $${nextIdx} OFFSET $${nextIdx + 1}`,
+    [...values, limit, offset]
   );
-  return result.rows;
+
+  const countResult = await pool.query(
+    `SELECT COUNT(*)::int AS total FROM public_support_tickets ${whereClause}`,
+    values
+  );
+
+  return { rows: dataResult.rows, totalCount: countResult.rows[0].total };
+};
+
+// => Open/In Progress counts for the header badges - computed across ALL
+// => public tickets, unaffected by search/filter/pagination
+export const getPublicSupportTicketStatusCounts = async (pool) => {
+  const result = await pool.query(
+    `SELECT
+        COUNT(*) FILTER (WHERE status = 'Open')::int AS open_count,
+        COUNT(*) FILTER (WHERE status = 'In Progress')::int AS in_progress_count
+      FROM public_support_tickets`
+  );
+  return {
+    openCount: result.rows[0].open_count,
+    inProgressCount: result.rows[0].in_progress_count,
+  };
+};
+
+// => Distinct concern types across ALL public tickets, for the Concern
+// => Type dropdown - independent of the currently applied page/filter
+export const getDistinctPublicConcernTypes = async (pool) => {
+  const result = await pool.query(
+    `SELECT DISTINCT concern_type
+      FROM public_support_tickets
+      WHERE concern_type IS NOT NULL
+      ORDER BY concern_type`
+  );
+  return result.rows.map((r) => r.concern_type);
 };
 
 // => Fetch a single ticket by its public_id - used by the controller to

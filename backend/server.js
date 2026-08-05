@@ -23,8 +23,8 @@ import shsCoursesRouter from './routes/shsCoursesRoutes.js';
 import adminBatchRouter from './routes/Classes/adminBatchRoutes.js';
 import publicSupportTicketRouter from './routes/SupportTickets/publicSupportTicketRoutes.js';
 // => Admin-side read + status update for anonymous public support tickets.
-// => Separate route/table from the private, student-scoped support_tickets,
-// => which will get its own router later when the Students tab is built.
+// => Separate route/table from the private, student-scoped support_tickets below.
+import supportTicketRouter from './routes/SupportTickets/supportTicketRoutes.js';
 import adminStudentRouter from './routes/Students/adminStudentRoute.js';
 import nationalityRoutes from './routes/nationalityRoutes.js';
 import sectorClusterRoutes from './routes/sectorClusterRoutes.js';
@@ -93,6 +93,9 @@ app.use('/api/location', locationRouter);
 
 app.use('/api/admin/batches', adminBatchRouter);
 app.use('/api/admin/public-support-tickets', publicSupportTicketRouter);
+// => Private, student-scoped support tickets - separate table (support_tickets),
+// => joined to student_profile for display fields
+app.use('/api/admin/support-tickets', supportTicketRouter);
 
 app.use('/api/admin/students', adminStudentRouter);
 app.use('/api/admin', sectorClusterRoutes);
