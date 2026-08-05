@@ -8,12 +8,15 @@
 
 import React from 'react';
 import './loadingState.css';
+// => Actual PNG icon instead of a text character, resolved by Vite at build time
+import warningIcon from '../../assets/icons/warning.png';
 
 export default function LoadingState({ variant = 'loading', message, onRetry }) {
   if (variant === 'error') {
     return (
       <div className="ls-wrap ls-wrap--error">
-        <span className="ls-icon">⚠</span>
+        {/* => alt text kept for accessibility, no visible text label */}
+        <img src={warningIcon} alt="Warning" className="ls-icon" />
         <p>{message}</p>
         {onRetry && (
           <button className="ls-retry-btn" onClick={onRetry}>Retry</button>
