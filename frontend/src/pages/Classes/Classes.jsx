@@ -24,6 +24,8 @@ import AddFacilityModal from '../../components/Classes/AddFacilityModal/AddFacil
 import AddTrainerModal from '../../components/Classes/AddTrainerModal/addTrainerModal.jsx';
 import AddSessionModal from '../../components/Classes/AddSessionModal/addSessionModal.jsx';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal.jsx';
+// => Shared spinner/error block, replaces the local adm-classes-state markup below
+import LoadingState from '../../components/LoadingState/loadingState.jsx';
 
 // => Maps each status to a CSS modifier class
 const statusClass = {
@@ -1053,10 +1055,7 @@ export default function Classes() {
       {isSearchMode && (
         <>
           {searchLoading && (
-            <div className="adm-classes-state">
-              <div className="adm-spinner" />
-              <p>Searching…</p>
-            </div>
+            <LoadingState message="Searching…" />
           )}
 
           {!searchLoading && searchResults.length === 0 && (
@@ -1089,18 +1088,12 @@ export default function Classes() {
         <>
           {/* Loading state */}
           {loading && (
-            <div className="adm-classes-state">
-              <div className="adm-spinner" />
-              <p>Loading classes…</p>
-            </div>
+            <LoadingState message="Loading classes…" />
           )}
 
           {/* Error state */}
           {!loading && error && (
-            <div className="adm-classes-state adm-classes-state--error">
-              <span className="adm-state-icon"><img src={warningIcon} alt="" /></span>
-              <p>{error}</p>
-            </div>
+            <LoadingState variant="error" message={error} />
           )}
 
           {/* Empty state */}
@@ -1854,17 +1847,11 @@ export default function Classes() {
           </div>
 
           {facilitiesLoading && (
-            <div className="adm-classes-state">
-              <div className="adm-spinner" />
-              <p>Loading facilities…</p>
-            </div>
+            <LoadingState message="Loading facilities…" />
           )}
 
           {!facilitiesLoading && facilitiesError && (
-            <div className="adm-classes-state adm-classes-state--error">
-              <span className="adm-state-icon"><img src={warningIcon} alt="" /></span>
-              <p>{facilitiesError}</p>
-            </div>
+            <LoadingState variant="error" message={facilitiesError} />
           )}
 
           {!facilitiesLoading && !facilitiesError && applyFacilityFilters(facilities).length === 0 && (
@@ -2016,17 +2003,11 @@ export default function Classes() {
           </div>
 
           {trainersLoading && (
-            <div className="adm-classes-state">
-              <div className="adm-spinner" />
-              <p>Loading trainers…</p>
-            </div>
+            <LoadingState message="Loading trainers…" />
           )}
 
           {!trainersLoading && trainersError && (
-            <div className="adm-classes-state adm-classes-state--error">
-              <span className="adm-state-icon"><img src={warningIcon} alt="" /></span>
-              <p>{trainersError}</p>
-            </div>
+            <LoadingState variant="error" message={trainersError} />
           )}
 
           {!trainersLoading && !trainersError && applyTrainerFilters(trainers).length === 0 && (

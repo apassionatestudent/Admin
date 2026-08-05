@@ -13,31 +13,7 @@
   font-family: var(--font-body), sans-serif;
 }
 
-/* => Loading state, matches Courses.css's .courses-state/.courses-spinner
-   => exactly (same blue spinner accent, breaking from the maroon theme on
-   => purpose, same as that page) - was just a bare "Loading..." <p> before. */
-.detail-loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 64px 0;
-  color: var(--text-muted, var(--text));
-  font-size: 0.9375rem;
-}
 
-.detail-spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid var(--border);
-  border-top-color: #1a56db;
-  border-radius: 50%;
-  animation: detail-spin 0.8s linear infinite;
-}
-
-@keyframes detail-spin {
-  to { transform: rotate(360deg); }
-}
 
 .course-detail-header {
   display: flex;

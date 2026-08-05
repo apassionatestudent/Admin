@@ -7,6 +7,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react'; // => useMe
 import { useNavigate } from 'react-router-dom';
 
 import '../Enrollments/Enrollments.css';
+// => Shared spinner/error block, replaces the local adm-enroll-state markup below
+import LoadingState from '../../components/LoadingState/loadingState.jsx';
 
 // => Maps each status to a CSS modifier class - same convention as student side
 const statusClass = {
@@ -392,10 +394,7 @@ export default function Enrollments() {
       {isSearchMode && (
         <>
           {searchLoading && (
-            <div className="adm-enroll-state">
-              <div className="adm-spinner" />
-              <p>Searching…</p>
-            </div>
+            <LoadingState message="Searching…" />
           )}
 
           {!searchLoading && searchResults.length === 0 && (
@@ -428,18 +427,12 @@ export default function Enrollments() {
         <>
           {/*  Loading state  */}
           {loading && (
-            <div className="adm-enroll-state">
-              <div className="adm-spinner" />
-              <p>Loading enrollments…</p>
-            </div>
+            <LoadingState message="Loading enrollments…" />
           )}
 
           {/*  Error state  */}
           {!loading && error && (
-            <div className="adm-enroll-state adm-enroll-state--error">
-              <span className="adm-state-icon">⚠</span>
-              <p>{error}</p>
-            </div>
+            <LoadingState variant="error" message={error} />
           )}
 
           {/*  Empty state  */}

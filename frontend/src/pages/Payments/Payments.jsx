@@ -12,10 +12,11 @@ import toast from 'react-hot-toast';
 import axiosAdmin from '../../utils/axiosAdmin.js';
 
 import emptyPaymentsIcon from '../../assets/icons/empty-classes.png';
-import warningIcon from '../../assets/icons/warning.png';
 
 import AddPaymentModal from '../../components/Payments/AddPaymentModal/addPaymentModal.jsx';
 import AddRefund from '../../components/Payments/AddRefund/addRefund.jsx';
+// => Shared spinner/error block, replaces the local adm-payments-state markup below
+import LoadingState from '../../components/LoadingState/loadingState.jsx';
 
 import './payments.css';
 
@@ -308,17 +309,11 @@ function Payments() {
           </div>
 
           {paymentLoading && (
-            <div className="adm-payments-state">
-              <div className="adm-spinner" />
-              <p>Loading payments…</p>
-            </div>
+            <LoadingState message="Loading payments…" />
           )}
 
           {!paymentLoading && paymentError && (
-            <div className="adm-payments-state adm-payments-state--error">
-              <span className="adm-state-icon"><img src={warningIcon} alt="" /></span>
-              <p>{paymentError}</p>
-            </div>
+            <LoadingState variant="error" message={paymentError} />
           )}
 
           {!paymentLoading && !paymentError && payments.length === 0 && (
@@ -446,17 +441,11 @@ function Payments() {
           </div>
 
           {refundLoading && (
-            <div className="adm-payments-state">
-              <div className="adm-spinner" />
-              <p>Loading refunds…</p>
-            </div>
+            <LoadingState message="Loading refunds…" />
           )}
 
           {!refundLoading && refundError && (
-            <div className="adm-payments-state adm-payments-state--error">
-              <span className="adm-state-icon"><img src={warningIcon} alt="" /></span>
-              <p>{refundError}</p>
-            </div>
+            <LoadingState variant="error" message={refundError} />
           )}
 
           {!refundLoading && !refundError && refunds.length === 0 && (

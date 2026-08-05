@@ -25,7 +25,9 @@ import axiosAdmin from '../../../utils/axiosAdmin.js';
 import BackButton from '../../BackButton/BackButton.jsx'; 
 import RemarksActionModal from '../RemarksActionModal/RemarksActionModal.jsx';
 import FormActions from '../../FormActions/FormActions.jsx';
-import warningIcon from '../../../assets/icons/warning.png'; // 
+import warningIcon from '../../../assets/icons/warning.png'; // => still used by the inline form-error messages further down
+// => Shared spinner/error block, replaces the local fd-state markup below
+import LoadingState from '../../LoadingState/loadingState.jsx'; 
 import pencilIcon from '../../../assets/icons/pencil.png'; // 
 import './FacilityDetail.css';
 
@@ -218,13 +220,12 @@ export default function FacilityDetail() {
     setIsEditing(false); // => Cancel exits back to read-only view, not just discarding edits
   };
 
+  // => Swapped local fd-state spinner/warning markup for the shared
+  //    LoadingState component, same variant pattern used elsewhere
   if (loading) {
     return (
       <div className="fd-page">
-        <div className="fd-state">
-          <div className="fd-spinner" />
-          <p>Loading facility…</p>
-        </div>
+        <LoadingState message="Loading facility…" />
       </div>
     );
   }
@@ -233,10 +234,7 @@ export default function FacilityDetail() {
     return (
       <div className="fd-page">
         <BackButton onClick={() => navigate('/dashboard/classes')} destination="Classes" />
-        <div className="fd-state fd-state--error">
-          <img className="fd-inline-icon" src={warningIcon} alt="" />
-          <p>{loadError || 'Facility not found.'}</p>
-        </div>
+        <LoadingState variant="error" message={loadError || 'Facility not found.'} />
       </div>
     );
   }

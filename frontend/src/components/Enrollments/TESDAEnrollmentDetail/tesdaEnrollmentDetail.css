@@ -33,21 +33,7 @@
   color: #1a56db;
 }
 
-/*  Loading / Error states  */
-.adm-detail-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 80px 0;
-  color: #6b7280;
-  font-size: 0.9375rem;
-}
 
-.adm-detail-state--error {
-  color: #b91c1c;
-  font-size: 1.5rem;
-}
 
 /*  Spinner  */
 .adm-spinner {

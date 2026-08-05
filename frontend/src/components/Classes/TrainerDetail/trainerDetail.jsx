@@ -16,7 +16,9 @@ import axiosAdmin from '../../../utils/axiosAdmin.js';
 import BackButton from '../../BackButton/BackButton.jsx';
 import RemarksActionModal from '../RemarksActionModal/RemarksActionModal.jsx';
 import FormActions from '../../FormActions/FormActions.jsx';
-import warningIcon from '../../../assets/icons/warning.png'; //
+import warningIcon from '../../../assets/icons/warning.png'; // => still used by the inline form-error messages further down
+// => Shared spinner/error block, replaces the local trainer-state markup below
+import LoadingState from '../../LoadingState/loadingState.jsx';
 import pencilIcon from '../../../assets/icons/pencil.png'; //
 import './trainerDetail.css';
 
@@ -228,13 +230,12 @@ export default function TrainerDetail() {
     setIsEditing(false); // => Cancel exits back to read-only view, not just discarding edits
   };
 
+  // => Swapped local trainer-state spinner/warning markup for the shared
+  //    LoadingState component, same variant pattern used elsewhere
   if (loading) {
     return (
       <div className="trainer-page">
-        <div className="trainer-state">
-          <div className="trainer-spinner" />
-          <p>Loading trainer…</p>
-        </div>
+        <LoadingState message="Loading trainer…" />
       </div>
     );
   }
@@ -243,10 +244,7 @@ export default function TrainerDetail() {
     return (
       <div className="trainer-page">
         <BackButton onClick={() => navigate('/dashboard/classes')} destination="Classes" />
-        <div className="trainer-state trainer-state--error">
-          <img className="trainer-inline-icon" src={warningIcon} alt="" />
-          <p>{loadError || 'Trainer not found.'}</p>
-        </div>
+        <LoadingState variant="error" message={loadError || 'Trainer not found.'} />
       </div>
     );
   }

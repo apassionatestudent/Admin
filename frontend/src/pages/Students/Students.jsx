@@ -5,6 +5,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import './Students.css';
+// => Shared spinner/error block, replaces the local adm-students-state markup below
+import LoadingState from '../../components/LoadingState/loadingState.jsx';
 
 // 
 // HELPERS
@@ -199,20 +201,10 @@ export default function Students() {
   // 
   const renderState = () => {
     if (loading) {
-      return (
-        <div className="adm-students-state">
-          <div className="adm-spinner" />
-          <p>Loading students…</p>
-        </div>
-      );
+      return <LoadingState message="Loading students…" />;
     }
     if (error) {
-      return (
-        <div className="adm-students-state adm-students-state--error">
-          <span className="adm-state-icon">⚠</span>
-          <p>{error}</p>
-        </div>
-      );
+      return <LoadingState variant="error" message={error} />;
     }
     if (students.length === 0) {
       return (

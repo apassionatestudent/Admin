@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import axiosAdmin from '../../utils/axiosAdmin.js';
-import trashIcon from '../../assets/icons/trash.png'; 
-import ConfirmModal from '../ConfirmModal/ConfirmModal.jsx';
+import axiosAdmin from '../../../utils/axiosAdmin.js';
+import trashIcon from '../../../assets/icons/trash.png'; 
+import ConfirmModal from '../../ConfirmModal/ConfirmModal.jsx';
 import './AddClusterModal.css';
 
 // => Add + list + soft-delete + restore for SHS clusters, all in one modal -

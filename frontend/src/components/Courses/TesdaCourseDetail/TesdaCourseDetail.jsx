@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom'; 
-import axiosAdmin from '../../utils/axiosAdmin.js'; 
-import pencilIcon from '../../assets/icons/pencil.png'; 
-import trashIcon from '../../assets/icons/trash.png'; 
-import BackButton from '../BackButton/BackButton.jsx'; 
-import ConfirmModal from '../ConfirmModal/ConfirmModal.jsx';
+import axiosAdmin from '../../../utils/axiosAdmin.js'; 
+import pencilIcon from '../../../assets/icons/pencil.png'; 
+import trashIcon from '../../../assets/icons/trash.png'; 
+import BackButton from '../../BackButton/BackButton.jsx'; 
+import ConfirmModal from '../../ConfirmModal/ConfirmModal.jsx';
+// => Shared spinner/error block, replaces the local detail-loading-state markup below
+import LoadingState from '../../LoadingState/loadingState.jsx';
 
 import './TesdaCourseDetail.css';
 
@@ -628,17 +630,22 @@ export default function TesdaCourseDetail() {
     </React.Fragment>
   );
 
+  // => Swapped local detail-loading-state spinner markup, and the bare
+  //    "Course not found." <p>, for the shared LoadingState component
   if (loading) {
     return (
       <main className="course-detail-page">
-        <div className="detail-loading-state">
-          <div className="detail-spinner" />
-          <p>Loading course…</p>
-        </div>
+        <LoadingState message="Loading course…" />
       </main>
     );
   }
-  if (!course) return <main className="course-detail-page"><p>Course not found.</p></main>;
+  if (!course) {
+    return (
+      <main className="course-detail-page">
+        <LoadingState variant="error" message="Course not found." />
+      </main>
+    );
+  }
 
   return (
     <>

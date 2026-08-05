@@ -9,6 +9,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import BackButton from '../BackButton/BackButton.jsx';
+// => Shared spinner/error block, replaces the local adm-student-detail-state markup below
+import LoadingState from '../LoadingState/loadingState.jsx';
 // => axiosAdmin auto-attaches credentials + x-csrf-token on every mutating
 //    call - required or csrfProtection middleware silently rejects PATCH/PUT.
 import axiosAdmin from '../../utils/axiosAdmin.js';
@@ -644,13 +646,12 @@ export default function StudentDetail() {
   
   // RENDER STATES
   
+  // => Swapped local adm-student-detail-state spinner/warning markup for
+  //    the shared LoadingState component, same variant pattern used elsewhere
   if (loading) {
     return (
       <div className="adm-student-detail-page">
-        <div className="adm-student-detail-state">
-          <div className="adm-spinner" />
-          <p>Loading student record…</p>
-        </div>
+        <LoadingState message="Loading student record…" />
       </div>
     );
   }
@@ -659,9 +660,7 @@ export default function StudentDetail() {
     return (
       <div className="adm-student-detail-page">
         <BackButton destination="Students" onClick={() => navigate('/dashboard/students')} />
-        <div className="adm-student-detail-state adm-student-detail-state--error">
-          <span>⚠ {error}</span>
-        </div>
+        <LoadingState variant="error" message={error} />
       </div>
     );
   }

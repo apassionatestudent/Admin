@@ -1,46 +1,76 @@
-// => admin/components/TESDAEnrollmentDetail/tesdaEnrollmentDetail.jsx
-// => Full TESDA enrollment detail for admins: student info, enrollment fields,
-//    client classifications, NCAE, scholarship, submitted documents, audit
-//    log, status changer, and section-level Edit Mode (CRUD).
+// => admin/components/SHSEnrollmentDetail/shsEnrollmentDetail.jsx
+// => Full SHS enrollment detail for admins: student info, academic history,
+//    family members, emergency contact, health info, consent, submitted
+//    documents, audit log, status changer, and section-level Edit Mode (CRUD).
 // => Field names verified against the Site/Student Dashboard server.js schema
-//    (tesda_enrollments, student_profile, student_address, student_guardian,
-//    tesda_client_classifications, tesda_classes, tesda_documents).
-// => Work Experience / Trainings / Licensures / Competencies sections removed -
-//    those tables no longer exist in the schema (confirmed dead, was on TODO).
+//    (shs_enrollments, shs_family_members, shs_classes, shs_documents,
+//    student_profile, student_address).
 // => Edit Mode added: pencil icon per section, whole section becomes
 //    editable, one Save/Cancel per section. Nothing is field-locked.
-//    Course/Class reassignment stays read-only - deferred until a
-//    proper picker endpoint exists (matches earlier project decision).
+//    Class reassignment stays read-only - deferred until a proper picker
+//    endpoint exists (matches earlier project decision).
+// => Family Members edit mode edits the VALUES of existing rows only - it
+//    does not add/remove which roles exist, to avoid tripping the
+//    both-parents-or-guardian DEFERRABLE constraint trigger on the backend.
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import BackButton from '../BackButton/BackButton.jsx';
-// => axiosAdmin auto-attaches credentials + x-csrf-token on every mutating
-//    call - required or csrfProtection middleware silently rejects PATCH/POST.
-import axiosAdmin from '../../utils/axiosAdmin.js';
+import BackButton from '../../BackButton/BackButton.jsx';
+import axiosAdmin from '../../../utils/axiosAdmin.js';
 import toast from 'react-hot-toast';
 
-import './tesdaEnrollmentDetail.css';
+import './shsEnrollmentDetail.css';
 
-// icons
-import searchIcon from '../../assets/icons/magnifying-glass.png';
-import ConfirmModal from '../../components/ConfirmModal/ConfirmModal.jsx';
-import clipboardIcon from '../../assets/icons/clipboard.png';
-import checkMarkIcon from '../../assets/icons/checkmark.png';
-import errorIcon from '../../assets/icons/warning.png';
-import pencilIcon from '../../assets/icons/pencil.png';
-import trashIcon from '../../assets/icons/trash.png';
+import searchIcon from '../../../assets/icons/magnifying-glass.png';
+import ConfirmModal from '../../../components/ConfirmModal/ConfirmModal.jsx';
+// => Shared spinner/error block, replaces the local adm-detail-state markup below
+import LoadingState from '../../LoadingState/loadingState.jsx';
+import clipboardIcon from '../../../assets/icons/clipboard.png';
+import checkMarkIcon from '../../../assets/icons/checkmark.png';
+import errorIcon from '../../../assets/icons/warning.png';
+import pencilIcon from '../../../assets/icons/pencil.png';
+import trashIcon from '../../../assets/icons/trash.png';
 
 // Constants
 
 // => Matches ALLOWED_STATUSES in sharedEnrollmentService.js exactly
-// => 'Completed' replaced with 'For Assessment'; 'Reviewed' and
-//    'Failed Assessment' added, both landing after 'For Assessment' in
-//    the natural progress order (assessed -> reviewed -> pass/fail)
+// => Same values as TESDA - 'Completed' replaced with 'For Assessment',
+//    'Reviewed' and 'Failed Assessment' added
 const STATUS_OPTIONS = [
   'Pending', 'Reviewed', 'Approved', 'Needs Clarification', 'Rejected',
   'Dropped', 'For Assessment', 'Failed Assessment', 'Reserved',
 ];
+
+const NAME_EXTENSIONS = ['N/A', 'Jr.', 'Sr.', 'II', 'III', 'IV', 'V'];
+
+const RELIGIONS = [
+  'Roman Catholic', 'Islam', 'Iglesia ni Cristo', 'Evangelical',
+  'Aglipayan (Philippine Independent Church)', 'Seventh-Day Adventist',
+  "Jehovah's Witness", 'Baptist', 'Born Again Christian',
+  'United Church of Christ in the Philippines (UCCP)', 'Methodist',
+  'Buddhist', 'Prefer not to say', 'Others',
+];
+
+const STATUS_DESCRIPTIONS = {
+  'Pending': 'Submitted and awaiting initial review.',
+  'Reviewed': 'Enrollment has been reviewed with no issues. The student must submit photocopies of the documents along with the original ones as reference to be approved.',
+  'Approved': 'Reviewed and accepted - the student is officially enrolled.',
+  'Needs Clarification': 'Missing or unclear information - waiting on the student to respond.',
+  'Rejected': 'Enrollment was declined.',
+  'Dropped': 'Student withdrew or was removed after being enrolled.',
+  'For Assessment': 'Training finished - student is scheduled for competency assessment.',
+  'Failed Assessment': 'Student did not pass the competency assessment.',
+  'Reserved': 'No open class section yet - held until one becomes available.',
+};
+
+// => Same warnings as TESDA, minus the reservation-fee mention since SHS
+//    has no such fee
+const STATUS_CONFIRM_WARNINGS = {
+  'Approved': 'Please confirm the student has submitted physical photocopies of their documents and that these have been compared against the original copies before proceeding.',
+  'Failed Assessment': 'This marks the assessment as failed and will be visible to the student on their dashboard.',
+  'Rejected': 'This will reject the enrollment application and will be visible to the student on their dashboard.',
+  'Dropped': 'This will mark the student as dropped from the program and will be visible to the student on their dashboard.',
+};
 
 const statusClass = {
   'Pending':             'status--pending',
@@ -54,126 +84,11 @@ const statusClass = {
   'Reserved':            'status--reserved',
 };
 
-// => Ported from shsEnrollmentDetail.jsx for parity - short explainer shown
-//    next to the Save Status button for whichever status is selected
-const STATUS_DESCRIPTIONS = {
-  'Pending': 'Submitted and awaiting initial review.',
-  'Reviewed': 'Enrollment has been reviewed with no issues. Student must submit physical photocopies of the documents along with the original ones as reference and pay the reservation fee if applicable to be approved.',
-  'Approved': 'Reviewed and accepted - the student is officially enrolled.',
-  'Needs Clarification': 'Missing or unclear information - waiting on the student to respond.',
-  'Rejected': 'Enrollment was declined.',
-  'Dropped': 'Student withdrew or was removed after being enrolled.',
-  'For Assessment': 'Training finished - student is scheduled for competency assessment.',
-  'Failed Assessment': 'Student did not pass the competency assessment.',
-  'Reserved': 'No open class section yet - held until one becomes available.',
-};
-
-// => Extra confirmation copy for consequential, student-visible status
-//    changes - shown in the Confirm modal in addition to the base
-//    "Change status to X?" question. Statuses not listed here just get
-//    the base question with nothing extra appended.
-const STATUS_CONFIRM_WARNINGS = {
-  'Approved': 'Please confirm the student has submitted physical photocopies of their documents and that these have been compared against the original copies before proceeding.',
-  'Failed Assessment': 'This marks the assessment as failed and will be visible to the student on their dashboard.',
-  'Rejected': 'This will reject the enrollment application and will be visible to the student on their dashboard.',
-  'Dropped': 'This will mark the student as dropped from the program and will be visible to the student on their dashboard.',
-};
-
-// => Matches TESDAStep3.jsx exactly - the physical form only allows
-//    selecting ONE classification, not several
-const CLASSIFICATIONS = [
-  { value: '4ps_beneficiary', label: '4Ps Beneficiary' },
-  { value: 'agrarian_reform', label: 'Agrarian Reform Beneficiary' },
-  { value: 'balik_probinsya', label: 'Balik Probinsya' },
-  { value: 'displaced_workers', label: 'Displaced Workers' },
-  { value: 'drug_dependents', label: 'Drug Dependents Surrenderees / Surrenderers' },
-  { value: 'afp_pnp_killed', label: 'Family Members of AFP and PNP Killed-in-Action' },
-  { value: 'afp_pnp_wounded', label: 'Family Members of AFP and PNP Wounded in-Action' },
-  { value: 'farmers_fishermen', label: 'Farmers and Fishermen' },
-  { value: 'indigenous_people', label: 'Indigenous People & Cultural Communities' },
-  { value: 'industry_workers', label: 'Industry Workers' },
-  { value: 'inmates_detainees', label: 'Inmates and Detainees' },
-  { value: 'milf_beneficiary', label: 'MILF Beneficiary' },
-  { value: 'out_of_school_youth', label: 'Out-of-School Youth' },
-  { value: 'ofw_dependent', label: 'Overseas Filipino Workers (OFW) Dependent' },
-  { value: 'rcef_resp', label: 'RCEF-RESP' },
-  { value: 'rebel_returnees', label: 'Rebel Returnees / Decommissioned Combatants' },
-  { value: 'returning_ofw', label: 'Returning / Repatriated Overseas Filipino Workers (OFW)' },
-  { value: 'student', label: 'Student' },
-  { value: 'tesda_alumni', label: 'TESDA Alumni' },
-  { value: 'tvet_trainers', label: 'TVET Trainers' },
-  { value: 'uniformed_personnel', label: 'Uniformed Personnel' },
-  { value: 'disaster_victim', label: 'Victim of Natural Disasters and Calamities' },
-  { value: 'wounded_afp_pnp', label: 'Wounded-in-Action AFP & PNP Personnel' },
-  { value: 'others', label: 'Others' },
-];
-
-// => value -> label lookup, used for the read-only display so it shows
-//    "4Ps Beneficiary" instead of the raw stored slug "4ps_beneficiary"
-const CLASSIFICATION_LABELS = Object.fromEntries(CLASSIFICATIONS.map(c => [c.value, c.label]));
+// => shs_family_members.role CHECK constraint order - Father/Mother first, Guardian last
+const ROLE_ORDER = ['Father', 'Mother', 'Guardian'];
 
 const SEX_OPTIONS = ['Male', 'Female'];
-
-// => Matches student_profile.employment_status - no CHECK constraint in
-//    server.js, so this is enforced at the UI layer only.
-const EMPLOYMENT_OPTIONS = ['Employed', 'Unemployed'];
-
-// => Age gate - mirrors TESDAStep2.jsx's MIN_AGE/MAX_AGE. Admins edit the
-//    same student_profile.birth_date column students submit through, so
-//    the same bounds apply here.
-const MIN_STUDENT_AGE = 12;
-const MAX_STUDENT_AGE = 100;
-
-// => Computes the allowed <input type="date"> range - recomputed on each
-//    render (not a module-level constant) so the page doesn't drift out
-//    of date if left open across midnight.
-const getAgeDateBounds = () => {
-  const today = new Date();
-  const toISO = (d) => d.toISOString().slice(0, 10);
-  const maxDate = new Date(today.getFullYear() - MIN_STUDENT_AGE, today.getMonth(), today.getDate());
-  const minDate = new Date(today.getFullYear() - MAX_STUDENT_AGE, today.getMonth(), today.getDate());
-  return { min: toISO(minDate), max: toISO(maxDate) };
-};
-
-// => Validates a birth_date string (YYYY-MM-DD) against the 12-100 age gate
-const validateAge = (dateStr) => {
-  if (!dateStr) return 'Birthdate is required.';
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const birth = new Date(y, m - 1, d);
-  const today = new Date();
-  let age = today.getFullYear() - birth.getFullYear();
-  const monthDiff = today.getMonth() - birth.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
-  if (age < MIN_STUDENT_AGE) return `Student must be at least ${MIN_STUDENT_AGE} years old.`;
-  if (age > MAX_STUDENT_AGE) return `Please check the birthdate - age exceeds ${MAX_STUDENT_AGE} years.`;
-  return null;
-};
-
-// => Matches student_profile.civil_status - same list as TESDAStep2.jsx's
-//    CIVIL_STATUS constant, so admin edits stay consistent with what
-//    students actually submit.
-const CIVIL_STATUS_OPTIONS = ['Single', 'Married', 'Widow/er', 'Separated', 'Solo Parent'];
-
-// => Matches student_profile.name_extension - same list as TESDAStep1.jsx's
-//    NAME_EXTENSIONS constant (also used by shsEnrollmentDetail.jsx).
-const NAME_EXTENSIONS = ['N/A', 'Jr.', 'Sr.', 'II', 'III', 'IV', 'V'];
-
-// => Matches student_profile.highest_educ_attainment - same list as
-//    TESDAStep2.jsx's EDUC_ATTAINMENT constant.
-const EDUC_ATTAINMENT_OPTIONS = [
-  'No Grade Completed',
-  'Elementary Undergraduate',
-  'Elementary Graduate',
-  'Pre-School (Nursery/Kinder/Prep)',
-  'Post Secondary Undergraduate',
-  'Post Secondary Graduate',
-  'High School Undergraduate',
-  'High School Graduate',
-  'Junior High Graduate',
-  'Senior High Graduate',
-  'College Undergraduate',
-  'College Graduate or Higher',
-];
+const MEDICAL_OPTIONS = ['none', 'yes'];
 
 // Utility helpers
 const formatDate = (dateStr) => {
@@ -183,10 +98,8 @@ const formatDate = (dateStr) => {
   });
 };
 
-// => True only when the batch has an end_date AND today is on/after it.
-//    Missing end_date counts as NOT ended - can't confirm training
-//    finished without a date to check against. Used to gate the For
-//    Assessment transition.
+// => True only when the batch has an end_date AND today is on/after it -
+//    same reasoning as tesdaEnrollmentDetail.jsx
 const isBatchTrainingEnded = (endDateStr) => {
   if (!endDateStr) return false;
   const batchEndDate = new Date(endDateStr);
@@ -204,6 +117,8 @@ const formatDateTime = (dateStr) => {
   });
 };
 
+// => Used by the Miscellaneous Fee Payments section - this file never
+//    had a currency formatter before that section was added.
 const formatCurrency = (amount) => {
   if (amount == null) return '-';
   return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
@@ -215,48 +130,63 @@ const fullName = (p) =>
     .filter(v => v && v.trim().toUpperCase() !== 'N/A')
     .join(' ') || '-';
 
-// => Same validators as TESDAStep1.jsx, so admin edits are held to the same rules students followed at submission time.
+const MIN_AGE = 16; // => matches SHSStep1.jsx MIN_AGE
+const MAX_AGE = 100; // => matches SHSStep1.jsx MAX_AGE
+
 const validateMobile = (value) => {
-  if (!value) return null; // => admin is editing an existing record, field can stay blank
+  if (!value) return null;
   if (!/^09\d{9}$/.test(value)) return 'Must start with 09 and be exactly 11 digits.';
   return null;
 };
 
-// => Same EMAIL_REGEX as TESDAStep1.jsx, SHSStep1.jsx, shsEnrollmentDetail
-// => .jsx, and StudentDetail.jsx - all five touch the same
-// => student_profile.email column, so they all enforce identically.
+// => Same EMAIL_REGEX/FACEBOOK_LINK_REGEX as TESDAStep1.jsx, SHSStep1.jsx,
+// => tesdaEnrollmentDetail.jsx, and StudentDetail.jsx - all five write to
+// => (or read from) the same student_profile.email / .facebook_link
+// => columns, so they all enforce identically.
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 const validateEmailFormat = (value) => {
-  if (!value) return 'Email is required.';
+  if (!value) return 'Email address is required.';
   if (!EMAIL_REGEX.test(value)) return 'Please enter a valid email address.';
   return null;
 };
 
 // => Accepts facebook.com with no subdomain, www., or Meta's actual
-// => "web." desktop subdomain. Same FACEBOOK_LINK_REGEX as
-// => TESDAStep1.jsx, SHSStep1.jsx, shsEnrollmentDetail.jsx, and
-// => StudentDetail.jsx.
+// => "web." desktop subdomain. fb.com shortlinks no longer accepted.
 const FACEBOOK_LINK_REGEX = /^(https?:\/\/)?(www\.|web\.)?facebook\.com\/.+$/i;
 const validateFacebookLink = (value) => {
-  if (!value) return null; // => admin is editing an existing record, field can stay blank
-  if (!FACEBOOK_LINK_REGEX.test(value)) return 'Please enter a valid Facebook URL (e.g. https://www.facebook.com/yourname).';
+  if (!value) return 'Facebook profile link is required.';
+  if (!FACEBOOK_LINK_REGEX.test(value)) return 'Please enter a valid Facebook profile link (e.g. https://www.facebook.com/yourname).';
   return null;
 };
 
-const toTitleCase = (value) => {
-  return value
-    .replace(/[^a-zA-Z\s\-']/g, '')
-    .replace(/^\s+/, '')
-    .replace(/\s{2,}/g, ' ')
-    .replace(/(^\w|(?<=[\s\-])\w)/g, (c) => c.toUpperCase());
+const validateLRN = (value) => {
+  if (!value) return null;
+  if (!/^\d{12}$/.test(value)) return 'LRN must be exactly 12 digits.';
+  return null;
 };
 
-// => Postgres DATE columns arrive as full ISO strings - slice to 10 chars
-//    for <input type="date"> which needs exactly YYYY-MM-DD
+const toProperCase = (value) => {
+  if (!value) return value;
+  return value.replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+};
+
+const computeAge = (birthDateStr) => {
+  if (!birthDateStr) return null;
+  const birth = new Date(birthDateStr);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+};    
+
 const toDateInputValue = (dateStr) => (dateStr ? String(dateStr).slice(0, 10) : '');
 
 // InfoCard - reusable read-only label+value cell
-function InfoCard({ label, value, copyable = true }) {
+// => onViewFull: optional callback that renders a "View Full" trigger next to
+//    the label, for long-text fields like Electives - pair with `clamp`.
+// => clamp: visually truncates the value to 2 lines so the button has a purpose.
+function InfoCard({ label, value, copyable = true, onViewFull = null, clamp = false }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -269,9 +199,16 @@ function InfoCard({ label, value, copyable = true }) {
 
   return (
     <div className="adm-info-card">
-      <p className="adm-info-label">{label}</p>
+      <div className="adm-info-label-row">
+        <p className="adm-info-label">{label}</p>
+        {onViewFull && (
+          <button type="button" className="adm-view-full-btn" onClick={onViewFull}>
+            View Full
+          </button>
+        )}
+      </div>
       <div className="adm-info-value-row">
-        <p className="adm-info-value">{value}</p>
+        <p className={`adm-info-value ${clamp ? 'adm-info-value--clamp' : ''}`}>{value}</p>
         {copyable && value && value !== '-' && (
           <button
             className={`adm-copy-btn ${copied ? 'adm-copy-btn--copied' : ''}`}
@@ -290,39 +227,16 @@ function InfoCard({ label, value, copyable = true }) {
   );
 }
 
-// => EditableField - the edit-mode counterpart to InfoCard. type controls
-//    the input rendered: 'text' | 'number' | 'date' | 'checkbox' | 'select'
+// => EditableField - edit-mode counterpart to InfoCard
 function EditableField({ label, value, onChange, type = 'text', options = null, error = null, disabled = false, required = false, min = undefined, max = undefined }) {
-  // => Required fields get a red asterisk, driven by server.js's NOT NULL
-  //    constraints, not guesswork.
+  // => Shared label - required fields get a red asterisk, driven by
+  //    server.js's NOT NULL constraints, not guesswork.
   const labelEl = (
     <p className="adm-info-label">
       {label}
       {required && <span className="adm-req-asterisk"> *</span>}
     </p>
   );
-
-  // => Yes/No radio pair for boolean columns (ncae_taken, is_tesda_scholar).
-  //    Replaces the old single checkbox - "No" is now an explicit,
-  //    equally-weighted choice instead of an unchecked default, matching
-  //    the radio pattern already used on TESDAStep4/TESDAStep5.
-  if (type === 'yesno') {
-    return (
-      <div className="adm-info-card">
-        {labelEl}
-        <div className="adm-radio-row">
-          <label className="adm-checkbox-item">
-            <input type="radio" checked={value === true} disabled={disabled} onChange={() => onChange(true)} />
-            <span>Yes</span>
-          </label>
-          <label className="adm-checkbox-item">
-            <input type="radio" checked={value === false} disabled={disabled} onChange={() => onChange(false)} />
-            <span>No</span>
-          </label>
-        </div>
-      </div>
-    );
-  }
 
   if (type === 'checkbox') {
     return (
@@ -367,9 +281,6 @@ function EditableField({ label, value, onChange, type = 'text', options = null, 
   );
 }
 
-// => SectionEditControls - pencil / Save / Cancel row shown next to each
-//    section title. isEditing is derived by comparing editingSection to
-//    this section's own key.
 function SectionEditControls({ sectionKey, editingSection, saving, onEdit, onSave, onCancel }) {
   const isEditing = editingSection === sectionKey;
   return (
@@ -462,7 +373,7 @@ function AddressCascadeFields({ draft, updateDraft, regionField, provinceField, 
   return (
     <>
       <div className="adm-info-card">
-        <p className="adm-info-label">Region</p>
+        <p className="adm-info-label">Region <span className="adm-req-asterisk">*</span></p>
         <select
           className="adm-edit-input"
           value={regionCode}
@@ -500,7 +411,7 @@ function AddressCascadeFields({ draft, updateDraft, regionField, provinceField, 
       )}
 
       <div className="adm-info-card">
-        <p className="adm-info-label">City / Municipality</p>
+          <p className="adm-info-label">City / Municipality <span className="adm-req-asterisk">*</span></p>
         <select
           className="adm-edit-input"
           value={cityCode}
@@ -517,7 +428,7 @@ function AddressCascadeFields({ draft, updateDraft, regionField, provinceField, 
 
       {barangayField && (
         <div className="adm-info-card">
-          <p className="adm-info-label">Barangay</p>
+          <p className="adm-info-label">Barangay <span className="adm-req-asterisk">*</span></p>
           <select
             className="adm-edit-input"
             value={barangayCode}
@@ -536,8 +447,6 @@ function AddressCascadeFields({ draft, updateDraft, regionField, provinceField, 
 }
 
 // DocPreview sub-component
-// => Streams a single R2 document via the admin proxy. Now also supports
-//    Replace: a hidden file input swaps this document's file in place.
 function DocPreview({ documentKey, documentType, docPublicId, onOpenModal, onReplace, replacing, onDelete, deleting, isOriginal = true }) {
   const [url,     setUrl]     = useState(null);
   const [loading, setLoading] = useState(true);
@@ -574,9 +483,9 @@ function DocPreview({ documentKey, documentType, docPublicId, onOpenModal, onRep
     };
   }, [documentKey]);
 
+  // => SHS uploads are JPG/PNG only (stricter than TESDA's JPG/PNG/PDF)
   const isPdf = documentKey?.toLowerCase().endsWith('.pdf');
 
-  // => Unique input id per doc so the hidden file input + label pair don't collide
   const inputId = `replace-doc-${docPublicId}`;
 
   return (
@@ -623,17 +532,16 @@ function DocPreview({ documentKey, documentType, docPublicId, onOpenModal, onRep
         </div>
       )}
 
-      {/* => Replace control - hidden file input triggered by a visible label/button */}
       <div className="adm-doc-replace-row">
         <input
           id={inputId}
           type="file"
-          accept="image/jpeg,image/png,application/pdf"
+          accept="image/jpeg,image/png"
           style={{ display: 'none' }}
           onChange={e => {
             const file = e.target.files?.[0];
             if (file) onReplace(docPublicId, file);
-            e.target.value = ''; // => allow re-selecting the same file later
+            e.target.value = '';
           }}
         />
         <label htmlFor={inputId} className="adm-doc-replace-btn">
@@ -660,7 +568,7 @@ function DocPreview({ documentKey, documentType, docPublicId, onOpenModal, onRep
 // 
 // Main component
 // 
-export default function TESDAEnrollmentDetail() {
+export default function SHSEnrollmentDetail() {
   const { publicId } = useParams();
   const navigate     = useNavigate();
 
@@ -669,23 +577,17 @@ export default function TESDAEnrollmentDetail() {
   const [error,   setError]   = useState(null);
 
   const [selectedStatus, setSelectedStatus] = useState('');
-  // => Client-side pagination for the Activity Logs table - logs come
-  //    bundled in the main detail fetch, not a separate endpoint, so
-  //    paging is just slicing the already-loaded array
+  // => Client-side pagination for the Activity Logs table - same
+  //    reasoning as tesdaEnrollmentDetail.jsx
   const [logPage, setLogPage] = useState(1);
   const [nationalities, setNationalities] = useState([]);
   const [saving,         setSaving]         = useState(false);
   // => saveMsg state removed - status save feedback now goes through
   //    react-hot-toast instead of an inline banner
-
   const [internalRemarksDraft, setInternalRemarksDraft] = useState('');
   const [externalRemarksDraft, setExternalRemarksDraft] = useState('');
   const [savingInternalRemarks, setSavingInternalRemarks] = useState(false);
 
-  // => External Remarks tracks the status dropdown: switching to a DIFFERENT
-  //    status clears the draft (fresh note for that status), switching back
-  //    to the currently-saved status restores whatever's in the DB. It only
-  //    ever writes to the DB when Save Status is confirmed - see handleStatusConfirmed.
   useEffect(() => {
     const enr = data?.enrollment;
     if (!enr) return;
@@ -697,19 +599,19 @@ export default function TESDAEnrollmentDetail() {
   }, [selectedStatus, data?.enrollment?.status, data?.enrollment?.external_remarks]);
 
   const [modal, setModal] = useState(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // => Payment & Refund History - placeholder state for now, wired to a
   //    real fetch in Step 3 once the backend endpoint exists.
   const [paymentHistory, setPaymentHistory] = useState([]);
+  const [batchMiscFeeTotal, setBatchMiscFeeTotal] = useState(0);
+  // => Total paid toward this enrollment's batch misc fees, for the
+  //    For Assessment gate balance display
   const [totalPaid, setTotalPaid] = useState(0);
-  // => Total required to clear the For Assessment gate (course fee for
-  //    Regular batches + batch misc fees), from the same endpoint
-  const [totalRequired, setTotalRequired] = useState(0);
+  const [electivesModalOpen, setElectivesModalOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  // => TESDA Classes 
-const [classOptions, setClassOptions] = useState([]);
-const [loadingClassOptions, setLoadingClassOptions] = useState(false);
+  const [classOptions, setClassOptions] = useState([]);
+  const [loadingClassOptions, setLoadingClassOptions] = useState(false);  
 
   const handleOpenModal  = (doc) => setModal(doc);
   const handleCloseModal = ()    => setModal(null);
@@ -718,63 +620,54 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
     region: null, province: null, city: null, barangay: null,
   });
 
-  const [birthplaceNames, setBirthplaceNames] = useState({
-    region: null, province: null, city: null,
-  });
-
   // 
-  // EDIT MODE STATE
-  // => Only one section editable at a time - editingSection holds that
-  //    section's key ('enrollmentInfo' | 'ncae' | 'scholarship' |
-  //    'classifications' | 'profile' | 'address' | 'guardian' | null).
-  //    draft holds that section's in-progress field values.
+  // EDIT MODE STATE - same pattern as TESDA. Section keys used here:
+  // 'enrollmentInfo' | 'academic' | 'profile' | 'address' | 'family' |
+  // 'emergency' | 'health' | 'consent'
   // 
   const [editingSection, setEditingSection] = useState(null);
   const [draft,          setDraft]          = useState({});
   const [sectionSaving,  setSectionSaving]  = useState(false);
   const [sectionError,   setSectionError]   = useState(null);
 
-  // => Per-document replace-in-flight tracking, keyed by doc public_id
   const [replacingDocId, setReplacingDocId] = useState(null);
   const [docError, setDocError] = useState(null);
-
-  // => Add Document form state
   const [addDocType, setAddDocType] = useState('');
   const [addDocFile, setAddDocFile] = useState(null);
   const [addingDoc,  setAddingDoc]  = useState(false);
-  // => Bumped after a successful add to remount the file input, clearing
-  //    its display - mirrors shsEnrollmentDetail.jsx's same pattern
-  const [addDocInputKey, setAddDocInputKey] = useState(0);
-
-  // => Delete Document 
-  const [deletingDocId, setDeletingDocId] = useState(null);
-  const [deleteConfirmDoc, setDeleteConfirmDoc] = useState(null);
+  
   const [fieldErrors, setFieldErrors] = useState({});
+
+  const [addDocInputKey, setAddDocInputKey] = useState(0); // => bumped to reset the file input after a successful add
+
+  const [deletingDocId, setDeletingDocId] = useState(null);
+  const [deleteConfirmDoc, setDeleteConfirmDoc] = useState(null); // => docPublicId pending confirmation
+
 
   const startEdit = (sectionKey, initialValues) => {
     setEditingSection(sectionKey);
     setDraft(initialValues);
     setSectionError(null);
+    setFieldErrors({});
   };
 
   const cancelEdit = () => {
     setEditingSection(null);
     setDraft({});
     setSectionError(null);
+    setFieldErrors({});
   };
 
   const updateDraft = (field, value) => {
     setDraft(prev => ({ ...prev, [field]: value }));
   };
 
-  // => Generic PATCH helper - returns the parsed response body on success,
-  //    sets sectionError and re-throws on failure so callers can bail early
   const patchSection = async (endpointPath, payload) => {
     setSectionSaving(true);
     setSectionError(null);
     try {
       const res = await axiosAdmin.patch(
-        `/api/admin/enrollments/tesda/${publicId}/${endpointPath}`,
+        `/api/admin/enrollments/shs/${publicId}/${endpointPath}`,
         payload
       );
       return res.data;
@@ -786,67 +679,52 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
     }
   };
 
-  // TESDA Classes 
-  useEffect(() => {
-    if (editingSection !== 'classAssign') return;
-    const enr = data?.enrollment;
-    if (!enr?.course_id) { setClassOptions([]); return; }
+  //  Fetch full enrollment detail 
+  // => Pulled out of useEffect so handleSaveClassAssign can call it again
+  //    after reassigning a class - a plain PATCH response only returns raw
+  //    tesda/shs_enrollments columns, not the joined class period/groupchat
+  //    data, so a full refetch is the reliable way to pick that up.
+  const fetchDetail = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/enrollments/shs/${publicId}`, {
+        credentials: 'include',
+      });
+      if (res.status === 404) throw new Error('Enrollment not found.');
+      if (!res.ok) throw new Error('Failed to fetch enrollment detail.');
+      const json = await res.json();
+      setData(json);
+      setSelectedStatus(json.enrollment.status);
+      setInternalRemarksDraft(json.enrollment.internal_remarks ?? '');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    setLoadingClassOptions(true);
-    const params = new URLSearchParams({ course_id: enr.course_id });
-
-    fetch(`/api/admin/enrollments/tesda/classes/available?${params.toString()}`, { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => setClassOptions(d.classes || []))
-      .catch(err => console.error('Failed to fetch available classes:', err))
-      .finally(() => setLoadingClassOptions(false));
-  }, [editingSection, data?.enrollment?.course_id]);
-
-  //  Fetch full enrollment detail on mount 
   useEffect(() => {
     if (!publicId) return;
-
-    const fetchDetail = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(`/api/admin/enrollments/tesda/${publicId}`, {
-          credentials: 'include',
-        });
-        if (res.status === 404) throw new Error('Enrollment not found.');
-        if (!res.ok) throw new Error('Failed to fetch enrollment detail.');
-        const json = await res.json();
-        setData(json);
-        setSelectedStatus(json.enrollment.status);
-        setInternalRemarksDraft(json.enrollment.internal_remarks ?? '');
-        setExternalRemarksDraft(json.enrollment.external_remarks ?? '');
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDetail();
   }, [publicId]);
 
-  // => Payment History - separate fetch from the main enrollment detail
-  //    since it hits a different endpoint. Doesn't block the page's main
-  //    loading state - failing silently here just leaves the section at
-  //    its default empty/0 values instead of erroring the whole page.
+  // => Payment History - separate fetch, own endpoint. Doesn't block the
+  //    page's main loading state; failing silently here just leaves the
+  //    section at its default empty values.
   useEffect(() => {
     if (!publicId) return;
 
     const fetchPaymentHistory = async () => {
       try {
-        const res = await fetch(`/api/admin/enrollments/tesda/${publicId}/payment-history`, {
+        const res = await fetch(`/api/admin/enrollments/shs/${publicId}/payment-history`, {
           credentials: 'include',
         });
         if (!res.ok) return;
         const json = await res.json();
         setPaymentHistory(json.records ?? []);
+        setBatchMiscFeeTotal(json.batchMiscFeeTotal ?? 0);
         setTotalPaid(json.totalPaid ?? 0);
-        setTotalRequired(json.totalRequired ?? 0);
       } catch (err) {
         console.error('Failed to fetch payment history:', err);
       }
@@ -917,67 +795,37 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
     resolve();
   }, [data]);
 
-  // => Resolve birthplace codes to readable names
+  // => Fetch available shs_batches matching this enrollment's cluster
+  //    only when the Class/Batch section is opened for editing
   useEffect(() => {
-    if (!data?.profile) return;
+    if (editingSection !== 'classAssign') return;
+    const enr = data?.enrollment;
+    if (!enr?.cluster_id) { setClassOptions([]); return; }
 
-    const p = data.profile;
-    if (!p.birthplace_region && !p.birthplace_province && !p.birthplace_city) return;
+    setLoadingClassOptions(true);
+    const params = new URLSearchParams({ cluster_id: enr.cluster_id });
 
-    const resolve = async () => {
-      const names = { region: null, province: null, city: null };
+    fetch(`/api/admin/enrollments/shs/classes/available?${params.toString()}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => setClassOptions(d.classes || []))
+      .catch(err => console.error('Failed to fetch available classes:', err))
+      .finally(() => setLoadingClassOptions(false));
+  }, [editingSection, data?.enrollment?.cluster_id]);
 
-      try {
-        if (p.birthplace_region) {
-          const res = await fetch('/api/location/regions');
-          if (res.ok) {
-            const regions = await res.json();
-            const match = regions.find(r =>
-              p.birthplace_region === r.code ||
-              p.birthplace_region.startsWith(r.code) ||
-              r.code.startsWith(p.birthplace_region)
-            );
-            names.region = match?.name ?? p.birthplace_region;
-          }
-        }
+  // => Fetch nationalities for the profile
+  useEffect(() => {
+    fetch('/api/reference/nationalities')
+      .then(r => r.json())
+      .then(setNationalities)
+      .catch(err => console.error('Failed to fetch nationalities:', err));
+  }, []);
 
-        if (p.birthplace_province && p.birthplace_region) {
-          const res = await fetch(`/api/location/provinces/${p.birthplace_region}`);
-          if (res.ok) {
-            const provinces = await res.json();
-            const match = provinces.find(pr => pr.code === p.birthplace_province);
-            names.province = match?.name ?? p.birthplace_province;
-          }
-        }
-
-        if (p.birthplace_city) {
-          const endpoint = p.birthplace_province
-            ? `/api/location/cities/${p.birthplace_province}`
-            : `/api/location/cities-by-region/${p.birthplace_region}`;
-          const res = await fetch(endpoint);
-          if (res.ok) {
-            const cities = await res.json();
-            const match = cities.find(c => c.code === p.birthplace_city);
-            names.city = match?.name ?? p.birthplace_city;
-          }
-        }
-
-        setBirthplaceNames(names);
-      } catch (err) {
-        console.error('Failed to resolve birthplace names:', err);
-      }
-    };
-
-    resolve();
-  }, [data]);
-
-  // => Re-fetches the full detail bundle without touching the page's
-  //    loading/error state - used after actions that write server-side
-  //    data (status changes) so sections like Activity Logs reflect the
-  //    change immediately instead of needing a manual page reload
+  // => Same reasoning as TESDA - re-fetches the full detail bundle
+  //    without touching the page's loading/error state, so Activity
+  //    Logs reflects a status change immediately
   const refreshDetail = async () => {
     try {
-      const res = await fetch(`/api/admin/enrollments/tesda/${publicId}`, {
+      const res = await fetch(`/api/admin/enrollments/shs/${publicId}`, {
         credentials: 'include',
       });
       if (!res.ok) return;
@@ -989,21 +837,17 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
   };
 
   //  Status update handler 
-  // => Switched from raw fetch to axiosAdmin so x-csrf-token is actually
-  //    attached - the previous raw fetch call had no CSRF header at all.
+  // => Switched from raw fetch to axiosAdmin so x-csrf-token is attached.
   const handleStatusSave = () => {
     if (!selectedStatus || selectedStatus === data?.enrollment?.status) return;
-    // => Needs Clarification is shown to the student on their dashboard -
-    //    block here so the admin sees this before opening the confirm
+    // => Same reasoning as TESDA - block here before opening the confirm
     //    modal, not just after hitting a 400 from the backend gate
     if (selectedStatus === 'Needs Clarification' && !externalRemarksDraft.trim()) {
       toast.error('External Remarks is required when setting status to "Needs Clarification".');
       return;
     }
-    // => For Assessment requires the batch's training period to have
-    //    actually ended - today must be on or after end_date. Blocked
-    //    here so the admin sees this before opening the confirm modal,
-    //    not just after hitting a 400 from the backend gate.
+    // => Same block as TESDA - For Assessment requires the batch's
+    //    training period to have actually ended
     if (selectedStatus === 'For Assessment' && !isBatchTrainingEnded(enrollment.end_date)) {
       toast.error(
         enrollment.end_date
@@ -1019,13 +863,12 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
     setConfirmOpen(false);
     setSaving(true);
     try {
-      await axiosAdmin.patch(`/api/admin/enrollments/tesda/${publicId}/status`, {
+      await axiosAdmin.patch(`/api/admin/enrollments/shs/${publicId}/status`, {
         status: selectedStatus,
         external_remarks: externalRemarksDraft,
       });
       // => Pulls the fresh detail bundle - including the Activity Logs
-      //    row the backend just wrote - instead of a manual local patch,
-      //    so the log table updates immediately without a page reload
+      //    row the backend just wrote - instead of a manual local patch
       await refreshDetail();
       toast.success(`Status updated to "${selectedStatus}".`);
     } catch (err) {
@@ -1036,108 +879,93 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
   };
 
   // 
-  // SECTION SAVE HANDLERS
-  // => Each hits the same generic patchSection helper, then merges the
-  //    response back into `data` by SPREADING over the existing object -
-  //    the enrollment PATCH returns RETURNING * (raw columns only), which
-  //    does NOT include joined display fields like course_name/
-  //    sector/student_username/class period. Spreading preserves those
-  //    instead of wiping them out.
+  // SECTION SAVE HANDLERS - spread-merge over existing enrollment object so
+  // joined display fields (class period, groupchat_link,
+  // student_username) survive a PATCH .../enrollment RETURNING * response.
   // 
 
-  // => Fetch nationalities for the profile
-    useEffect(() => {
-      fetch('/api/reference/nationalities')
-        .then(r => r.json())
-        .then(setNationalities)
-        .catch(err => console.error('Failed to fetch nationalities:', err));
-    }, []);
-
   const handleSaveEnrollmentInfo = async () => {
+    const lrnErr = validateLRN(draft.lrn);
+    if (lrnErr) {
+      setSectionError(lrnErr);
+      return;
+    }
     try {
+      // => cluster, track, and electives dropped - track/cluster are locked
+      //    (see JSX), and electives is now a read-only InfoCard with a
+      //    view-full modal, not part of this section's editable draft anymore.
       const result = await patchSection('enrollment', {
-        uli: draft.uli,
+        lrn: draft.lrn,
       });
       setData(prev => ({ ...prev, enrollment: { ...prev.enrollment, ...result.enrollment } }));
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
 
-  const handleSaveInternalRemarks = async () => {
-    setSavingInternalRemarks(true);
-    try {
-      const result = await patchSection('enrollment', { internal_remarks: internalRemarksDraft });
-      setData(prev => ({ ...prev, enrollment: { ...prev.enrollment, ...result.enrollment } }));
-    } catch { /* sectionError already set by patchSection */ }
-    finally { setSavingInternalRemarks(false); }
-  };
-
-  const handleSaveNcae = async () => {
-    // => Mirrors TESDAStep4's rule: Where/When become required once Taken = Yes.
-    if (draft.ncae_taken && (!draft.ncae_where.trim() || !draft.ncae_when.trim())) {
-      setSectionError('Where Taken and When Taken are required when NCAE Taken is Yes.');
-      return;
-    }
+  const handleSaveAcademic = async () => {
     try {
       const result = await patchSection('enrollment', {
-        ncae_taken: draft.ncae_taken,
-        ncae_where: draft.ncae_where,
-        ncae_when: draft.ncae_when,
+        last_school_attended: draft.last_school_attended,
+        school_address: draft.school_address,
+        grade_level_completed: draft.grade_level_completed,
+        school_year_completed: draft.school_year_completed,
       });
       setData(prev => ({ ...prev, enrollment: { ...prev.enrollment, ...result.enrollment } }));
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
 
-  const handleSaveScholarship = async () => {
-    // => Mirrors TESDAStep5's rule: Scholarship Type becomes required once
-    //    TESDA Scholar = Yes, and Other Scholarship becomes required when
-    //    Type is literally "Others" (admin free-text, so this only catches
-    //    an exact match - not a strict enum like the public form's radio).
-    if (draft.is_tesda_scholar && !draft.scholarship_type.trim()) {
-      setSectionError('Scholarship Type is required when TESDA Scholar is Yes.');
-      return;
-    }
-    if (draft.scholarship_type === 'Others' && !draft.other_scholarship.trim()) {
-      setSectionError('Please specify the scholarship under Other Scholarship.');
+  const handleSaveEmergency = async () => {
+    const mobileErr = validateMobile(draft.emergency_contact_no);
+    if (mobileErr) {
+      setSectionError(mobileErr);
       return;
     }
     try {
       const result = await patchSection('enrollment', {
-        is_tesda_scholar: draft.is_tesda_scholar,
-        scholarship_type: draft.scholarship_type,
-        other_scholarship: draft.other_scholarship,
+        emergency_name: draft.emergency_name,
+        emergency_relationship: draft.emergency_relationship,
+        emergency_contact_no: draft.emergency_contact_no,
+        emergency_address: draft.emergency_address,
       });
       setData(prev => ({ ...prev, enrollment: { ...prev.enrollment, ...result.enrollment } }));
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
 
-  const handleSaveClassifications = async () => {
+  const handleSaveHealth = async () => {
+    if (draft.has_medical_condition === 'yes' && !draft.medical_condition_detail?.trim()) {
+      setSectionError('Condition detail is required when a medical condition is indicated.');
+      return;
+    }
     try {
-      const result = await patchSection('classifications', {
-        // => Backend still stores classifications as a list - just always
-        //    a single-element list now, matching the physical form's intent
-        classifications: draft.classification ? [draft.classification] : [],
-        othersText: draft.othersText || '',
+      const result = await patchSection('enrollment', {
+        has_medical_condition: draft.has_medical_condition,
+        medical_condition_detail: draft.medical_condition_detail,
+        allergies: draft.allergies,
+        maintenance_medication: draft.maintenance_medication,
       });
-      setData(prev => ({ ...prev, classifications: result.classifications }));
+      setData(prev => ({ ...prev, enrollment: { ...prev.enrollment, ...result.enrollment } }));
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
 
-  const handleSaveProfile = async () => {
-    const ageError = validateAge(draft.birth_date);
-    const emailError = validateEmailFormat(draft.email);
-    if (ageError || emailError) {
-      setFieldErrors(prev => ({ ...prev, birth_date: ageError, email: emailError }));
-      setSectionError('Please fix the highlighted fields before saving.');
-      return;
-    }
+   const handleSaveProfile = async () => {
     if (Object.values(fieldErrors).some(Boolean)) {
       setSectionError('Please fix the highlighted fields before saving.');
       return;
     }
+
+    const age = computeAge(draft.birth_date);
+    if (age !== null && age < MIN_AGE) {
+      setSectionError(`Enrollee must be at least ${MIN_AGE} years old.`);
+      return;
+    }
+    if (age !== null && age > MAX_AGE) {
+      setSectionError(`Please check the birthdate - computed age exceeds ${MAX_AGE} years.`);
+      return;
+    }
+
     try {
       const result = await patchSection('profile', draft);
       setData(prev => ({ ...prev, profile: { ...prev.profile, ...result.profile } }));
@@ -1153,25 +981,42 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
     } catch { /* sectionError already set */ }
   };
 
-  const handleSaveGuardian = async () => {
+  // => Rebuilds the full members array in ROLE_ORDER, applying draft edits
+  //    on top of whichever rows already exist - doesn't add/remove roles.
+  const handleSaveFamily = async () => {
     try {
-      const result = await patchSection('guardian', draft);
-      setData(prev => ({ ...prev, guardian: result.guardian }));
+      const members = (data.familyMembers || []).map(m => ({
+        role: m.role,
+        full_name: draft[`${m.role}_full_name`] ?? m.full_name,
+        occupation: draft[`${m.role}_occupation`] ?? m.occupation,
+        contact_no: draft[`${m.role}_contact_no`] ?? m.contact_no,
+        relationship_to_student: draft[`${m.role}_relationship_to_student`] ?? m.relationship_to_student,
+      }));
+      const result = await patchSection('family', { members });
+      setData(prev => ({ ...prev, familyMembers: result.familyMembers }));
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
-
 
   const handleSaveClassAssign = async () => {
     try {
       await patchSection('enrollment', { batch_id: draft.batch_id || null });
-      await fetchDetail();
+      await fetchDetail(); // => refetch to pick up the newly joined class period/groupchat
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
 
+  const handleSaveInternalRemarks = async () => {
+    setSavingInternalRemarks(true);
+    try {
+      const result = await patchSection('enrollment', { internal_remarks: internalRemarksDraft });
+      setData(prev => ({ ...prev, enrollment: { ...prev.enrollment, ...result.enrollment } }));
+    } catch { /* sectionError already set */ }
+    finally { setSavingInternalRemarks(false); }
+  };
+
   // 
-  // DOCUMENT HANDLERS - Replace + Add
+  // DOCUMENT HANDLERS - Replace + Delete + Add 
   // 
   const handleReplaceDoc = async (docPublicId, file) => {
     setReplacingDocId(docPublicId);
@@ -1180,7 +1025,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
       const formData = new FormData();
       formData.append('document', file);
       const res = await axiosAdmin.patch(
-        `/api/admin/enrollments/tesda/${publicId}/docs/${docPublicId}`,
+        `/api/admin/enrollments/shs/${publicId}/docs/${docPublicId}`,
         formData,
         { headers: { 'Content-Type': undefined } } // => lets the browser set the multipart boundary itself, to upload new files
       );
@@ -1199,7 +1044,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
     setDeletingDocId(docPublicId);
     setDocError(null);
     try {
-      await axiosAdmin.delete(`/api/admin/enrollments/tesda/${publicId}/docs/${docPublicId}`);
+      await axiosAdmin.delete(`/api/admin/enrollments/shs/${publicId}/docs/${docPublicId}`);
       setData(prev => ({ ...prev, docs: prev.docs.filter(d => d.public_id !== docPublicId) }));
     } catch (err) {
       setDocError(err.response?.data?.error || 'Failed to delete document.');
@@ -1221,7 +1066,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
       formData.append('document', addDocFile);
       formData.append('documentType', addDocType.trim());
       const res = await axiosAdmin.post(
-        `/api/admin/enrollments/tesda/${publicId}/docs`,
+        `/api/admin/enrollments/shs/${publicId}/docs`,
         formData,
         { headers: { 'Content-Type': undefined } }
       );
@@ -1237,17 +1082,22 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
   };
 
   //  Convenience destructure 
-  const enrollment      = data?.enrollment   ?? {};
-  const profile         = data?.profile      ?? {};
-  const guardian         = data?.guardian      ?? null;
-  const docs             = data?.docs          ?? [];
-  const address           = data?.address       ?? null;
-  const classifications = data?.classifications ?? [];
+  const enrollment = data?.enrollment ?? {};
+  const profile     = data?.profile     ?? {};
+  const docs        = data?.docs        ?? [];
+  const address     = data?.address     ?? null;
+  const familyMembers = data?.familyMembers ?? [];
+  // => Read-only G11/G12 courses for this enrollment's cluster - see
+  //    fetchShsEnrollmentDetail in adminEnrollmentService.js
+  const clusterCourses = data?.clusterCourses ?? [];
   const logs = data?.logs ?? [];
 
-  const feeDisplay = enrollment.is_tesda_scholar
-    ? 'Free (TESDA Scholar)'
-    : formatCurrency(enrollment.fee_at_enrollment);
+  const sortedFamily = [...familyMembers].sort(
+    (a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role)
+  );
+  // => Only show the Relationship column at all if a Guardian row exists -
+  //    it's meaningless/redundant for Father/Mother rows.
+  const hasGuardianRow = sortedFamily.some(f => f.role === 'Guardian');
 
   // => Based on batch_id now, not start_date - a batch can be assigned
   // => with no dates set yet, which used to wrongly show "Not yet assigned"
@@ -1257,59 +1107,53 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
       ? `${enrollment.batch_name} (dates TBA)`
       : !enrollment.end_date
         ? `${enrollment.batch_name} – ${formatDate(enrollment.start_date)} – Ongoing`
-        : `${enrollment.batch_name} – ${formatDate(enrollment.start_date)} – ${formatDate(enrollment.end_date)}`;
-
-  const selectedClassifications = classifications.map(c => c.classification_value);
-  const othersRow = classifications.find(c => c.classification_value === 'others');
+        : `${enrollment.batch_name} – ${formatDate(enrollment.start_date)} – ${formatDate(enrollment.end_date)}`;  
 
   return (
     <div className="adm-detail-page">
 
       <BackButton destination="Enrollments" onClick={() => navigate('/dashboard/enrollments')} />
 
+      {/* => Swapped local adm-detail-state spinner/warning markup for the
+           shared LoadingState component, same variant pattern used elsewhere */}
       {loading && (
-        <div className="adm-detail-state">
-          <div className="adm-spinner" />
-          <p>Loading enrollment detail…</p>
-        </div>
+        <LoadingState message="Loading enrollment detail…" />
       )}
 
       {!loading && error && (
-        <div className="adm-detail-state adm-detail-state--error">
-          <span>⚠</span>
-          <p>{error}</p>
-        </div>
+        <LoadingState variant="error" message={error} />
       )}
 
       {!loading && !error && data && (
         <div className="adm-detail-body">
 
           {/* ════════════════════════════════════
-              HEADER: course + student name + status badge
+              HEADER: track/cluster + student name + status badge
               ════════════════════════════════════ */}
           <div className="adm-detail-hero">
             <div className="adm-hero-left">
-              <p className="adm-hero-course">{enrollment.course_name || '-'}</p>
+              {/* => Shows the cluster (e.g. "Academic Track" grouping), not the
+                   specific course - clearer at-a-glance context than course_name */}
+              <p className="adm-hero-course">{enrollment.cluster || '-'}</p>
               <h2 className="adm-hero-name">{fullName(profile)}</h2>
               <p className="adm-hero-email">{enrollment.student_username}</p>
             </div>
             {/* => Type badge sits left of status, since this component is
                  always TESDA - hardcoded rather than read from data */}
             <div className="adm-hero-badges">
-              <span className="adm-hero-type-badge adm-hero-type-badge--tesda">TESDA</span>
+              <span className="adm-hero-type-badge adm-hero-type-badge--shs">SHS</span>
               <span className={`adm-hero-badge ${statusClass[enrollment.status] || ''}`}>
                 {enrollment.status}
               </span>
-              {/* => Balance badge for the For Assessment gate - course fee
-                   (Regular TESDA only) + batch misc fees. Moved here from
-                   Update Status so it reads alongside the other tags
-                   instead of crowding the status controls. */}
-              <span className={`adm-hero-balance-badge ${totalPaid >= totalRequired ? 'adm-hero-balance-badge--paid' : 'adm-hero-balance-badge--unpaid'}`}>
-                {totalRequired <= 0
-                  ? 'No Balance Due'
-                  : totalPaid >= totalRequired
+              {/* => Balance badge for the For Assessment gate - batch misc
+                   fees only, no course fee (DepEd covers SHS tuition).
+                   Moved here from Update Status for the same reason as TESDA. */}
+              <span className={`adm-hero-balance-badge ${totalPaid >= batchMiscFeeTotal ? 'adm-hero-balance-badge--paid' : 'adm-hero-balance-badge--unpaid'}`}>
+                {batchMiscFeeTotal <= 0
+                  ? 'No Fee Assigned'
+                  : totalPaid >= batchMiscFeeTotal
                   ? 'Balance Cleared'
-                  : `₱${(totalRequired - totalPaid).toFixed(2)} Due`}
+                  : `₱${(batchMiscFeeTotal - totalPaid).toFixed(2)} Due`}
               </span>
             </div>
           </div>
@@ -1329,13 +1173,11 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               >
                 {STATUS_OPTIONS.map(s => (
                   // => Sequencing/prereq gates mirrored from
-                  //    tesdaEnrollmentService.js, disabled here so the admin
-                  //    sees it's unavailable before hitting a 400. Each stays
-                  //    enabled if it's already the current status, so
-                  //    re-saving isn't blocked. Note: balance clearing for
-                  //    "For Assessment" isn't checked client-side here since
-                  //    payment totals aren't loaded into this component -
-                  //    that gate only surfaces via the backend error toast.
+                  //    shsEnrollmentService.js. Note: misc-fee balance
+                  //    clearing for "For Assessment" isn't checked
+                  //    client-side here since payment totals aren't loaded
+                  //    into this component - it only surfaces via the
+                  //    backend error toast.
                   <option
                     key={s}
                     value={s}
@@ -1346,7 +1188,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                         (enrollment.status !== 'Approved' && enrollment.status !== 'For Assessment') ||
                         !enrollment.batch_id ||
                         !isBatchTrainingEnded(enrollment.end_date) ||
-                        totalPaid < totalRequired
+                        totalPaid < batchMiscFeeTotal
                       )) ||
                       (s === 'Failed Assessment' && enrollment.status !== 'For Assessment' && enrollment.status !== 'Failed Assessment')
                     }
@@ -1368,10 +1210,6 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                 {saving ? 'Saving…' : 'Save Status'}
               </button>
 
-              {/* => Meaning of whichever status is currently selected. Falls
-                   back to condition-specific notes for Reserved-without-batch
-                   and Approved-without-Reviewed, since STATUS_DESCRIPTIONS
-                   doesn't know about either condition */}
               <span className="adm-status-description">
                 {selectedStatus === 'Reserved' && enrollment.batch_id
                   ? 'This enrollment already has a batch assigned, so it cannot be set to Reserved.'
@@ -1385,28 +1223,25 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                   ? (enrollment.end_date
                       ? `Batch training must end before this can be set to "For Assessment" (ends ${formatDate(enrollment.end_date)}).`
                       : 'This batch has no end date set - training completion cannot be confirmed for "For Assessment".')
-                  : selectedStatus === 'For Assessment' && totalPaid < totalRequired
+                  : selectedStatus === 'For Assessment' && totalPaid < batchMiscFeeTotal
                   ? 'Balance must be fully cleared before this enrollment can be set to "For Assessment".'
                   : selectedStatus === 'Failed Assessment' && enrollment.status !== 'For Assessment' && enrollment.status !== 'Failed Assessment'
                   ? 'Enrollment must be in "For Assessment" status before it can be set to "Failed Assessment".'
                   : STATUS_DESCRIPTIONS[selectedStatus]}
               </span>
 
-              {/* => External Remarks: no Save button - only persists when
-                   Save Status is confirmed (see the useEffect that clears/
-                   restores this on status change). Moved next to the status
-                   meaning to match SHSEnrollmentDetail's layout. */}
+              {/* => External Remarks: shown/emailed to the student. No Save
+                   button - clears when status is changed, restores when
+                   switched back, only persists to DB on Save Status confirm */}
               <div className="adm-remarks-group adm-remarks-group--external">
-                <label className="adm-remarks-label adm-remarks-label--external" htmlFor="tesda-external-remarks">
+                <label className="adm-remarks-label adm-remarks-label--external" htmlFor="shs-external-remarks">
                   External Remarks
-                  {/* => Only shown when the rule actually applies, so the
-                       label doesn't nag on every other status */}
                   {selectedStatus === 'Needs Clarification' && (
                     <span className="adm-remarks-required"> (required)</span>
                   )}
                 </label>
                 <textarea
-                  id="tesda-external-remarks"
+                  id="shs-external-remarks"
                   className="adm-remarks-input adm-remarks-input--external"
                   placeholder="Note shown to the student when this status is saved…"
                   value={externalRemarksDraft}
@@ -1414,10 +1249,10 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                 />
               </div>
 
-              {/* => Internal Remarks: staff-only note, own Save button, not tied to status */}
+              {/* => Internal Remarks: staff-only, own Save button, not tied to status */}
               <div className="adm-remarks-group adm-remarks-group--internal">
                 <div className="adm-remarks-header">
-                  <label className="adm-remarks-label adm-remarks-label--internal" htmlFor="tesda-internal-remarks">
+                  <label className="adm-remarks-label adm-remarks-label--internal" htmlFor="shs-internal-remarks">
                     Internal Remarks
                   </label>
                   <button
@@ -1429,7 +1264,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                   </button>
                 </div>
                 <textarea
-                  id="tesda-internal-remarks"
+                  id="shs-internal-remarks"
                   className="adm-remarks-input adm-remarks-input--internal"
                   placeholder="Staff-only note (not visible to the student)…"
                   value={internalRemarksDraft}
@@ -1441,10 +1276,8 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
 
           {/* ════════════════════════════════════
               ENROLLMENT INFORMATION
-              => Course/Sector/Date Submitted stay read-only - they're
-                 derived from joins (course_id/batch_id) and need
-                 a proper picker UI, deferred per earlier project decision.
-                 ULI and Fee are direct columns and fully editable.
+              => Date Submitted stays read-only. LRN/Track/Cluster/Electives
+                 are direct columns, fully editable.
               ════════════════════════════════════ */}
           <section className="adm-section">
             <div className="adm-section-header-row">
@@ -1454,7 +1287,9 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                 editingSection={editingSection}
                 saving={sectionSaving}
                 onEdit={() => startEdit('enrollmentInfo', {
-                  uli: enrollment.uli ?? '',
+                  lrn: enrollment.lrn ?? '',
+                  cluster: enrollment.cluster ?? '',
+                  electives: enrollment.electives ?? '',
                 })}
                 onSave={handleSaveEnrollmentInfo}
                 onCancel={cancelEdit}
@@ -1466,43 +1301,129 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
             <div className="adm-info-grid">
               {editingSection === 'enrollmentInfo' ? (
                 <>
-                  <EditableField label="ULI" value={draft.uli} onChange={v => updateDraft('uli', v)} />
-                  {/* => Locked - fee_at_enrollment is frozen at submit time per
-                       server.js's own comment, never updated after. */}
-                  <InfoCard label="Fee at Enrollment" value={feeDisplay} copyable={false} />
+                  <EditableField label="LRN" value={draft.lrn} onChange={v => updateDraft('lrn', v.replace(/\D/g, '').slice(0, 12))} />
+                  {/* => Cluster is locked from editing - it feeds directly into
+                       class/batch assignment, so changing it mid-enrollment risks
+                       orphaning the link. If it's wrong, reject + have the student
+                       resubmit via the dashboard instead. */}
+                  <InfoCard label="Cluster" value={enrollment.cluster || '-'} />
+                  <InfoCard
+                    label="Electives"
+                    value={enrollment.electives || '-'}
+                    clamp
+                    onViewFull={enrollment.electives ? () => setElectivesModalOpen(true) : null}
+                  />
                 </>
               ) : (
                 <>
-                  <InfoCard label="ULI" value={enrollment.uli || '-'} />
-                  <InfoCard label="Fee at Enrollment" value={feeDisplay} copyable={true} />
+                  <InfoCard label="LRN"            value={enrollment.lrn || '-'} />
+                  <InfoCard label="Cluster"        value={enrollment.cluster || '-'} />
+                  <InfoCard
+                    label="Electives"
+                    value={enrollment.electives || '-'}
+                    clamp
+                    onViewFull={enrollment.electives ? () => setElectivesModalOpen(true) : null}
+                  />
                 </>
               )}
-              <InfoCard label="Course" value={enrollment.course_name || '-'} />
-              <InfoCard label="Sector" value={enrollment.sector || '-'} />
+
+              {/* => Cluster Curriculum - ALWAYS read-only, shown outside the
+                   edit-mode ternary above since there's no editing path for
+                   it at all. Courses belong to the cluster catalog
+                   (shs_courses), not to this specific enrollment - if the
+                   student picked the wrong cluster, reject + have them
+                   resubmit instead of editing this. */}
+              <div className="adm-info-card adm-curriculum-card">
+                <p className="adm-info-label">Cluster Curriculum</p>
+                {clusterCourses.length === 0 ? (
+                  <p className="adm-info-value">-</p>
+                ) : (
+                  <div className="adm-curriculum-groups">
+                    {['Grade 11', 'Grade 12'].map((grade) => {
+                      const gradeCourses = clusterCourses.filter(c => c.grade_level === grade);
+                      if (gradeCourses.length === 0) return null;
+                      return (
+                        <div key={grade} className="adm-curriculum-group">
+                          <span className="adm-curriculum-grade">{grade}</span>
+                          <ul className="adm-curriculum-list">
+                            {gradeCourses.map(({ course_id, title, course_link }) => (
+                              <li key={course_id} className="adm-curriculum-item">
+                                {course_link ? (
+                                  <a href={course_link} target="_blank" rel="noopener noreferrer">{title}</a>
+                                ) : title}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               <InfoCard label="Date Submitted" value={formatDate(enrollment.submitted_at)} />
             </div>
           </section>
 
           {/* ════════════════════════════════════
-              PAYMENT & REFUND HISTORY (read-only)
+              ACADEMIC INFORMATION
+              ════════════════════════════════════ */}
+          <section className="adm-section">
+            <div className="adm-section-header-row">
+              <h3 className="adm-section-title">Academic Information</h3>
+              <SectionEditControls
+                sectionKey="academic"
+                editingSection={editingSection}
+                saving={sectionSaving}
+                onEdit={() => startEdit('academic', {
+                  last_school_attended: enrollment.last_school_attended ?? '',
+                  school_address: enrollment.school_address ?? '',
+                  grade_level_completed: enrollment.grade_level_completed ?? '',
+                  school_year_completed: enrollment.school_year_completed ?? '',
+                })}
+                onSave={handleSaveAcademic}
+                onCancel={cancelEdit}
+              />
+            </div>
+            {editingSection === 'academic' && sectionError && (
+              <p className="adm-section-error">{sectionError}</p>
+            )}
+            <div className="adm-info-grid">
+              {editingSection === 'academic' ? (
+                <>
+                  <EditableField label="Last School Attended" value={draft.last_school_attended} onChange={v => updateDraft('last_school_attended', v)} required />
+                  <EditableField label="School Address" value={draft.school_address} onChange={v => updateDraft('school_address', v)} required />
+                  <EditableField label="Grade Level Completed" value={draft.grade_level_completed} onChange={v => updateDraft('grade_level_completed', v)} required />
+                  <EditableField label="School Year Completed" value={draft.school_year_completed} onChange={v => updateDraft('school_year_completed', v)} required />
+                </>
+              ) : (
+                <>
+                  <InfoCard label="Last School Attended" value={enrollment.last_school_attended || '-'} />
+                  <InfoCard label="School Address"       value={enrollment.school_address || '-'} />
+                  <InfoCard label="Grade Level Completed" value={enrollment.grade_level_completed || '-'} />
+                  <InfoCard label="School Year Completed" value={enrollment.school_year_completed || '-'} />
+                </>
+              )}
+            </div>
+          </section>
+
+          {/* ════════════════════════════════════
+              MISCELLANEOUS FEE PAYMENTS (read-only)
+              => No reservation-fee gate here, DepEd covers tuition. This
+                 only ever tracks batch-assigned misc fees.
               ════════════════════════════════════ */}
           <section className="adm-section">
             <h3 className="adm-section-title">
-              Payment History
+              Miscellaneous Fee Payments
               <span className="adm-section-count-inline">{paymentHistory.length}</span>
             </h3>
 
-            {/* => Reservation fee must be paid in full before this enrollment
-                 can be Approved - enforced on the backend regardless, this is
-                 just a visible heads-up for staff reviewing the record. */}
-            <p className={`adm-reservation-note ${totalPaid >= 1000 ? 'adm-reservation-note--paid' : 'adm-reservation-note--unpaid'}`}>
-              Reservation Fee (₱1,000.00): {totalPaid >= 1000
-                ? 'Paid in full'
-                : `₱${(1000 - totalPaid).toFixed(2)} remaining`}
-            </p>
-
             {paymentHistory.length === 0 ? (
-              <p className="adm-empty-note">No payments or refunds recorded yet.</p>
+              <p className="adm-empty-note">
+                {batchMiscFeeTotal > 0
+                  ? 'No payments or refunds recorded yet.'
+                  : 'No miscellaneous fee has been assigned to this batch yet.'}
+              </p>
             ) : (
               <div className="adm-sub-table-wrap">
                 <table className="adm-sub-table">
@@ -1550,8 +1471,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
 
           {/* ════════════════════════════════════
               CLASS / BATCH
-              => Read-only: comes from the joined tesda_classes row, not
-                 tesda_enrollments directly. Reassignment deferred.
+              => Read-only: comes from the joined shs_classes row. Deferred.
               ════════════════════════════════════ */}
           <section className="adm-section">
             <div className="adm-section-header-row">
@@ -1582,7 +1502,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                       {loadingClassOptions
                         ? 'Loading…'
                         : classOptions.length === 0
-                          ? 'No open classes for this course - leave unassigned'
+                          ? 'No open classes for this cluster - leave unassigned'
                           : 'Select a class'}
                     </option>
                     {classOptions.map(c => (
@@ -1594,184 +1514,20 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                 </div>
               </div>
             ) : (
+              // => Matches TESDAEnrollmentDetail's Class/Batch behavior - always
+              //    show the InfoCard grid with '-' fallbacks instead of a special
+              //    "reserved" message box, regardless of whether a class is assigned.
               <div className="adm-info-grid adm-info-grid--halves">
                 <InfoCard label="Class Period" value={classPeriodDisplay} copyable={false} />
-                <InfoCard label="Groupchat Link" value={enrollment.groupchat_link || '-'} />
-              </div>
-            )}
-          </section>
-
-          {/* ════════════════════════════════════
-              NCAE
-              ════════════════════════════════════ */}
-          <section className="adm-section">
-            <div className="adm-section-header-row">
-              <h3 className="adm-section-title">NCAE</h3>
-              <SectionEditControls
-                sectionKey="ncae"
-                editingSection={editingSection}
-                saving={sectionSaving}
-                onEdit={() => startEdit('ncae', {
-                  ncae_taken: !!enrollment.ncae_taken,
-                  ncae_where: enrollment.ncae_where ?? '',
-                  ncae_when: enrollment.ncae_when ?? '',
-                })}
-                onSave={handleSaveNcae}
-                onCancel={cancelEdit}
-              />
-            </div>
-            {editingSection === 'ncae' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
-            )}
-            <div className="adm-info-grid">
-              {editingSection === 'ncae' ? (
-                <>
-                  <EditableField
-                    label="NCAE Taken"
-                    type="yesno"
-                    value={draft.ncae_taken}
-                    required
-                    onChange={v => {
-                      updateDraft('ncae_taken', v);
-                      // => Switching to No clears Where/When so stale data
-                      //    can't linger under a "No" answer.
-                      if (!v) {
-                        updateDraft('ncae_where', '');
-                        updateDraft('ncae_when', '');
-                      }
-                    }}
-                  />
-                  <EditableField label="Where Taken" value={draft.ncae_where} onChange={v => updateDraft('ncae_where', v)} disabled={!draft.ncae_taken} />
-                  <EditableField label="When Taken" value={draft.ncae_when} onChange={v => updateDraft('ncae_when', v)} disabled={!draft.ncae_taken} />
-                </>
-              ) : (
-                <>
-                  <InfoCard label="NCAE Taken" value={enrollment.ncae_taken ? 'Yes' : 'No'} copyable={false} />
-                  <InfoCard label="Where Taken" value={enrollment.ncae_where || '-'} />
-                  <InfoCard label="When Taken"  value={enrollment.ncae_when || '-'} />
-                </>
-              )}
-            </div>
-          </section>
-
-          {/* ════════════════════════════════════
-              SCHOLARSHIP
-              ════════════════════════════════════ */}
-          <section className="adm-section">
-            <div className="adm-section-header-row">
-              <h3 className="adm-section-title">Scholarship</h3>
-              <SectionEditControls
-                sectionKey="scholarship"
-                editingSection={editingSection}
-                saving={sectionSaving}
-                onEdit={() => startEdit('scholarship', {
-                  is_tesda_scholar: !!enrollment.is_tesda_scholar,
-                  scholarship_type: enrollment.scholarship_type ?? '',
-                  other_scholarship: enrollment.other_scholarship ?? '',
-                })}
-                onSave={handleSaveScholarship}
-                onCancel={cancelEdit}
-              />
-            </div>
-            {editingSection === 'scholarship' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
-            )}
-            <div className="adm-info-grid">
-              {editingSection === 'scholarship' ? (
-                <>
-                  <EditableField
-                    label="TESDA Scholar"
-                    type="yesno"
-                    value={draft.is_tesda_scholar}
-                    required
-                    onChange={v => {
-                      updateDraft('is_tesda_scholar', v);
-                      // => Switching to No clears Type/Other so stale data
-                      //    can't linger under a "No" answer.
-                      if (!v) {
-                        updateDraft('scholarship_type', '');
-                        updateDraft('other_scholarship', '');
-                      }
-                    }}
-                  />
-                  <EditableField label="Scholarship Type" value={draft.scholarship_type} onChange={v => updateDraft('scholarship_type', v)} disabled={!draft.is_tesda_scholar} />
-                  <EditableField label="Other Scholarship" value={draft.other_scholarship} onChange={v => updateDraft('other_scholarship', v)} disabled={!draft.is_tesda_scholar} />
-                </>
-              ) : (
-                <>
-                  <InfoCard label="TESDA Scholar" value={enrollment.is_tesda_scholar ? 'Yes' : 'No'} copyable={false} />
-                  <InfoCard label="Scholarship Type" value={enrollment.scholarship_type || '-'} />
-                  <InfoCard label="Other Scholarship" value={enrollment.other_scholarship || '-'} />
-                </>
-              )}
-            </div>
-          </section>
-
-          {/* ════════════════════════════════════
-              CLIENT CLASSIFICATIONS
-              ════════════════════════════════════ */}
-          <section className="adm-section">
-            <div className="adm-section-header-row">
-              <h3 className="adm-section-title">
-                Client Classifications
-              </h3>
-              <SectionEditControls
-                sectionKey="classifications"
-                editingSection={editingSection}
-                saving={sectionSaving}
-                onEdit={() => startEdit('classifications', {
-                  classification: selectedClassifications[0] ?? '',
-                  othersText: othersRow?.others_text ?? '',
-                })}
-                onSave={handleSaveClassifications}
-                onCancel={cancelEdit}
-              />
-            </div>
-            {editingSection === 'classifications' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
-            )}
-
-            {editingSection === 'classifications' ? (
-              <div className="adm-checkbox-list">
-                {CLASSIFICATIONS.map(({ value, label }) => (
-                  <label key={value} className="adm-checkbox-item">
-                    <input
-                      type="radio"
-                      name="tesda-classification"
-                      checked={draft.classification === value}
-                      onChange={() => updateDraft('classification', value)}
-                    />
-                    <span>{label}</span>
-                  </label>
-                ))}
-                {draft.classification === 'others' && (
-                  <input
-                    className="adm-edit-input"
-                    style={{ marginTop: '8px' }}
-                    placeholder="Specify others…"
-                    value={draft.othersText ?? ''}
-                    onChange={e => updateDraft('othersText', e.target.value)}
-                  />
-                )}
-              </div>
-            ) : classifications.length === 0 ? (
-              <p className="adm-empty-note">No classifications on file.</p>
-            ) : (
-              <div className="adm-info-grid">
-                {classifications.map((c, i) => (
-                  <InfoCard
-                    key={c.classification_id ?? i}
-                    label="Classification"
-                    value={c.classification_value === 'others' ? (c.others_text || 'Others') : (CLASSIFICATION_LABELS[c.classification_value] ?? c.classification_value)}
-                    copyable={true}
-                  />
-                ))}
+                <InfoCard label="Groupchat Link" value={enrollment.groupchat_link || '-'} copyable={true} />
               </div>
             )}
           </section>
 
           {/* ════════════════════════════════════
               STUDENT PROFILE
+              => civil_status / employment_status / highest_educ_attainment
+                 are TESDA-only concepts and intentionally omitted here.
               ════════════════════════════════════ */}
           <section className="adm-section">
             <div className="adm-section-header-row">
@@ -1791,12 +1547,8 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                   sex: profile.sex ?? '',
                   birth_date: toDateInputValue(profile.birth_date),
                   nationality: profile.nationality ?? '',
-                  civil_status: profile.civil_status ?? '',
-                  employment_status: profile.employment_status ?? '',
-                  highest_educ_attainment: profile.highest_educ_attainment ?? '',
-                  birthplace_region: profile.birthplace_region ?? '',
-                  birthplace_province: profile.birthplace_province ?? '',
-                  birthplace_city: profile.birthplace_city ?? '',
+                  religion: profile.religion ?? '',
+                  religion_others: profile.religion_others ?? '',
                 })}
                 onSave={handleSaveProfile}
                 onCancel={cancelEdit}
@@ -1809,16 +1561,14 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
             <div className="adm-info-grid">
               {editingSection === 'profile' ? (
                 <>
-                  <EditableField label="First Name" value={draft.first_name} onChange={v => updateDraft('first_name', toTitleCase(v))} required />
-                  <EditableField label="Middle Name" value={draft.middle_name} onChange={v => updateDraft('middle_name', toTitleCase(v))} />
-                  <EditableField label="Last Name" value={draft.last_name} onChange={v => updateDraft('last_name', toTitleCase(v))} required />
+                  <EditableField label="First Name" value={draft.first_name} onChange={v => updateDraft('first_name', toProperCase(v))} required />
+                  <EditableField label="Middle Name" value={draft.middle_name} onChange={v => updateDraft('middle_name', toProperCase(v))} />
+                  <EditableField label="Last Name" value={draft.last_name} onChange={v => updateDraft('last_name', toProperCase(v))} required />
                   <EditableField label="Name Extension" type="select" options={NAME_EXTENSIONS} value={draft.name_extension} onChange={v => updateDraft('name_extension', v)} />
                   <EditableField
                     label="Email"
-                    type="text"
                     value={draft.email}
                     error={fieldErrors.email}
-                    required
                     onChange={v => {
                       updateDraft('email', v);
                       setFieldErrors(prev => ({ ...prev, email: validateEmailFormat(v) }));
@@ -1849,49 +1599,32 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                     label="Birthdate"
                     type="date"
                     value={draft.birth_date}
-                    min={getAgeDateBounds().min}
-                    max={getAgeDateBounds().max}
-                    error={fieldErrors.birth_date}
+                    min={(() => { const t = new Date(); return new Date(t.getFullYear() - MAX_AGE, t.getMonth(), t.getDate()).toISOString().slice(0, 10); })()}
+                    max={(() => { const t = new Date(); return new Date(t.getFullYear() - MIN_AGE, t.getMonth(), t.getDate()).toISOString().slice(0, 10); })()}
+                    onChange={v => updateDraft('birth_date', v)}
                     required
-                    onChange={v => {
-                      updateDraft('birth_date', v);
-                      setFieldErrors(prev => ({ ...prev, birth_date: validateAge(v) }));
-                    }}
                   />
                   <EditableField label="Nationality" type="select" options={nationalities} value={draft.nationality} onChange={v => updateDraft('nationality', v)} required />
-                  <EditableField label="Civil Status" type="select" options={CIVIL_STATUS_OPTIONS} value={draft.civil_status} onChange={v => updateDraft('civil_status', v)} required />
-                  <EditableField label="Employment" type="select" options={EMPLOYMENT_OPTIONS} value={draft.employment_status} onChange={v => updateDraft('employment_status', v)} required />
-                  <EditableField label="Education" type="select" options={EDUC_ATTAINMENT_OPTIONS} value={draft.highest_educ_attainment} onChange={v => updateDraft('highest_educ_attainment', v)} required />
-                  <AddressCascadeFields
-                    draft={draft}
-                    updateDraft={updateDraft}
-                    regionField="birthplace_region"
-                    provinceField="birthplace_province"
-                    cityField="birthplace_city"
-                    // => no barangayField - birthplace only goes down to city,
-                    //    matching TESDAStep2.jsx's birthplace section
-                  />
+                  <EditableField label="Religion" type="select" options={RELIGIONS} value={draft.religion} onChange={v => updateDraft('religion', v)} />
+                  {draft.religion === 'Others' && (
+                    <EditableField label="Religion (Others)" value={draft.religion_others} onChange={v => updateDraft('religion_others', v)} />
+                  )}
                 </>
               ) : (
                 <>
-                  <InfoCard label="Full Name"    value={fullName(profile)} />
-                  <InfoCard label="Email"        value={profile.email || '-'} />
-                  <InfoCard label="Contact No."  value={profile.contact_no || '-'} />
-                  <InfoCard label="Facebook"     value={profile.facebook_link || '-'} />
-                  <InfoCard label="Sex"          value={profile.sex || '-'} />
-                  <InfoCard label="Birthdate"    value={formatDate(profile.birth_date)} />
-                  <InfoCard label="Nationality"  value={profile.nationality || '-'} />
-                  <InfoCard label="Civil Status" value={profile.civil_status || '-'} />
-                  <InfoCard label="Employment"   value={profile.employment_status || '-'} />
-                  <InfoCard label="Education"    value={profile.highest_educ_attainment || '-'} />
+                  <InfoCard label="Full Name"   value={fullName(profile)} />
+                  <InfoCard label="Email"       value={profile.email || '-'} />
+                  <InfoCard label="Contact No." value={profile.contact_no || '-'} />
+                  <InfoCard label="Facebook"    value={profile.facebook_link || '-'} />
+                  <InfoCard label="Sex"         value={profile.sex || '-'} />
+                  <InfoCard label="Birthdate"   value={formatDate(profile.birth_date)} />
+                  <InfoCard label="Nationality" value={profile.nationality || '-'} />
                   <InfoCard
-                    label="Birthplace"
+                    label="Religion"
                     value={
-                      [
-                        birthplaceNames.city     ?? profile.birthplace_city,
-                        birthplaceNames.province ?? profile.birthplace_province,
-                        birthplaceNames.region   ?? profile.birthplace_region,
-                      ].filter(Boolean).join(', ') || '-'
+                      profile.religion === 'Others'
+                        ? (profile.religion_others || 'Others')
+                        : (profile.religion || '-')
                     }
                   />
                 </>
@@ -1943,60 +1676,210 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
           </section>
 
           {/* ════════════════════════════════════
-              GUARDIAN
-              => Shows an "Add Guardian" edit trigger if no row exists yet,
-                 since upsertGuardian on the backend inserts on first save.
+              FAMILY MEMBERS
+              => Edits the values of existing rows only - can't add/remove
+                 roles from this UI (would risk the both-parents-or-guardian
+                 trigger). Each existing row gets its own inline inputs when
+                 the section is in edit mode.
               ════════════════════════════════════ */}
           <section className="adm-section">
             <div className="adm-section-header-row">
-              <h3 className="adm-section-title">Guardian</h3>
-              <SectionEditControls
-                sectionKey="guardian"
-                editingSection={editingSection}
-                saving={sectionSaving}
-                onEdit={() => startEdit('guardian', {
-                  guardian_name: guardian?.guardian_name ?? '',
-                  guardian_address: guardian?.guardian_address ?? '',
-                  guardian_contact_no: guardian?.guardian_contact_no ?? '',
-                })}
-                onSave={handleSaveGuardian}
-                onCancel={cancelEdit}
-              />
+              <h3 className="adm-section-title">
+                Family Members
+                <span className="adm-section-count-inline">{sortedFamily.length}</span>
+              </h3>
+              {sortedFamily.length > 0 && (
+                <SectionEditControls
+                  sectionKey="family"
+                  editingSection={editingSection}
+                  saving={sectionSaving}
+                  onEdit={() => {
+                    const initial = {};
+                    sortedFamily.forEach(m => {
+                      initial[`${m.role}_full_name`] = m.full_name ?? '';
+                      initial[`${m.role}_occupation`] = m.occupation ?? '';
+                      initial[`${m.role}_contact_no`] = m.contact_no ?? '';
+                      initial[`${m.role}_relationship_to_student`] = m.relationship_to_student ?? '';
+                    });
+                    startEdit('family', initial);
+                  }}
+                  onSave={handleSaveFamily}
+                  onCancel={cancelEdit}
+                />
+              )}
             </div>
-            {editingSection === 'guardian' && sectionError && (
+            {editingSection === 'family' && sectionError && (
               <p className="adm-section-error">{sectionError}</p>
             )}
-            {editingSection === 'guardian' ? (
-              <div className="adm-info-grid">
-                <EditableField label="Guardian Name" value={draft.guardian_name} onChange={v => updateDraft('guardian_name', v)} required />
-                <EditableField label="Guardian Address" value={draft.guardian_address} onChange={v => updateDraft('guardian_address', v)} />
-                <EditableField
-                  label="Guardian Contact No."
-                  value={draft.guardian_contact_no}
-                  error={fieldErrors.guardian_contact_no}
-                  onChange={v => {
-                    const digits = v.replace(/\D/g, '').slice(0, 11);
-                    updateDraft('guardian_contact_no', digits);
-                    setFieldErrors(prev => ({ ...prev, guardian_contact_no: validateMobile(digits) }));
-                  }}
-                />
-              </div>
-            ) : guardian ? (
-              <div className="adm-info-grid">
-                <InfoCard label="Guardian Name"    value={guardian.guardian_name || '-'} />
-                <InfoCard label="Guardian Address" value={guardian.guardian_address || '-'} />
-                <InfoCard label="Guardian Contact No." value={guardian.guardian_contact_no || '-'} />
+
+            {sortedFamily.length === 0 ? (
+              <p className="adm-empty-note">No family members on file.</p>
+            ) : editingSection === 'family' ? (
+              <div className="adm-family-edit-list">
+                {sortedFamily.map(m => (
+                  <div className="adm-family-edit-row" key={m.family_member_id}>
+                    <p className="adm-family-role-badge">{m.role}</p>
+                    <div className="adm-info-grid">
+                      <EditableField label="Name" value={draft[`${m.role}_full_name`]} onChange={v => updateDraft(`${m.role}_full_name`, v)} required />
+                      <EditableField label="Occupation" value={draft[`${m.role}_occupation`]} onChange={v => updateDraft(`${m.role}_occupation`, v)} />
+                      <EditableField
+                        label="Contact No."
+                        value={draft[`${m.role}_contact_no`]}
+                        error={fieldErrors[`${m.role}_contact_no`]}
+                        onChange={v => {
+                          const digits = v.replace(/\D/g, '').slice(0, 11);
+                          updateDraft(`${m.role}_contact_no`, digits);
+                          setFieldErrors(prev => ({ ...prev, [`${m.role}_contact_no`]: validateMobile(digits) }));
+                        }}
+                      />
+                      {m.role === 'Guardian' && (
+                        <EditableField label="Relationship" value={draft[`${m.role}_relationship_to_student`]} onChange={v => updateDraft(`${m.role}_relationship_to_student`, v)} />
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
-              <p className="adm-empty-note">No guardian on file. Click the pencil to add one.</p>
+              <div className="adm-sub-table-wrap">
+                <table className="adm-sub-table">
+                  <thead>
+                    <tr>
+                      <th>Role</th>
+                      <th>Name</th>
+                      <th>Occupation</th>
+                      <th>Contact No.</th>
+                      {hasGuardianRow && <th>Relationship</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedFamily.map((f, i) => (
+                      <tr key={f.family_member_id ?? i}>
+                        <td><span className="adm-family-role-badge">{f.role}</span></td>
+                        <td>{f.full_name || '-'}</td>
+                        <td>{f.occupation || '-'}</td>
+                        <td>{f.contact_no || '-'}</td>
+                        {hasGuardianRow && <td>{f.relationship_to_student || '-'}</td>}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </section>
 
           {/* ════════════════════════════════════
+              EMERGENCY CONTACT
+              ════════════════════════════════════ */}
+          <section className="adm-section">
+            <div className="adm-section-header-row">
+              <h3 className="adm-section-title">Emergency Contact</h3>
+              <SectionEditControls
+                sectionKey="emergency"
+                editingSection={editingSection}
+                saving={sectionSaving}
+                onEdit={() => startEdit('emergency', {
+                  emergency_name: enrollment.emergency_name ?? '',
+                  emergency_relationship: enrollment.emergency_relationship ?? '',
+                  emergency_contact_no: enrollment.emergency_contact_no ?? '',
+                  emergency_address: enrollment.emergency_address ?? '',
+                })}
+                onSave={handleSaveEmergency}
+                onCancel={cancelEdit}
+              />
+            </div>
+            {editingSection === 'emergency' && sectionError && (
+              <p className="adm-section-error">{sectionError}</p>
+            )}
+            <div className="adm-info-grid">
+              {editingSection === 'emergency' ? (
+                <>
+                  <EditableField label="Name" value={draft.emergency_name} onChange={v => updateDraft('emergency_name', v)} required />
+                  <EditableField label="Relationship" value={draft.emergency_relationship} onChange={v => updateDraft('emergency_relationship', v)} required />
+                  <EditableField
+                    label="Contact No."
+                    value={draft.emergency_contact_no}
+                    error={fieldErrors.emergency_contact_no}
+                    onChange={v => {
+                      const digits = v.replace(/\D/g, '').slice(0, 11);
+                      updateDraft('emergency_contact_no', digits);
+                      setFieldErrors(prev => ({ ...prev, emergency_contact_no: validateMobile(digits) }));
+                    }}
+                  />
+                  <EditableField label="Address" value={draft.emergency_address} onChange={v => updateDraft('emergency_address', v)} required />
+                </>
+              ) : (
+                <>
+                  <InfoCard label="Name"           value={enrollment.emergency_name || '-'} />
+                  <InfoCard label="Relationship"   value={enrollment.emergency_relationship || '-'} />
+                  <InfoCard label="Contact No."    value={enrollment.emergency_contact_no || '-'} />
+                  <InfoCard label="Address"        value={enrollment.emergency_address || '-'} />
+                </>
+              )}
+            </div>
+          </section>
+
+          {/* ════════════════════════════════════
+              HEALTH INFORMATION
+              ════════════════════════════════════ */}
+          <section className="adm-section">
+            <div className="adm-section-header-row">
+              <h3 className="adm-section-title">Health Information</h3>
+              <SectionEditControls
+                sectionKey="health"
+                editingSection={editingSection}
+                saving={sectionSaving}
+                onEdit={() => startEdit('health', {
+                  has_medical_condition: enrollment.has_medical_condition ?? 'none',
+                  medical_condition_detail: enrollment.medical_condition_detail ?? '',
+                  allergies: enrollment.allergies ?? '',
+                  maintenance_medication: enrollment.maintenance_medication ?? '',
+                })}
+                onSave={handleSaveHealth}
+                onCancel={cancelEdit}
+              />
+            </div>
+            {editingSection === 'health' && sectionError && (
+              <p className="adm-section-error">{sectionError}</p>
+            )}
+            <div className="adm-info-grid">
+              {editingSection === 'health' ? (
+                <>
+                  <EditableField
+                    label="Has Medical Condition"
+                    type="select"
+                    options={MEDICAL_OPTIONS}
+                    value={draft.has_medical_condition}
+                    required
+                    onChange={v => {
+                      updateDraft('has_medical_condition', v);
+                      if (v !== 'yes') {
+                        updateDraft('medical_condition_detail', '');
+                        updateDraft('allergies', '');
+                        updateDraft('maintenance_medication', '');
+                      }
+                    }}
+                  />
+                  <EditableField label="Condition Detail" value={draft.medical_condition_detail} onChange={v => updateDraft('medical_condition_detail', v)} disabled={draft.has_medical_condition !== 'yes'} />
+                  <EditableField label="Allergies" value={draft.allergies} onChange={v => updateDraft('allergies', v)} disabled={draft.has_medical_condition !== 'yes'} />
+                  <EditableField label="Maintenance Medication" value={draft.maintenance_medication} onChange={v => updateDraft('maintenance_medication', v)} disabled={draft.has_medical_condition !== 'yes'} />
+                </>
+              ) : (
+                <>
+                  <InfoCard
+                    label="Has Medical Condition"
+                    value={enrollment.has_medical_condition === 'yes' ? 'Yes' : 'None'}
+                    copyable={false}
+                  />
+                  <InfoCard label="Condition Detail"  value={enrollment.medical_condition_detail || '-'} />
+                  <InfoCard label="Allergies"          value={enrollment.allergies || '-'} />
+                  <InfoCard label="Maintenance Medication" value={enrollment.maintenance_medication || '-'} />
+                </>
+              )}
+            </div>
+          </section>
+
+          {/* ════════════════════════════════════
               SUBMITTED DOCUMENTS
-              => Replace + Add: each existing doc gets a Replace file input;
-                 the block below lets admins add a new document type that
-                 wasn't originally submitted.
               ════════════════════════════════════ */}
           <section className="adm-section">
             <h3 className="adm-section-title">
@@ -2029,7 +1912,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
             <div className="adm-add-doc-row">
               <input
                 className="adm-edit-input"
-                placeholder="Document type (e.g. NBI Clearance)"
+                placeholder="Document type (e.g. Good Moral Certificate)"
                 value={addDocType}
                 onChange={e => setAddDocType(e.target.value)}
               />
@@ -2037,7 +1920,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                 id="add-doc-file-input"
                 key={addDocInputKey}
                 type="file"
-                accept="image/jpeg,image/png,application/pdf"
+                accept="image/jpeg,image/png"
                 style={{ display: 'none' }}
                 onChange={e => setAddDocFile(e.target.files?.[0] ?? null)}
               />
@@ -2062,8 +1945,6 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
             {logs.length === 0 ? (
               <p className="adm-empty-note">No activity recorded yet.</p>
             ) : (() => {
-              // => IIFE so pagination math stays local to this section
-              //    instead of cluttering the component body above
               const LOGS_PER_PAGE = 10;
               const totalLogPages = Math.max(1, Math.ceil(logs.length / LOGS_PER_PAGE));
               const currentLogPage = Math.min(logPage, totalLogPages);
@@ -2130,7 +2011,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
           </section>
 
           {/* ════════════════════════════════════
-              CONFIRM STATUS CHANGE MODAL
+              CONFIRM STATUS CHANGE MODAL & DELETE !!
               ════════════════════════════════════ */}
           {/* => Approving adds a reminder about physical document
                verification - this can't be enforced by the system since
@@ -2181,6 +2062,21 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                     className="adm-modal-img"
                   />
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* ════════════════════════════════════
+              ELECTIVES MODAL
+              ════════════════════════════════════ */}
+          {electivesModalOpen && (
+            <div className="adm-modal-backdrop" onClick={() => setElectivesModalOpen(false)}>
+              <div className="adm-modal-box" onClick={e => e.stopPropagation()}>
+                <div className="adm-modal-header">
+                  <span className="adm-modal-title">Electives</span>
+                  <button className="adm-modal-close" onClick={() => setElectivesModalOpen(false)}>✕</button>
+                </div>
+                <p className="adm-modal-text">{enrollment.electives}</p>
               </div>
             </div>
           )}

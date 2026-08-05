@@ -30,33 +30,7 @@
   color: #1a56db;
 }
 
-.adm-batch-detail-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 80px 0;
-  color: #6b7280;
-  font-size: 0.9375rem;
-}
 
-.adm-batch-detail-state--error {
-  color: #b91c1c;
-  font-size: 1.125rem;
-}
-
-.adm-spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #1a56db;
-  border-radius: 50%;
-  animation: adm-spin 0.8s linear infinite;
-}
-
-@keyframes adm-spin {
-  to { transform: rotate(360deg); }
-}
 
 .adm-batch-detail-body {
   display: flex;

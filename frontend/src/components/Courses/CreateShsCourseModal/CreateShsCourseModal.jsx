@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import axiosAdmin from '../../utils/axiosAdmin.js';
-import '../CreateShsCourseModal/CreateShsCourseModal.css';
+import axiosAdmin from '../../../utils/axiosAdmin.js';
+import './CreateShsCourseModal.css';
 
 const emptyJobRow = () => ({ job_title: '' });
 
