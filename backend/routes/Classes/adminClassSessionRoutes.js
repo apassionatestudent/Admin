@@ -3,6 +3,7 @@
 
 import express from 'express';
 import { protectAdmin } from '../../middleware/adminAuth.js';
+import { requireSection } from '../../middleware/requireSection.js';
 import { adminApiRateLimit } from '../../middleware/adminRateLimit.js';
 import {
   listFacilitiesForSessionPicker,
@@ -17,24 +18,24 @@ import {
 const router = express.Router();
 
 // => GET /api/admin/class-sessions/facilities
-router.get('/facilities', adminApiRateLimit, protectAdmin, listFacilitiesForSessionPicker);
+router.get('/facilities', adminApiRateLimit, protectAdmin, requireSection('classes'), listFacilitiesForSessionPicker);
 
 // => GET /api/admin/class-sessions/facilities/:facilityPublicId
-router.get('/facilities/:facilityPublicId', adminApiRateLimit, protectAdmin, getFacilitySessionPage);
+router.get('/facilities/:facilityPublicId', adminApiRateLimit, protectAdmin, requireSection('classes'), getFacilitySessionPage);
 
 // => GET /api/admin/class-sessions/facilities/:facilityPublicId/eligible-batches
-router.get('/facilities/:facilityPublicId/eligible-batches', adminApiRateLimit, protectAdmin, getEligibleBatches);
+router.get('/facilities/:facilityPublicId/eligible-batches', adminApiRateLimit, protectAdmin, requireSection('classes'), getEligibleBatches);
 
 // => GET /api/admin/class-sessions/remote?from=&to= (Mobile & Online list)
-router.get('/remote', adminApiRateLimit, protectAdmin, listRemoteSessions);
+router.get('/remote', adminApiRateLimit, protectAdmin, requireSection('classes'), listRemoteSessions);
 
 // => GET /api/admin/class-sessions/batch/:batchType/:batchPublicId
-router.get('/batch/:batchType/:batchPublicId', adminApiRateLimit, protectAdmin, listSessionsForBatch);
+router.get('/batch/:batchType/:batchPublicId', adminApiRateLimit, protectAdmin, requireSection('classes'), listSessionsForBatch);
 
 // =>  GET /api/admin/class-sessions/batches (unfiltered, for Mobile/Online modal)
-router.get('/batches', adminApiRateLimit, protectAdmin, getRemoteEligibleBatches);
+router.get('/batches', adminApiRateLimit, protectAdmin, requireSection('classes'), getRemoteEligibleBatches);
 
 // => POST /api/admin/class-sessions
-router.post('/', adminApiRateLimit, protectAdmin, createClassSessionController);
+router.post('/', adminApiRateLimit, protectAdmin, requireSection('classes'), createClassSessionController);
 
 export default router;

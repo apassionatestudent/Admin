@@ -8,8 +8,8 @@
 // => FK to the internal course_id - admin_uuid never touches those tables directly.
 // => No validation here - that lives in tesdaCourseService.js.
 
-import { pool } from '../config/db.js';
-import { buildPartialUpdate } from '../utils/buildPartialUpdate.js';
+import { pool } from '../../config/db.js';
+import { buildPartialUpdate } from '../../utils/buildPartialUpdate.js';
 
 // => List view: excludes soft-deleted rows, joins sector name for display
 export async function findAllTesdaCourses() {

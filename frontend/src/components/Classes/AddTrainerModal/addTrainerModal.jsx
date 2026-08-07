@@ -7,9 +7,7 @@
 //
 // => Same two assumptions as AddFacilityModal.jsx:
 //    #1: adm-modal-* / adm-form-* classes are global (Classes.css).
-//    #2: shs-courses response shape is { courses: [...] } or { data: [...] } -
-//        adjust the destructure in loadOptions() if the real shape differs.
-
+//    #2: shs-courses response shape is { courses: [...] } or { data: [...] } 
 import React, { useEffect, useState } from 'react';
 import axiosAdmin from '../../../utils/axiosAdmin.js';
 import closeIcon from '../../../assets/icons/close.png'; 

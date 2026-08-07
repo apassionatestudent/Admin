@@ -44,12 +44,16 @@ export default function Dashboard() {
             <Sidebar
                 adminName={admin?.full_name}
                 adminRole={admin?.role}
+                adminSections={admin?.sections || []}
             />
 
             <div className="main-content">
                 {/* => Outlet renders the active child route (e.g. /dashboard/enrollments) */}
                 {/* => When no child route is active, DashboardHome renders as the index */}
-                <Outlet />
+                {/* => context makes the logged-in admin available to any page via
+                     useOutletContext() - Admins.jsx and AdminDetail use it to redirect
+                     non-super-admins away from this route */}
+                <Outlet context={{ admin }} />
             </div>
         </div>
     );

@@ -5,12 +5,13 @@
 
 import express from 'express';
 import { protectAdmin } from '../../middleware/adminAuth.js';
+import { requireSection } from '../../middleware/requireSection.js';
 import { adminApiRateLimit, readRateLimit } from '../../middleware/adminRateLimit.js';
 import * as cmsPageController from '../../controllers/Pages/cmsPageController.js';
 
 const router = express.Router();
 
-router.get('/', protectAdmin, readRateLimit, cmsPageController.getPrivacyPolicy);
-router.put('/', protectAdmin, adminApiRateLimit, cmsPageController.savePrivacyPolicy);
+router.get('/', protectAdmin, requireSection('pages'), readRateLimit, cmsPageController.getPrivacyPolicy);
+router.put('/', protectAdmin, requireSection('pages'), adminApiRateLimit, cmsPageController.savePrivacyPolicy);
 
 export default router;

@@ -12,11 +12,11 @@ export async function getAccount(req, res) {
     }
 }
 
-// => PATCH full_name only
+// => PATCH full_name and email together
 export async function updateProfile(req, res) {
     try {
-        const { full_name } = req.body;
-        const account = await adminAccountService.updateProfile(req.admin.admin_id, full_name);
+        const { full_name, email } = req.body;
+        const account = await adminAccountService.updateProfile(req.admin.admin_id, full_name, email);
         res.status(200).json({ message: 'Profile updated', account });
     } catch (err) {
         res.status(err.status || 500).json({ message: err.message || 'Failed to update profile' });

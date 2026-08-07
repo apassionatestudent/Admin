@@ -21,11 +21,23 @@ export async function findPasswordHashById(adminId) {
     return result.rows[0] || null;
 }
 
-// => Update only full_name
-export async function updateFullName(adminId, fullName) {
+// => Check if a given email is already used by a different account -
+// => mirrors the uniqueness check in staffModel.createAdmin, but excludes
+// => the current admin's own row since they're allowed to "change" their
+// => email to the same value
+export async function findAdminByEmailExcludingId(email, excludeAdminId) {
+    const result = await pool.query(
+        `SELECT admin_id FROM admins WHERE email = $1 AND admin_id != $2`,
+        [email, excludeAdminId]
+    );
+    return result.rows[0] || null;
+}
+
+// => Update full_name and email together in one statement
+export async function updateProfileFields(adminId, fullName, email) {
     await pool.query(
-        `UPDATE admins SET full_name = $1, updated_at = now() WHERE admin_id = $2`,
-        [fullName, adminId]
+        `UPDATE admins SET full_name = $1, email = $2, updated_at = now() WHERE admin_id = $3`,
+        [fullName, email, adminId]
     );
 }
 

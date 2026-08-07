@@ -1,8 +1,7 @@
-// => routes/tesdaCourses.js
-
 import express from 'express';
-import { protectAdmin } from '../middleware/adminAuth.js';
-import { adminApiRateLimit } from '../middleware/adminRateLimit.js';
+import { protectAdmin } from '../../middleware/adminAuth.js';
+import { requireSection } from '../../middleware/requireSection.js';
+import { adminApiRateLimit } from '../../middleware/adminRateLimit.js';
 import {
   getTesdaCourses,
   getCertificationTypes,
@@ -20,7 +19,7 @@ import {
   deleteJobOpportunity,
   getDeletedTesdaCourses,
   restoreTesdaCourse,
-} from '../controllers/tesdaCourseController.js';
+} from '../../controllers/Courses/tesdaCourseController.js';
 
 const router = express.Router();
 
@@ -30,6 +29,7 @@ const router = express.Router();
 // => which defeats the purpose of rate-limiting an expensive check.
 router.use(adminApiRateLimit);
 router.use(protectAdmin);
+router.use(requireSection('courses'));
 
 // => Sector list moved to sectorClusterRoutes.js (GET /api/admin/sectors)
 // => Static sub-paths BEFORE ':adminUuid', same reasoning as before

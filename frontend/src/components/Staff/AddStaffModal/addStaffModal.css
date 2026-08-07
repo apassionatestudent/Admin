@@ -1,0 +1,101 @@
+.adm-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+.adm-modal {
+    background: #fff;
+    border-radius: 12px;
+    width: 420px;
+    max-width: 92vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 24px;
+    font-family: var(--font-body);
+}
+
+.adm-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.adm-modal-header h3 {
+    font-family: var(--font-body);
+}
+
+.adm-modal-close {
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.adm-modal-close img {
+    width: 16px;
+    height: 16px;
+}
+
+.adm-modal form label {
+    display: block;
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+}
+
+.adm-modal form input[type="text"],
+.adm-modal form input[type="email"] {
+    width: 100%;
+    margin-top: 4px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--font-body);
+}
+
+.adm-modal-note {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.adm-modal-sections {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+}
+
+.adm-modal-sections legend {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0 4px;
+}
+
+.adm-modal-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+}
+
+.adm-modal-submit {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent-hover);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.adm-modal-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

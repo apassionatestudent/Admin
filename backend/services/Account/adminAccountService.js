@@ -5,7 +5,8 @@ import { logActivity, getActivityLogsByActorPaginated } from '../../models/admin
 import {
     findAdminById,
     findPasswordHashById,
-    updateFullName,
+    findAdminByEmailExcludingId,
+    updateProfileFields,
     updateNightMode,
     updatePasswordHash,
 } from '../../models/Account/adminAccountModel.js';
@@ -19,25 +20,42 @@ export async function getAccount(adminId) {
     return admin;
 }
 
-// => Update the admin's display name only, then re-fetch full record
-export async function updateProfile(adminId, fullName) {
+// => Update the admin's display name and email together, then re-fetch
+// => full record. Email uniqueness is checked here rather than relying on
+// => a DB-level UNIQUE violation, so the person gets a clean 409 message
+// => instead of a raw constraint error.
+export async function updateProfile(adminId, fullName, email) {
     if (!fullName || !fullName.trim()) {
         throw { status: 400, message: 'Full name is required' };
     }
+    if (!email || !email.trim()) {
+        throw { status: 400, message: 'Email is required' };
+    }
 
     const trimmedName = fullName.trim();
-    await updateFullName(adminId, trimmedName);
+    const trimmedEmail = email.trim().toLowerCase();
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(trimmedEmail)) {
+        throw { status: 400, message: 'Please enter a valid email address' };
+    }
+
+    const existing = await findAdminByEmailExcludingId(trimmedEmail, adminId);
+    if (existing) {
+        throw { status: 409, message: 'This email is already in use by another account' };
+    }
+
+    await updateProfileFields(adminId, trimmedName, trimmedEmail);
     const account = await findAdminById(adminId);
 
-    // => actor_type matches your existing convention: 'Admin', capitalized
     await logActivity(pool, {
-        entity_type: 'admin',
+        entity_type: 'staff',
         entity_id: adminId,
-        actor_type: 'Admin',
+        actor_type: 'Staff',
         actor_id: adminId,
         actor_name: trimmedName,
         action: 'profile_updated',
-        action_detail: `Updated display name to "${trimmedName}"`,
+        action_detail: `Updated profile - name: "${trimmedName}", email: "${trimmedEmail}"`,
     });
 
     return account;

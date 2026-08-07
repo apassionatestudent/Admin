@@ -2,8 +2,8 @@
 // => Business rules / validation live here so the model stays pure persistence
 // => and the controller stays thin req/res handling.
 
-import * as TesdaCourseModel from '../models/tesdaCourseModel.js';
-import { slugify } from '../utils/slugify.js';
+import * as TesdaCourseModel from '../../models/Courses/tesdaCourseModel.js';
+import { slugify } from '../../utils/slugify.js';
 
 // => Title must never contain the NC level itself (e.g. "...NCII") - that's
 // => stored separately in certification_id and concatenated for display, so

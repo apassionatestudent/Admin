@@ -1,8 +1,7 @@
-// => routes/shsCourses.js
-
 import express from 'express';
-import { protectAdmin } from '../middleware/adminAuth.js';
-import { adminApiRateLimit } from '../middleware/adminRateLimit.js';
+import { protectAdmin } from '../../middleware/adminAuth.js';
+import { requireSection } from '../../middleware/requireSection.js';
+import { adminApiRateLimit } from '../../middleware/adminRateLimit.js';
 import {
   getShsCourses,
   getShsCourseById,
@@ -16,11 +15,12 @@ import {
   deleteJobOpportunity,
   getDeletedShsCourses,
   restoreShsCourse,
-} from '../controllers/shsCourseController.js';
+} from '../../controllers/Courses/shsCourseController.js';
 
 const router = express.Router();
 
 router.use(protectAdmin);
+router.use(requireSection('courses'));
 router.use(adminApiRateLimit);
 
 // => Cluster list moved to sectorClusterRoutes.js (GET /api/admin/clusters)

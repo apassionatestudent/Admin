@@ -1,4 +1,3 @@
-// => routes/sectorClusterRoutes.js
 // => Mount at '/api/admin' in server.js - gives GET/POST/DELETE
 // => /api/admin/sectors and /api/admin/clusters, plus /deleted and /restore
 // => sub-resources for both. Doesn't collide with your other
@@ -6,8 +5,9 @@
 // => '/api/admin/students' mounts since those own different sub-paths.
 
 import express from 'express';
-import { protectAdmin } from '../middleware/adminAuth.js';
-import { adminApiRateLimit } from '../middleware/adminRateLimit.js';
+import { protectAdmin } from '../../middleware/adminAuth.js';
+import { requireSection } from '../../middleware/requireSection.js';
+import { adminApiRateLimit } from '../../middleware/adminRateLimit.js';
 import {
   getSectors,
   createSector,
@@ -19,11 +19,12 @@ import {
   deleteCluster,
   getDeletedClusters,
   restoreCluster,
-} from '../controllers/sectorClusterController.js';
+} from '../../controllers/Courses/sectorClusterController.js';
 
 const router = express.Router();
 
 router.use(protectAdmin);
+router.use(requireSection('courses'));
 router.use(adminApiRateLimit);
 
 // => Static sub-path BEFORE ':sectorId', same reasoning as the courses routers

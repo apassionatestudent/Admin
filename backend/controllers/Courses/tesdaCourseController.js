@@ -1,6 +1,6 @@
 // => controllers/tesdaCourseController.js
 
-import * as TesdaCourseService from '../services/tesdaCourseService.js';
+import * as TesdaCourseService from '../../services/Courses/tesdaCourseService.js';
 
 export async function getTesdaCourses(req, res) {
   try {

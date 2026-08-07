@@ -1,6 +1,6 @@
 // => controllers/sectorClusterController.js
 
-import * as SectorClusterService from '../services/sectorClusterService.js';
+import * as SectorClusterService from '../../services/Courses/sectorClusterService.js';
 
 export async function getSectors(req, res) {
   try {

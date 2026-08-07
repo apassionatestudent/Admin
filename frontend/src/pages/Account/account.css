@@ -432,6 +432,50 @@
   animation: adm-account-spin 0.8s linear infinite;
 }
 
+.section-edit-btn {
+    background: none;
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 6px;
+    padding: 5px 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    transition: background 0.12s, border-color 0.12s;
+}
+
+.section-edit-btn:hover {
+    background: var(--sidebar-hover-bg, #262626);
+    border-color: var(--accent-hover, #8a0d17);
+}
+
+.section-edit-btn:hover .pencil-icon {
+    filter: brightness(0) invert(1);
+}
+
+.pencil-icon {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
+.adm-account-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.2rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+/* => Strips the h2's own border/spacing when it's nested inside
+      .adm-account-section-header, since the wrapper now owns the
+      full-width underline instead */
+.adm-account-card-title--in-header {
+    margin: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
 @media (max-width: 700px) {
   .adm-account-page { padding: 1.5rem 1rem; }
   .adm-account-card { padding: 1.3rem 1.2rem 1.5rem; }

@@ -4,7 +4,7 @@
 // => Also handles cross-status search and Add Class modal (TESDA-only for now)
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 import './Classes.css';
@@ -140,6 +140,17 @@ const EMPTY_CLASS_FORM = {
 
 export default function Classes() {
   const navigate = useNavigate();
+  const { admin } = useOutletContext();
+
+  // => Belt-and-suspenders redirect - the backend already returns 403 on
+  // => every fetch below via requireSection('classes'), but without this
+  // => the page still renders its full shell and only shows "Failed to
+  // => fetch..." errors instead of bouncing back to Dashboard
+  useEffect(() => {
+    if (admin && admin.role !== 'super_admin' && !admin.sections?.includes('classes')) {
+      navigate('/dashboard');
+    }
+  }, [admin, navigate]);
 
   // => Which of the four top-level tabs is showing. 'batches' is the
   //    default since it's the one page that already fully works - the
@@ -243,11 +254,8 @@ export default function Classes() {
       return;
     }
     try {
-      const res = await fetch('/api/admin/batches/form-options', {
-        credentials: 'include',
-      });
-      if (!res.ok) return;
-      const data = await res.json();
+      const res = await axiosAdmin.get('/api/admin/batches/form-options');
+      const data = res.data;
       const extracted = { sectors: data.sectors, clusters: data.clusters, trainers: data.trainers };
       // => Store in ref (persists without re-render) and state (drives the UI)
       filterOptionsCache.current = extracted;
@@ -277,14 +285,10 @@ export default function Classes() {
       setError(null);
       try {
         // => Renamed from /api/admin/classes
-        const res = await fetch('/api/admin/batches', {
-          credentials: 'include', // => sends the httpOnly admin JWT cookie
-        });
-        if (!res.ok) throw new Error('Failed to fetch batches.');
-        const data = await res.json();
-        setClasses(data.batches);
+        const res = await axiosAdmin.get('/api/admin/batches');
+        setClasses(res.data.batches);
       } catch (err) {
-        setError(err.message);
+        setError(err.response?.data?.message || 'Failed to fetch batches.');
       } finally {
         setLoading(false);
       }
@@ -300,12 +304,10 @@ export default function Classes() {
     setFacilitiesError(null);
     try {
       const path = facilityViewMode === 'deleted' ? '/api/admin/facilities/deleted' : '/api/admin/facilities';
-      const res = await fetch(path, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch facilities.');
-      const data = await res.json();
-      setFacilities(data.facilities);
+      const res = await axiosAdmin.get(path);
+      setFacilities(res.data.facilities);
     } catch (err) {
-      setFacilitiesError(err.message);
+      setFacilitiesError(err.response?.data?.message || 'Failed to fetch facilities.');
     } finally {
       setFacilitiesLoading(false);
     }
@@ -384,12 +386,10 @@ export default function Classes() {
     setTrainersError(null);
     try {
       const path = trainerViewMode === 'deleted' ? '/api/admin/trainers/deleted' : '/api/admin/trainers';
-      const res = await fetch(path, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch trainers.');
-      const data = await res.json();
-      setTrainers(data.trainers);
+      const res = await axiosAdmin.get(path);
+      setTrainers(res.data.trainers);
     } catch (err) {
-      setTrainersError(err.message);
+      setTrainersError(err.response?.data?.message || 'Failed to fetch trainers.');
     } finally {
       setTrainersLoading(false);
     }
@@ -488,19 +488,15 @@ export default function Classes() {
 
     try {
       // => Renamed from /api/admin/classes/search
-      const res = await fetch(`/api/admin/batches/search?${query}`, {
-        credentials: 'include',
+      const res = await axiosAdmin.get(`/api/admin/batches/search?${query}`, {
         signal: abortRef.current.signal,
       });
-      if (!res.ok) {
-        const body = await res.json();
-        throw new Error(body.error || 'Search failed.');
-      }
-      const data = await res.json();
-      setSearchResults(data.batches);
+      setSearchResults(res.data.batches);
     } catch (err) {
-      if (err.name === 'AbortError') return; // => stale request, ignore
-      setSearchError(err.message);
+      // => axios throws a CanceledError (not fetch's AbortError) when the
+      // => signal fires - axios.isCancel() is the correct check for either
+      if (axiosAdmin.isCancel?.(err) || err.name === 'CanceledError') return; // => stale request, ignore
+      setSearchError(err.response?.data?.error || 'Search failed.');
     } finally {
       setSearchLoading(false);
     }
@@ -531,11 +527,8 @@ export default function Classes() {
     setModalOpen(true);
 
     try {
-      const res = await fetch('/api/admin/batches/form-options', {
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error('Failed to load form options.');
-      const data = await res.json();
+      const res = await axiosAdmin.get('/api/admin/batches/form-options');
+      const data = res.data;
       setFormOptions(data);
 
       // => Also populate the More Options filter cache from the same fetch

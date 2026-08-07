@@ -3,8 +3,8 @@
 // => Course-level lookups keyed by admin_uuid, the admin-dashboard-facing
 // => identifier - never course_id. Cluster lookups moved to sectorClusterModel.js.
 
-import { pool } from '../config/db.js';
-import { buildPartialUpdate } from '../utils/buildPartialUpdate.js';
+import { pool } from '../../config/db.js';
+import { buildPartialUpdate } from '../../utils/buildPartialUpdate.js';
 
 // => List view: excludes soft-deleted rows, joins cluster name for display
 export async function findAllShsCourses() {

@@ -2,7 +2,8 @@
 // => Paginated student list with search; mirrors Classes.jsx pattern
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useOutletContext } from 'react-router-dom';
+import axiosAdmin from '../../utils/axiosAdmin.js';
 
 import './Students.css';
 // => Shared spinner/error block, replaces the local adm-students-state markup below
@@ -37,7 +38,18 @@ const NAME_EXTENSION_OPTIONS = ['N/A', 'Jr.', 'Sr.', 'II', 'III', 'IV'];
 // 
 export default function Students() {
   const navigate       = useNavigate();
+  const { admin } = useOutletContext();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // => Belt-and-suspenders redirect - the backend already returns 403 on
+  // => every axiosAdmin call below via requireSection('students'), but
+  // => without this the page still renders its full shell and only shows
+  // => fetch errors instead of bouncing back to Dashboard
+  useEffect(() => {
+    if (admin && admin.role !== 'super_admin' && !admin.sections?.includes('students')) {
+      navigate('/dashboard');
+    }
+  }, [admin, navigate]);
 
   // => Read page from URL so browser back/forward works
   const currentPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
@@ -79,21 +91,15 @@ export default function Students() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/students?page=${page}&active=true`, {
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        const body = await res.json();
-        throw new Error(body.error || 'Failed to fetch students.');
-      }
-      const data = await res.json();
+      const res = await axiosAdmin.get(`/api/admin/students?page=${page}&active=true`);
+      const data = res.data;
       setStudents(data.rows);
       setTotal(data.total);
       setTotalPages(data.totalPages);
       // => Keep the active count badge in sync with the real active total
       setActiveCount(data.total);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.error || 'Failed to fetch students.');
     } finally {
       setLoading(false);
     }
@@ -109,21 +115,15 @@ export default function Students() {
       const params = new URLSearchParams({ page });
       Object.entries(filters).forEach(([k, v]) => { if (v) params.set(k, v); });
 
-      const res = await fetch(`/api/admin/students/search?${params.toString()}`, {
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        const body = await res.json();
-        throw new Error(body.error || 'Search failed.');
-      }
-      const data = await res.json();
+      const res = await axiosAdmin.get(`/api/admin/students/search?${params.toString()}`);
+      const data = res.data;
       setStudents(data.rows);
       setTotal(data.total);
       setTotalPages(data.totalPages);
       // => Do NOT update activeCount here - search results include inactive students
       // => so the badge must stay at the last known active count
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.error || 'Search failed.');
     } finally {
       setLoading(false);
     }

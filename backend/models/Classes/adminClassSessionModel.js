@@ -8,8 +8,7 @@
 //    per active, non-deleted facility, with its allowed course titles
 //    already aggregated so the frontend doesn't need N+1 requests.
 // => ASSUMPTION: only status = 'active' facilities are offered here, since
-//    an inactive facility shouldn't be booked for a NEW session. Adjust the
-//    WHERE clause if inactive facilities should still be selectable.
+//    an inactive facility shouldn't be booked for a NEW session. 
 export const getFacilitiesForSessionPicker = async (pool) => {
   const result = await pool.query(
     `SELECT

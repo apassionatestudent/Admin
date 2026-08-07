@@ -16,7 +16,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const COMPANY_NAME = '3A Prime Hospitality Training and Assessment Center Inc.';
 export const COMPANY_ADDRESS = '0362 Don Mariano Cui St., Corner N. Escario St., Capitol Site, Cebu City, Cebu, 6000, Philippines';
 
-// => Adjust this filename if the logo in backend/assets is not renamed
 // => to company-logo.png
 export const COMPANY_LOGO_PATH = path.join(__dirname, '../assets/company-logo.png');
 

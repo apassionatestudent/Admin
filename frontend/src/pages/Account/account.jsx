@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import axiosAdmin from '../../utils/axiosAdmin.js';
+import pencilIcon from '../../assets/icons/pencil.png';
 import './account.css';
 
 // => Icon imports needed, replace src paths with your Icons8 assets
-// import editIcon from '../../assets/icons/edit.png';
 // import lockIcon from '../../assets/icons/lock.png';
 // import moonIcon from '../../assets/icons/moon.png';
 // import sunIcon from '../../assets/icons/sun.png';
@@ -18,6 +18,7 @@ function Account() {
 
     // => Profile edit state
     const [fullName, setFullName] = useState('');
+    const [email, setEmail] = useState('');
     const [editingProfile, setEditingProfile] = useState(false);
 
     // => Password change state
@@ -52,6 +53,7 @@ function Account() {
             const res = await axiosAdmin.get('/api/admin/account');
             setAccount(res.data.account);
             setFullName(res.data.account.full_name);
+            setEmail(res.data.account.email);
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to load account');
         } finally {
@@ -79,6 +81,7 @@ function Account() {
         try {
             const res = await axiosAdmin.patch('/api/admin/account/profile', {
                 full_name: fullName,
+                email: email,
             });
             setAccount(res.data.account);
             setEditingProfile(false);
@@ -186,24 +189,26 @@ function Account() {
 
             {/* => Profile section */}
             <section className="adm-account-card">
-                <h2 className="adm-account-card-title">
-                    {/* <img src={userIcon} alt="" className="adm-account-icon" /> */}
-                    Profile Information
-                </h2>
+                <div className="adm-account-section-header">
+                    <h2 className="adm-account-card-title adm-account-card-title--in-header">
+                        {/* <img src={userIcon} alt="" className="adm-account-icon" /> */}
+                        Profile Information
+                    </h2>
+                    {!editingProfile && (
+                        <button
+                            className="section-edit-btn"
+                            onClick={() => setEditingProfile(true)}
+                            title="Edit profile"
+                        >
+                            <img src={pencilIcon} alt="Edit" className="pencil-icon" />
+                        </button>
+                    )}
+                </div>
 
                 <div className="adm-account-grid adm-account-g2">
                     <div className="adm-account-field-group">
                         <div className="adm-account-label-row">
                             <span className="adm-account-label">Full Name</span>
-                            {!editingProfile && (
-                                <button
-                                    className="adm-account-btn-icon"
-                                    onClick={() => setEditingProfile(true)}
-                                >
-                                    {/* <img src={editIcon} alt="" /> */}
-                                    Edit
-                                </button>
-                            )}
                         </div>
 
                         {editingProfile ? (
@@ -224,7 +229,19 @@ function Account() {
                         <div className="adm-account-label-row">
                             <span className="adm-account-label">Email</span>
                         </div>
-                        <div className="adm-account-box">{account.email}</div>
+
+                        {editingProfile ? (
+                            <div className="adm-account-field-edit-row">
+                                <input
+                                    type="email"
+                                    className="adm-account-input"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                />
+                            </div>
+                        ) : (
+                            <div className="adm-account-box">{account.email}</div>
+                        )}
                     </div>
 
                     <div className="adm-account-field-group">
@@ -248,6 +265,7 @@ function Account() {
                             className="adm-account-btn-secondary"
                             onClick={() => {
                                 setFullName(account.full_name);
+                                setEmail(account.email);
                                 setEditingProfile(false);
                             }}
                         >
