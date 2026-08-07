@@ -13,14 +13,12 @@ import {
 
 const router = express.Router();
 
-// => Rate limiter runs first on every route below, so abusive/unauthenticated
-//    requests get throttled before the more expensive JWT verification in
-//    protectAdmin ever runs
+// => Applied router-wide so CodeQL's js/missing-csrf-middleware can see it
+// => directly attached to this router, not just globally in server.js
+router.use(csrfProtection);
+
 router.get('/', readRateLimit, protectAdmin, getAccount);
 
-// => Note: csrfProtection is already applied globally in server.js for all
-// => POST/PATCH/PUT/DELETE requests, so it is not re-applied here to avoid
-// => double middleware. Confirm this matches your actual adminCsrf.js setup.
 router.patch('/profile', adminApiRateLimit, protectAdmin, updateProfile);
 router.patch('/theme', adminApiRateLimit, protectAdmin, updateTheme);
 router.patch('/password', adminApiRateLimit, protectAdmin, changePassword);

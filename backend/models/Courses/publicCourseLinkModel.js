@@ -8,7 +8,7 @@
 // => admin backend's does - if this backend is still on the sql`` HTTP
 // => client, swap these pool.query() calls back to sql`` tagged templates.
 
-import { pool } from '../config/db.js';
+import { pool } from '../../config/db.js';
 
 export async function findPublishedTesdaCourseBySlug(slug) {
   const result = await pool.query(

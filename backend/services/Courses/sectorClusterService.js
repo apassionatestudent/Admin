@@ -1,6 +1,6 @@
 // => services/sectorClusterService.js
 
-import * as SectorClusterModel from '../models/sectorClusterModel.js';
+import * as SectorClusterModel from '../../models/Courses/sectorClusterModel.js';
 
 export async function listSectors() {
   return SectorClusterModel.findAllSectors();

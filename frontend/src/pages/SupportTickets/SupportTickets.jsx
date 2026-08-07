@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import axiosAdmin from '../../utils/axiosAdmin.js';
 import LoadingState from '../../components/LoadingState/loadingState.jsx';
 import './SupportTickets.css';
@@ -28,6 +28,17 @@ const useDebouncedValue = (value, delayMs) => {
 
 export default function SupportTickets() {
   const navigate = useNavigate();
+  const { admin } = useOutletContext();
+
+  // => Belt-and-suspenders redirect - the backend already returns 403 on
+  // => every axiosAdmin call below via requireSection('support-tickets'),
+  // => but without this the page still renders its full shell and only
+  // => shows fetch errors instead of bouncing back to Dashboard
+  useEffect(() => {
+    if (admin && admin.role !== 'super_admin' && !admin.sections?.includes('support-tickets')) {
+      navigate('/dashboard');
+    }
+  }, [admin, navigate]);
   const [activeTab, setActiveTab] = useState('public'); // => 'public' | 'students'
 
   // => Public tab state - tickets holds only the CURRENT PAGE's rows now,

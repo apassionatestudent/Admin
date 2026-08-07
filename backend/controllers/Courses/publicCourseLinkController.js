@@ -1,6 +1,6 @@
 // => controllers/publicCourseLinkController.js
 
-import * as PublicCourseLinkService from '../services/publicCourseLinkService.js';
+import * as PublicCourseLinkService from '../../services/Courses/publicCourseLinkService.js';
 
 export async function getTesdaCourseList(req, res) {
   try {

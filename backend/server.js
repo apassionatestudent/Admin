@@ -16,10 +16,14 @@ import shsEnrollmentRouter from './routes/Enrollments/shsEnrollmentRoute.js';
 import adminAuthRouter from './routes/adminAuthRoute.js';
 // => Self-service account routes for the logged-in admin (profile, theme, password)
 import adminAccountRouter from './routes/Account/adminAccountRoutes.js';
+// => Staff management (super_admin only) - create/suspend regular admins, assign section permissions
+import staffRouter from './routes/Staff/staffRoutes.js';
+// => Public invite-completion flow for newly created staff - mounted before csrfProtection below
+import staffInviteRouter from './routes/Staff/staffInviteRoutes.js';
 // => Location router for resolving PSGC codes to readable names in EnrollmentDetail
 import locationRouter, { loadLocationCache } from './routes/locationRoutes.js';
-import tesdaCoursesRouter from './routes/tesdaCoursesRoutes.js';
-import shsCoursesRouter from './routes/shsCoursesRoutes.js';
+import tesdaCoursesRouter from './routes/Courses/tesdaCoursesRoutes.js';
+import shsCoursesRouter from './routes/Courses/shsCoursesRoutes.js';
 import adminBatchRouter from './routes/Classes/adminBatchRoutes.js';
 import publicSupportTicketRouter from './routes/SupportTickets/publicSupportTicketRoutes.js';
 // => Admin-side read + status update for anonymous public support tickets.
@@ -27,7 +31,7 @@ import publicSupportTicketRouter from './routes/SupportTickets/publicSupportTick
 import supportTicketRouter from './routes/SupportTickets/supportTicketRoutes.js';
 import adminStudentRouter from './routes/Students/adminStudentRoute.js';
 import nationalityRoutes from './routes/nationalityRoutes.js';
-import sectorClusterRoutes from './routes/sectorClusterRoutes.js';
+import sectorClusterRoutes from './routes/Courses/sectorClusterRoutes.js';
 
 // Page: Classes 
 import adminFacilityRouter from './routes/Classes/adminFacilityRoutes.js';
@@ -69,6 +73,12 @@ app.use(morgan('dev'));
 //    richTextEditor.jsx), so a page with several images needs real headroom
 app.use(express.json({ limit: '5mb' }));
 app.use(cookieParser());
+
+// => Public invite-completion routes - mounted before csrfProtection because the
+// => invited admin has no session yet and cannot obtain a CSRF token pair.
+// => Keep this router scoped to only the token-validate and set-password endpoints.
+app.use('/api/admin-invite', staffInviteRouter);
+
 // => CSRF validation: must come after cookieParser() and express.json()
 // => Rejects POST/PATCH/PUT/DELETE without a valid x-csrf-token header
 app.use(csrfProtection);
@@ -76,6 +86,8 @@ app.use(csrfProtection);
 // => Routes
 app.use('/api/admin-auth', adminAuthRouter);
 app.use('/api/admin/account', adminAccountRouter);
+// => Staff management - super_admin only, enforced in staffRoutes.js via requireSuperAdmin
+app.use('/api/admin/admins', staffRouter);
 // => Shared router handles GET / (combined list), GET /search (combined
 //    search), and GET /docs/:documentKey (generic R2 proxy for both types)
 app.use('/api/admin/enrollments', sharedEnrollmentRouter);
@@ -123,23 +135,25 @@ async function initDB() {
     try {
 
         // => Ensure the admins table exists
-        // => role is restricted to 'admin' or 'super_admin' via CHECK constraint
+        // => role is restricted to 'staff' or 'super_admin' via CHECK constraint
         // => status is restricted to 'active' or 'suspended' via CHECK constraint
         await sql`
             CREATE TABLE IF NOT EXISTS admins (
                 admin_id        SERIAL PRIMARY KEY,
                 full_name       VARCHAR(150)  NOT NULL,
                 email           VARCHAR(255)  NOT NULL UNIQUE,
-                password_hash   TEXT          NOT NULL,
-                role            VARCHAR(15)   NOT NULL DEFAULT 'admin'
-                                CHECK (role IN ('admin', 'super_admin')),
+                password_hash   TEXT,
+                role            VARCHAR(15)   NOT NULL DEFAULT 'staff'
+                                CHECK (role IN ('staff', 'super_admin')),
                 status          VARCHAR(10)   NOT NULL DEFAULT 'active'
                                 CHECK (status IN ('active', 'suspended')),
                 is_night_mode   BOOLEAN       NOT NULL DEFAULT false,
                 created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
                 updated_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
                 last_login_at   TIMESTAMPTZ,
-                remarks         TEXT
+                remarks         TEXT,
+                public_id       UUID          NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+                password_set    BOOLEAN       NOT NULL DEFAULT true
             )
         `;
 
@@ -167,6 +181,36 @@ async function initDB() {
                     EXECUTE FUNCTION set_updated_at();
                 END IF;
             END $$
+        `;
+
+        // => Section-level access control for regular admins. super_admin has no
+        // => rows here and is treated as having every section implicitly.
+        await sql`
+            CREATE TABLE IF NOT EXISTS admin_section_permissions (
+                permission_id   SERIAL        PRIMARY KEY,
+                admin_id        INTEGER       NOT NULL REFERENCES admins(admin_id) ON DELETE CASCADE,
+                section_key     VARCHAR(30)   NOT NULL CHECK (section_key IN (
+                                    'enrollments', 'classes', 'support-tickets', 'students',
+                                    'reports', 'payments', 'courses', 'pages', 'logs', 'chatbots'
+                                )),
+                granted_by      INTEGER       REFERENCES admins(admin_id) ON DELETE SET NULL,
+                created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+                UNIQUE (admin_id, section_key)
+            )
+        `;
+
+        // => Invite / password-setup tokens for newly created admins.
+        // => Mirrors password_setup_tokens (student-scoped) but keyed on admin_id.
+        await sql`
+            CREATE TABLE IF NOT EXISTS admin_password_setup_tokens (
+                token_id     SERIAL        PRIMARY KEY,
+                admin_id     INTEGER       NOT NULL REFERENCES admins(admin_id) ON DELETE CASCADE,
+                token_hash   TEXT          NOT NULL,
+                purpose      VARCHAR(20)   NOT NULL DEFAULT 'invite',
+                expires_at   TIMESTAMPTZ   NOT NULL,
+                used_at      TIMESTAMPTZ,
+                created_at   TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+            )
         `;
 
         // => Miscellaneous fee line items for a batch (SHS or TESDA).

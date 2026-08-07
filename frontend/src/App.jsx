@@ -15,8 +15,9 @@ import Courses       from './pages/Courses/Courses.jsx';
 import Pages         from './pages/Pages/pages.jsx';
 import Logs          from './pages/Logs/Logs.jsx';
 import Chatbots      from './pages/Chatbots/Chatbots.jsx';
-import Admins        from './pages/Admins/Admins.jsx';
+import Staff          from './pages/Staff/staff.jsx';
 import Account from './pages/Account/account.jsx';
+import SetAdminPassword from './pages/SetAdminPassword/setAdminPassword.jsx';
 
 // components 
 // import EnrollmentDetail from './components/EnrollmentDetail/EnrollmentDetail.jsx';
@@ -33,6 +34,7 @@ import TrainerDetail  from './components/Classes/TrainerDetail/trainerDetail.jsx
 import PaymentDetail  from './components/Payments/PaymentDetail/paymentDetail.jsx';
 
 import RefundDetail   from './components/Payments/RefundDetail/refundDetail.jsx';
+import StaffDetail    from './components/Staff/StaffDetail/staffDetail.jsx';
 
 import PublicSupportTicketDetail from './components/SupportTickets/PublicSupportTicketDetail/publicSupportTicketDetail.jsx';
 import StudentSupportTicketDetail from './components/SupportTickets/StudentSupportTicketDetail/studentSupportTicketDetail.jsx';
@@ -52,6 +54,9 @@ function App() {
             <Routes>
                 {/* => Public route: login page */}
                 <Route path="/" element={<Login />} />
+
+                {/* => Public route: newly invited admins land here to set their password */}
+                <Route path="/set-password/:token" element={<SetAdminPassword />} />
 
                 {/* => Protected layout route: Dashboard wraps all admin sub-pages */}
                 {/* => Session verification happens inside Dashboard.jsx */}
@@ -90,7 +95,8 @@ function App() {
                     <Route path="pages"                 element={<Pages />} />
                     <Route path="logs"                  element={<Logs />} />
                     <Route path="chatbots"              element={<Chatbots />} />
-                    <Route path="admins"                element={<Admins />} />
+                    <Route path="staff"                element={<Staff />} />
+                    <Route path="staff/:publicId"      element={<StaffDetail />} />
                     <Route path="account" element={<Account />} />
                 </Route>
                 

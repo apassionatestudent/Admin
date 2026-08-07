@@ -5,7 +5,8 @@
 //    actions. Each tab keeps owning its own data/modal state - the header
 //    buttons reach into it through a ref (openAddModal / save / etc).
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import './pages.css';
 
 import StudentDashboardAnnouncementsWYSIWYG from '../../components/Pages/StudentDashboardAnnouncementsWYSIWYG/studentDashboardAnnouncementsWYSIWYG.jsx';
@@ -17,7 +18,7 @@ import FAQsWYSIWYG from '../../components/Pages/FAQsWYSIWYG/faqsWYSIWYG.jsx';
 //    the line underneath it. Same convention as Classes.jsx's tabMeta.
 const tabMeta = {
   announcements: {
-    label: 'Student Dashboard Announcements',
+    label: 'Announcements',
     subtitle: "General announcements shown on every student's dashboard home page.",
   },
   privacyPolicy: {
@@ -31,6 +32,19 @@ const tabMeta = {
 };
 
 export default function Pages() {
+  const navigate = useNavigate();
+  const { admin } = useOutletContext();
+
+  // => Belt-and-suspenders redirect - the backend already returns 403 on
+  // => every request below via requireSection('pages'), but without this
+  // => the page still renders its full shell and only shows fetch errors
+  // => instead of bouncing back to Dashboard
+  useEffect(() => {
+    if (admin && admin.role !== 'super_admin' && !admin.sections?.includes('pages')) {
+      navigate('/dashboard');
+    }
+  }, [admin, navigate]);
+
   const [mainTab, setMainTab] = useState('announcements');
 
   // => Active/Inactive filter for the Announcements tab only - no

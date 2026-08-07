@@ -1,6 +1,6 @@
 // => services/publicCourseLinkService.js
 
-import * as PublicCourseLinkModel from '../models/publicCourseLinkModel.js';
+import * as PublicCourseLinkModel from '../../models/Courses/publicCourseLinkModel.js';
 
 export async function listPublishedTesdaCourses() {
   return PublicCourseLinkModel.findAllPublishedTesdaCourses();

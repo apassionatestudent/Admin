@@ -6,8 +6,8 @@
 // => no benefit. List + Create + soft-delete + restore - no edit yet, since
 // => nothing in the UI calls for it.
 
-import { pool } from '../config/db.js';
-import { slugify } from '../utils/slugify.js';
+import { pool } from '../../config/db.js';
+import { slugify } from '../../utils/slugify.js';
 
 // => Excludes soft-deleted rows so the dropdown never offers a deleted
 // => sector for a NEW selection - existing courses that already reference

@@ -1,7 +1,7 @@
 // => services/shsCourseService.js
 
-import * as ShsCourseModel from '../models/shsCourseModel.js';
-import { slugify } from '../utils/slugify.js';
+import * as ShsCourseModel from '../../models/Courses/shsCourseModel.js';
+import { slugify } from '../../utils/slugify.js';
 
 export async function listShsCourses() {
   return ShsCourseModel.findAllShsCourses();

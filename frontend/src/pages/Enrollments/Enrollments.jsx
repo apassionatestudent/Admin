@@ -4,7 +4,7 @@
 // => Also handles cross-status search by email or name fields
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'; // => useMemo added for client-side filtering
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 
 import '../Enrollments/Enrollments.css';
 // => Shared spinner/error block, replaces the local adm-enroll-state markup below
@@ -68,6 +68,17 @@ const EMPTY_FILTERS = {
 
 export default function Enrollments() {
   const navigate = useNavigate();
+  const { admin } = useOutletContext();
+
+  // => Belt-and-suspenders redirect - the backend already returns 403 on
+  // => every fetch below via requireSection('enrollments'), but without
+  // => this the page still renders its full shell and only shows "Failed
+  // => to fetch..." errors instead of bouncing back to Dashboard
+  useEffect(() => {
+    if (admin && admin.role !== 'super_admin' && !admin.sections?.includes('enrollments')) {
+      navigate('/dashboard');
+    }
+  }, [admin, navigate]);
 
   // => Default enrollments (Pending + Needs Clarification)
   const [enrollments, setEnrollments] = useState([]);

@@ -2,6 +2,8 @@
 
 import express from 'express';
 import { protectAdmin } from '../../middleware/adminAuth.js';
+import { requireSection } from '../../middleware/requireSection.js';
+import { csrfProtection } from '../../middleware/adminCsrf.js';
 import { adminApiRateLimit } from '../../middleware/adminRateLimit.js';
 import {
   getPublicSupportTickets,
@@ -13,6 +15,8 @@ const router = express.Router();
 
 router.use(adminApiRateLimit);
 router.use(protectAdmin);
+router.use(requireSection('support-tickets'));
+router.use(csrfProtection);
 
 router.get('/', getPublicSupportTickets);
 router.get('/:publicId', getPublicSupportTicketDetail);

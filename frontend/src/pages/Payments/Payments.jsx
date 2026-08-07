@@ -6,7 +6,7 @@
 //    into payments.css rather than shared, per project convention.
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 import axiosAdmin from '../../utils/axiosAdmin.js';
@@ -45,6 +45,17 @@ const formatDate = (value) => {
 
 function Payments() {
   const navigate = useNavigate();
+  const { admin } = useOutletContext();
+
+  // => Belt-and-suspenders redirect - the backend already returns 403 on
+  // => every axiosAdmin call below via requireSection('payments'), but
+  // => without this the page still renders its full shell and only shows
+  // => fetch errors instead of bouncing back to Dashboard
+  useEffect(() => {
+    if (admin && admin.role !== 'super_admin' && !admin.sections?.includes('payments')) {
+      navigate('/dashboard');
+    }
+  }, [admin, navigate]);
 
   // => Which of the two top-level tabs is showing
   const [mainTab, setMainTab] = useState('payments'); // => 'payments' | 'refunds'

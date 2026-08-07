@@ -2,7 +2,7 @@
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { Admin } from '../models/adminModel.js';
+import { Admin } from '../models/adminAuthModel.js';
 // => generateCsrfToken and invalidateCsrfToken live in middleware
 // => but are called here since issuing/revoking tokens is a controller responsibility
 import { generateCsrfToken, invalidateCsrfToken } from '../middleware/adminCsrf.js';
@@ -53,12 +53,18 @@ export const loginAdmin = async (req, res) => {
             return res.status(403).json({ message: 'Your account has been suspended. Please contact the system owner.' });
         }
 
+        // => password_hash is NULL until the invite link is used to set a real
+        // => password - bcrypt.compare() throws on a null hash rather than
+        // => safely returning false, so this must be checked first
+        if (!admin.password_hash) {
+            return res.status(403).json({ message: 'Account setup not complete. Please check your email for the invite link.' });
+        }
+
         // => Compare submitted password against stored hash
         const isMatch = await bcrypt.compare(password, admin.password_hash);
         if (!isMatch) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
-
         // => Update last_login_at on successful login
         await Admin.updateLastLogin(admin.admin_id);
 

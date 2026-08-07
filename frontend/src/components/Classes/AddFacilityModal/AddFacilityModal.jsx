@@ -18,8 +18,7 @@
 //    GET /api/admin/clusters almost certainly exists for LISTING them
 //    (likely served by sectorClusterRoutes.js, already mounted at
 //    /api/admin in server.js). Expected response shape below is
-//    { clusters: [{ cluster_id, name }, ...] } - adjust the destructure
-//    in loadOptions() if the real shape differs.
+//    { clusters: [{ cluster_id, name }, ...] } 
 
 import React, { useEffect, useState } from 'react';
 import axiosAdmin from '../../../utils/axiosAdmin.js'; 

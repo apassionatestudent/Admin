@@ -1,6 +1,6 @@
 // => controllers/shsCourseController.js
 
-import * as ShsCourseService from '../services/shsCourseService.js';
+import * as ShsCourseService from '../../services/Courses/shsCourseService.js';
 
 export async function getShsCourses(req, res) {
   try {

@@ -32,18 +32,34 @@ const NAV_ITEMS = [
   { id: "pages",           label: "Pages",           icon: PagesIcon,      to: "/dashboard/pages" },
   { id: "logs",            label: "Logs",            icon: LogsIcon,       to: "/dashboard/logs" },
   { id: "chatbots",        label: "Chatbots",        icon: ChatbotsIcon,   to: "/dashboard/chatbots" },
-  { id: "admins",          label: "Admins",          icon: AdminsIcon,     to: "/dashboard/admins" },
+  { id: "admins",          label: "Staff",           icon: AdminsIcon,     to: "/dashboard/staff" },
   { id: "account",         label: "Account",         icon: AccountIcon,    to: "/dashboard/account" },
 ];
+
+// => Nav items every logged-in admin can always reach, regardless of
+// => their granted sections - not part of admin_section_permissions
+const ALWAYS_VISIBLE_IDS = ["dashboard", "account"];
 
 const Sidebar = ({
   adminName = "Admin Name",
   adminRole = "admin",
+  adminSections = [],
 }) => {
   const [hoveredItem, setHoveredItem] = useState(null);
   const navigate = useNavigate();
 
-  // => Formats role for display: 'super_admin' => 'Super Admin', 'admin' => 'Admin'
+  // => Staff (id: "admins") is super_admin only. Dashboard/Account are always visible.
+  // => Everything else is filtered by the admin's granted sections.
+  // => This is a UX convenience only; the real boundary is requireSection /
+  // => requireSuperAdmin enforced on the backend.
+  const visibleNavItems = NAV_ITEMS.filter((item) => {
+    if (item.id === "admins") return adminRole === "super_admin";
+    if (ALWAYS_VISIBLE_IDS.includes(item.id)) return true;
+    if (adminRole === "super_admin") return true;
+    return adminSections.includes(item.id);
+  });
+
+  // => Formats role for display: 'super_admin' => 'Super Admin', 'staff' => 'Staff'
   const formatRole = (role) => {
     return role
       .split('_')
@@ -96,7 +112,7 @@ const Sidebar = ({
 
       <nav className="sidebar-nav" aria-label="Admin navigation">
         <ul className="sidebar-nav-list">
-          {NAV_ITEMS.map(({ id, label, icon, to }) => (
+          {visibleNavItems.map(({ id, label, icon, to }) => (
             <li key={id}>
               <NavLink
                 to={to}

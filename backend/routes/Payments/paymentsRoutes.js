@@ -11,6 +11,7 @@ import {
 } from '../../controllers/Payments/paymentsController.js';
 
 import { protectAdmin } from '../../middleware/adminAuth.js';
+import { requireSection } from '../../middleware/requireSection.js';
 import { csrfProtection } from '../../middleware/adminCsrf.js';
 import { adminApiRateLimit, readRateLimit } from '../../middleware/adminRateLimit.js';
 
@@ -21,6 +22,9 @@ router.use(readRateLimit);
 
 // => Every route here requires a logged-in admin.
 router.use(protectAdmin);
+
+// => Section access must be granted before any payments data is reachable
+router.use(requireSection('payments'));
 
 // => csrfProtection already no-ops on GET/HEAD/OPTIONS internally, so it's
 // => safe to apply router-wide instead of per mutating route.

@@ -1,4 +1,3 @@
-// => routes/publicCourseLinks.js
 // => No protectAdmin / auth here - these are intentionally public,
 // => unauthenticated read-only endpoints for the marketing site.
 // => Mounted at a NEW path ('/api/public/courses' suggested below) rather
@@ -12,7 +11,7 @@ import {
   getTesdaCourseBySlug,
   getShsCourseList,
   getShsCourseBySlug,
-} from '../controllers/publicCourseLinkController.js';
+} from '../../controllers/Courses/publicCourseLinkController.js';
 
 const router = express.Router();
 
