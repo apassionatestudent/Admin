@@ -35,7 +35,18 @@ export async function updateProfile(adminId, fullName, email) {
     const trimmedName = fullName.trim();
     const trimmedEmail = email.trim().toLowerCase();
 
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // => Length cap before regex runs at all - defense in depth against
+    // => ReDoS regardless of regex shape, and 254 is the practical RFC 5321
+    // => max email length anyway
+    if (trimmedEmail.length > 254) {
+        throw { status: 400, message: 'Email address is too long' };
+    }
+
+    // => Bounded quantifiers (not unbounded +) on each segment - satisfies
+    // => CodeQL's polynomial-regex-used-on-uncontrolled-data check, since
+    // => bounded repetition cannot exhibit the backtracking blowup
+    // => unbounded quantifiers can
+    const emailPattern = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/;
     if (!emailPattern.test(trimmedEmail)) {
         throw { status: 400, message: 'Please enter a valid email address' };
     }
