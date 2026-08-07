@@ -8,9 +8,9 @@ import * as staffController from '../../controllers/Staff/staffController.js';
 const router = express.Router();
 
 // => Entire Staff section is super_admin only
+router.use(adminApiRateLimit);
 router.use(protectAdmin);
 router.use(requireSuperAdmin);
-router.use(adminApiRateLimit);
 
 router.get('/', staffController.listAdmins);
 router.get('/:publicId', staffController.getAdmin);
