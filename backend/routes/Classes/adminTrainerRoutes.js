@@ -4,6 +4,7 @@
 import express from 'express';
 import { protectAdmin } from '../../middleware/adminAuth.js';
 import { requireSection } from '../../middleware/requireSection.js';
+import { csrfProtection } from '../../middleware/adminCsrf.js';
 import { adminApiRateLimit } from '../../middleware/adminRateLimit.js';
 import {
   listTrainers,
@@ -17,26 +18,16 @@ import {
 
 const router = express.Router();
 
-// => GET /api/admin/trainers
+// => Applied router-wide so CodeQL's js/missing-csrf-middleware can see it
+// => directly attached to this router, not just globally in server.js
+router.use(csrfProtection);
+
 router.get('/', adminApiRateLimit, protectAdmin, requireSection('classes'), listTrainers);
-
-// => GET /api/admin/trainers/deleted
-// => Must be declared BEFORE /:publicId, or Express treats 'deleted' as a publicId
 router.get('/deleted', adminApiRateLimit, protectAdmin, requireSection('classes'), listDeletedTrainers);
-
-// => POST /api/admin/trainers
 router.post('/', adminApiRateLimit, protectAdmin, requireSection('classes'), createTrainerController);
-
-// => GET /api/admin/trainers/:publicId
 router.get('/:publicId', adminApiRateLimit, protectAdmin, requireSection('classes'), getTrainerDetailController);
-
-// => PATCH /api/admin/trainers/:publicId
 router.patch('/:publicId', adminApiRateLimit, protectAdmin, requireSection('classes'), updateTrainerController);
-
-// => DELETE /api/admin/trainers/:publicId (soft delete)
 router.delete('/:publicId', adminApiRateLimit, protectAdmin, requireSection('classes'), deleteTrainerController);
-
-// => POST /api/admin/trainers/:publicId/restore
 router.post('/:publicId/restore', adminApiRateLimit, protectAdmin, requireSection('classes'), restoreTrainerController);
 
 export default router;

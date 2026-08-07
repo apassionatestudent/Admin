@@ -4,6 +4,7 @@
 import express from 'express';
 import { protectAdmin } from '../../middleware/adminAuth.js';
 import { requireSection } from '../../middleware/requireSection.js';
+import { csrfProtection } from '../../middleware/adminCsrf.js';
 import { adminApiRateLimit } from '../../middleware/adminRateLimit.js';
 import {
   listActiveBatches,
@@ -30,6 +31,10 @@ import {
 } from '../../controllers/Classes/adminBatchController.js';
 
 const router = express.Router();
+
+// => Applied router-wide so CodeQL's js/missing-csrf-middleware can see it
+// => directly attached to this router, not just globally in server.js
+router.use(csrfProtection);
 
 // => GET /api/admin/batches
 router.get('/', adminApiRateLimit, protectAdmin, requireSection('classes'), listActiveBatches);
@@ -64,8 +69,6 @@ router.get('/tesda/:publicId/misc-fees', adminApiRateLimit, protectAdmin, requir
 router.post('/tesda/:publicId/misc-fees', adminApiRateLimit, protectAdmin, requireSection('classes'), postTesdaBatchMiscFeeController);
 router.get('/shs/:publicId/misc-fees', adminApiRateLimit, protectAdmin, requireSection('classes'), getShsBatchMiscFeesController);
 router.post('/shs/:publicId/misc-fees', adminApiRateLimit, protectAdmin, requireSection('classes'), postShsBatchMiscFeeController);
-// => Not type-prefixed - the fee's own public_id is enough to find and
-//    delete it regardless of which batch table it belongs to
 router.delete('/misc-fees/:feePublicId', adminApiRateLimit, protectAdmin, requireSection('classes'), deleteBatchMiscFeeController);
 
 export default router;

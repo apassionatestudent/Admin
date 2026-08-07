@@ -1,16 +1,18 @@
-// routes/Staff/staffRoutes.js
+// => routes/Staff/staffRoutes.js
 
 import express from 'express';
 import { protectAdmin, requireSuperAdmin } from '../../middleware/adminAuth.js';
+import { csrfProtection } from '../../middleware/adminCsrf.js';
 import { adminApiRateLimit } from '../../middleware/adminRateLimit.js';
 import * as staffController from '../../controllers/Staff/staffController.js';
 
 const router = express.Router();
 
 // => Entire Staff section is super_admin only
-router.use(adminApiRateLimit);
 router.use(protectAdmin);
 router.use(requireSuperAdmin);
+router.use(adminApiRateLimit);
+router.use(csrfProtection);
 
 router.get('/', staffController.listAdmins);
 router.get('/:publicId', staffController.getAdmin);
