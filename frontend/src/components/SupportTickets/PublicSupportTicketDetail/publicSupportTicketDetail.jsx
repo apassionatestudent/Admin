@@ -160,7 +160,6 @@ export default function PublicSupportTicketDetail() {
 
       <div className="ticket-detail-card">
         <CopyableField label="Full Name" value={ticket.full_name} />
-        <CopyableField label="Contact Number" value={ticket.contact_number} />
         <CopyableField label="Email" value={ticket.email} />
 
         <div className="ticket-detail-row">
