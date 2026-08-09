@@ -395,7 +395,7 @@ export default function SupportTickets() {
               <input
                 type="text"
                 className="adm-search-input"
-                placeholder="Search by name, email, or contact number..."
+                placeholder="Search by name or email..."
                 value={searchTerm}
                 onChange={(e) => handlePublicSearchChange(e.target.value)}
               />
@@ -450,7 +450,6 @@ export default function SupportTickets() {
               <thead>
                 <tr>
                   <th>Full Name</th>
-                  <th>Contact Number</th>
                   <th>Email</th>
                   <th>Concern Type</th>
                   <th>Concern</th>
@@ -461,7 +460,7 @@ export default function SupportTickets() {
               <tbody>
                 {tickets.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="tickets-empty">
+                    <td colSpan={6} className="tickets-empty">
                       {/* => Distinguishes "nothing matches the filter" from a
                              genuinely empty list, same as Courses.jsx */}
                       {totalCount > 0
@@ -477,7 +476,6 @@ export default function SupportTickets() {
                       onClick={() => navigate(`/dashboard/support-tickets/${ticket.public_id}`)}
                     >
                       <td>{ticket.full_name}</td>
-                      <td>{ticket.contact_number}</td>
                       <td>{ticket.email}</td>
                       <td>{ticket.concern_type}</td>
                       {/* => Plain JSX interpolation only, React auto-escapes this -

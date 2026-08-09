@@ -29,8 +29,9 @@ const buildPublicTicketFilters = ({ search, concernType, status, hideClosed }) =
   }
 
   if (search && search.trim() !== '') {
+    // => contact_number column dropped from public_support_tickets, search now only covers name/email
     conditions.push(
-      `(full_name ILIKE $${idx} OR email ILIKE $${idx} OR contact_number ILIKE $${idx})`
+      `(full_name ILIKE $${idx} OR email ILIKE $${idx})`
     );
     values.push(`%${search.trim()}%`);
     idx++;
@@ -51,7 +52,6 @@ export const getPublicSupportTicketsPage = async (pool, { page, limit, search, c
         ticket_id,
         public_id,
         full_name,
-        contact_number,
         email,
         concern_type,
         concern,
@@ -109,7 +109,6 @@ export const getPublicSupportTicketByPublicId = async (pool, publicId) => {
         ticket_id,
         public_id,
         full_name,
-        contact_number,
         email,
         concern_type,
         concern,
@@ -152,7 +151,6 @@ export const updatePublicSupportTicketFields = async (pool, publicId, fields) =>
         ticket_id,
         public_id,
         full_name,
-        contact_number,
         email,
         concern_type,
         concern,
