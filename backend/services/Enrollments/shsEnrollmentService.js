@@ -22,6 +22,7 @@ import {
   getFamilyMembersByStudentId,
   getClusterCourses,
   updateShsEnrollmentStatus,
+  approveShsEnrollmentWithLock,
   updateShsEnrollmentFields,
   replaceFamilyMembers,
   addShsDocument,
@@ -118,6 +119,12 @@ export const changeShsEnrollmentStatus = async (publicId, newStatus, externalRem
     );
   }
 
+  // => Approval is now capacity-gated against the batch's Approved count,
+  //    so a batch must actually be assigned before Approved is reachable
+  if (newStatus === 'Approved' && !enrollment.batch_id) {
+    throw new Error('Cannot approve: no batch is assigned to this enrollment.');
+  }
+
   // => For Assessment requires the enrollment to already be Approved
   if (newStatus === 'For Assessment' && enrollment.status !== 'Approved' && enrollment.status !== 'For Assessment') {
     throw new Error(
@@ -169,7 +176,18 @@ export const changeShsEnrollmentStatus = async (publicId, newStatus, externalRem
     );
   }
 
-  const updated = await updateShsEnrollmentStatus(pool, publicId, newStatus, externalRemarks);
+  // => Approved goes through the locked, capacity-checked path -
+  //    everything else keeps the plain update
+  let updated;
+  let sweptEnrollments = [];
+
+  if (newStatus === 'Approved') {
+    const result = await approveShsEnrollmentWithLock(pool, publicId, enrollment.batch_id, externalRemarks);
+    updated = result.updated;
+    sweptEnrollments = result.sweptEnrollments;
+  } else {
+    updated = await updateShsEnrollmentStatus(pool, publicId, newStatus, externalRemarks);
+  }
 
   // => Activity log entry - same pattern as TESDA / adminBatchServices.js
   const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
@@ -184,6 +202,20 @@ export const changeShsEnrollmentStatus = async (publicId, newStatus, externalRem
     //    status, this only adds previous status + remarks
     action_detail: `Previous status: ${enrollment.status}.${externalRemarks?.trim() ? ` Remarks: ${externalRemarks.trim()}` : ''}`,
   });
+
+  // => Same per-enrollment audit entry for swept students as the TESDA
+  //    version - see that function's comment for the full reasoning
+  for (const swept of sweptEnrollments) {
+    await logActivity(pool, {
+      entity_type:   'shs_enrollment',
+      entity_id:     swept.enrollment_id,
+      actor_type:    'System',
+      actor_id:      null,
+      actor_name:    'System',
+      action:        'Status changed to Reserved',
+      action_detail: `Batch #${enrollment.batch_id} reached full capacity after another enrollment was approved - moved back to Reserved and unassigned from the batch to await placement in a future batch.`,
+    });
+  }
 
   return updated;
 };

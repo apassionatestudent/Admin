@@ -46,6 +46,7 @@ export const getShsEnrollmentDetailByPublicId = async (pool, publicId) => {
         --    Curriculum is now fetched separately by cluster - see
         --    getClusterCourses below.
         e.course_id,
+        cl.public_id                                          AS batch_public_id,
         cl.batch_name,
         cl.start_date,
         cl.end_date,
@@ -125,6 +126,69 @@ export const updateShsEnrollmentStatus = async (pool, publicId, newStatus, exter
     [newStatus, externalRemarks ?? null, publicId]
   );
   return result.rows[0] ?? null;
+};
+
+// => Same lock + capacity + sweep pattern as approveTesdaEnrollmentWithLock
+//    in tesdaEnrollmentModel.js - see that function's comments for the
+//    full reasoning. SHS has no payment gate, so this is purely the
+//    capacity side of approval.
+export const approveShsEnrollmentWithLock = async (pool, publicId, batchId, externalRemarks) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    await client.query('SELECT pg_advisory_xact_lock($1)', [batchId]);
+
+    const batchResult = await client.query(
+      `SELECT max_students FROM shs_batches WHERE batch_id = $1`,
+      [batchId]
+    );
+    const batch = batchResult.rows[0];
+    if (!batch) throw new Error('Batch not found.');
+
+    const countResult = await client.query(
+      `SELECT COUNT(*)::int AS approved_count
+         FROM shs_enrollments
+        WHERE batch_id = $1 AND status = 'Approved'`,
+      [batchId]
+    );
+    const approvedCount = countResult.rows[0].approved_count;
+
+    if (approvedCount >= batch.max_students) {
+      throw new Error('This batch is already full - Approved enrollments have reached max_students.');
+    }
+
+    const updateResult = await client.query(
+      `UPDATE shs_enrollments
+          SET status = 'Approved', external_remarks = $1, updated_at = NOW()
+        WHERE public_id = $2
+        RETURNING public_id, status, external_remarks`,
+      [externalRemarks ?? null, publicId]
+    );
+    const updated = updateResult.rows[0];
+
+    let sweptEnrollments = [];
+    if (approvedCount + 1 >= batch.max_students) {
+      // => Same reasoning as the TESDA version - Needs Clarification is
+      //    still pre-Approved, not terminal, so it gets swept too
+      const sweepResult = await client.query(
+        `UPDATE shs_enrollments
+            SET batch_id = NULL, status = 'Reserved', updated_at = NOW()
+          WHERE batch_id = $1 AND status IN ('Pending', 'Reviewed', 'Needs Clarification')
+          RETURNING public_id, enrollment_id, student_id`,
+        [batchId]
+      );
+      sweptEnrollments = sweepResult.rows;
+    }
+
+    await client.query('COMMIT');
+    return { updated, sweptEnrollments };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 };
 
 // => shs_enrollments editable columns - status is deliberately excluded,

@@ -32,6 +32,7 @@ export const getTesdaEnrollmentDetailByPublicId = async (pool, publicId) => {
         e.updated_at,
         c.title                                              AS course_name,
         s.sector                                             AS sector,
+        cl.public_id                                          AS batch_public_id,
         cl.batch_name,
         cl.start_date,
         cl.end_date,
@@ -91,6 +92,77 @@ export const updateTesdaEnrollmentStatus = async (pool, publicId, newStatus, ext
     [newStatus, externalRemarks ?? null, publicId]
   );
   return result.rows[0] ?? null;
+};
+
+// => Approving into a batch is capacity-gated on Approved count only, per
+//    the batch model change - Pending/Reviewed/Reserved no longer consume
+//    a slot. pg_advisory_xact_lock on batch_id serializes concurrent
+//    approvals into the same batch, so two staff can't both pass the
+//    count check before either write commits, same pattern as the batch
+//    create race protection.
+// => If this approval fills the batch to max_students, every other
+//    enrollment still sitting in Pending/Reviewed in this batch gets
+//    swept back to Reserved (batch_id cleared) so they can be assigned
+//    into a future batch instead of being stuck on one that can't fit them.
+export const approveTesdaEnrollmentWithLock = async (pool, publicId, batchId, externalRemarks) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    await client.query('SELECT pg_advisory_xact_lock($1)', [batchId]);
+
+    const batchResult = await client.query(
+      `SELECT max_students FROM tesda_batches WHERE batch_id = $1`,
+      [batchId]
+    );
+    const batch = batchResult.rows[0];
+    if (!batch) throw new Error('Batch not found.');
+
+    const countResult = await client.query(
+      `SELECT COUNT(*)::int AS approved_count
+         FROM tesda_enrollments
+        WHERE batch_id = $1 AND status = 'Approved'`,
+      [batchId]
+    );
+    const approvedCount = countResult.rows[0].approved_count;
+
+    if (approvedCount >= batch.max_students) {
+      throw new Error('This batch is already full - Approved enrollments have reached max_students.');
+    }
+
+    const updateResult = await client.query(
+      `UPDATE tesda_enrollments
+          SET status = 'Approved', external_remarks = $1, updated_at = NOW()
+        WHERE public_id = $2
+        RETURNING public_id, status, external_remarks`,
+      [externalRemarks ?? null, publicId]
+    );
+    const updated = updateResult.rows[0];
+
+    let sweptEnrollments = [];
+    if (approvedCount + 1 >= batch.max_students) {
+      // => Needs Clarification is included alongside Pending/Reviewed -
+      //    all three represent enrollments still trying to reach Approved,
+      //    none of them terminal. Rejected/Dropped are deliberately left
+      //    out since those students are already out of the pipeline.
+      const sweepResult = await client.query(
+        `UPDATE tesda_enrollments
+            SET batch_id = NULL, status = 'Reserved', updated_at = NOW()
+          WHERE batch_id = $1 AND status IN ('Pending', 'Reviewed', 'Needs Clarification')
+          RETURNING public_id, enrollment_id, student_id`,
+        [batchId]
+      );
+      sweptEnrollments = sweepResult.rows;
+    }
+
+    await client.query('COMMIT');
+    return { updated, sweptEnrollments };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 };
 
 // => tesda_enrollments editable columns - status is deliberately excluded,

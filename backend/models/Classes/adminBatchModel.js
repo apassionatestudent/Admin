@@ -34,8 +34,11 @@ export const getActiveBatches = async (pool) => {
         s.sector                 AS sector,
         NULL::text                AS cluster,
         i.trainer_full_name   AS trainer_name,
+        -- => enrolled_count now reflects only Approved enrollments, since
+        --    that is the real slot-consuming status per the new business
+        --    rule - Pending/Reviewed/Reserved no longer count as filled
         COUNT(e.enrollment_id) FILTER (
-          WHERE e.status NOT IN ('Rejected', 'Dropped')
+          WHERE e.status = 'Approved'
         )::int                   AS enrolled_count
       FROM tesda_batches b
       LEFT JOIN tesda_courses c ON b.course_id     = c.course_id
@@ -70,8 +73,10 @@ export const getActiveBatches = async (pool) => {
         -- => No single trainer_name for SHS - two slots don't collapse
         --    into one column cleanly, list view leaves it blank same as before
         NULL::text                 AS trainer_name,
+        -- => enrolled_count now reflects only Approved enrollments, same
+        --    reasoning as the TESDA branch above
         COUNT(e.enrollment_id) FILTER (
-          WHERE e.status NOT IN ('Rejected', 'Dropped')
+          WHERE e.status = 'Approved'
         )::int                    AS enrolled_count
       FROM shs_batches b
       LEFT JOIN shs_clusters sc   ON sc.cluster_id = b.cluster_id
@@ -131,8 +136,9 @@ export const searchBatches = async (pool, {
           s.sector                 AS sector,
           NULL::text                AS cluster,
           i.trainer_full_name   AS trainer_name,
+          -- => enrolled_count now reflects only Approved enrollments
           COUNT(e.enrollment_id) FILTER (
-            WHERE e.status NOT IN ('Rejected', 'Dropped')
+            WHERE e.status = 'Approved'
           )::int                   AS enrolled_count
         FROM tesda_batches b
         LEFT JOIN tesda_courses c ON b.course_id     = c.course_id
@@ -174,8 +180,9 @@ export const searchBatches = async (pool, {
           NULL::text                 AS sector,
           sc.name                    AS cluster,
           NULL::text                 AS trainer_name,
+          -- => enrolled_count now reflects only Approved enrollments
           COUNT(e.enrollment_id) FILTER (
-            WHERE e.status NOT IN ('Rejected', 'Dropped')
+            WHERE e.status = 'Approved'
           )::int                    AS enrolled_count
         FROM shs_batches b
         LEFT JOIN shs_clusters sc   ON sc.cluster_id = b.cluster_id
@@ -348,6 +355,7 @@ export const getTesdaBatchByPublicId = async (pool, publicId) => {
         b.end_date,
         b.required_number_of_students,
         b.max_students,
+        b.max_applicants,
         b.remarks,
         b.groupchat_link,
         b.updated_at,
@@ -423,6 +431,7 @@ export const createTesdaBatch = async (pool, {
   end_date,
   required_number_of_students,
   max_students,
+  max_applicants,
   class_type,
   remarks,
   created_by,
@@ -452,8 +461,8 @@ export const createTesdaBatch = async (pool, {
     const result = await client.query(
       `INSERT INTO tesda_batches
           (trainer_id, course_id, start_date, end_date, required_number_of_students,
-           max_students, class_type, remarks, created_by, status, batch_sequence, batch_name)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Pending', $10, $11)
+           max_students, max_applicants, class_type, remarks, created_by, status, batch_sequence, batch_name)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Pending', $11, $12)
         RETURNING public_id, batch_id, status, start_date, end_date, batch_name, batch_sequence`,
       [
         trainer_id || null,
@@ -462,6 +471,7 @@ export const createTesdaBatch = async (pool, {
         end_date || null,
         required_number_of_students,
         max_students,
+        max_applicants,
         class_type || 'Regular',
         remarks || null,
         created_by || null,
@@ -491,6 +501,7 @@ export const updateTesdaBatchDetails = async (pool, publicId, {
   end_date,
   required_number_of_students,
   max_students,
+  max_applicants,
   class_type,
   groupchat_link,
   remarks,
@@ -502,20 +513,22 @@ export const updateTesdaBatchDetails = async (pool, publicId, {
             end_date                     = $3,
             required_number_of_students  = $4,
             max_students                 = $5,
-            class_type                   = $6,
-            groupchat_link                = $7,
-            remarks                      = COALESCE($8, remarks),
+            max_applicants               = $6,
+            class_type                   = $7,
+            groupchat_link                = $8,
+            remarks                      = COALESCE($9, remarks),
             updated_at                   = NOW()
-      WHERE public_id = $9
+      WHERE public_id = $10
       RETURNING public_id, batch_id, trainer_id, start_date, end_date,
-                required_number_of_students, max_students, class_type,
-                groupchat_link, remarks`,
+                required_number_of_students, max_students, max_applicants,
+                class_type, groupchat_link, remarks`,
     [
       trainer_id || null,
       start_date || null,
       end_date || null,
       required_number_of_students,
       max_students,
+      max_applicants,
       class_type || 'Regular',
       groupchat_link || null,
       remarks || null,
@@ -548,6 +561,7 @@ export const getShsBatchByPublicId = async (pool, publicId) => {
         b.end_date,
         b.required_number_of_students,
         b.max_students,
+        b.max_applicants,
         b.remarks,
         b.groupchat_link,
         b.grade11_completed,
@@ -648,6 +662,7 @@ export const createShsBatch = async (pool, {
   end_date,
   required_number_of_students,
   max_students,
+  max_applicants,
   course_trainers,
   remarks,
   created_by,
@@ -677,8 +692,8 @@ export const createShsBatch = async (pool, {
     const result = await client.query(
       `INSERT INTO shs_batches
           (cluster_id, cluster, school_year, start_date, end_date, required_number_of_students, max_students,
-           remarks, created_by, status, batch_sequence, batch_name)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Pending', $10, $11)
+           max_applicants, remarks, created_by, status, batch_sequence, batch_name)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Pending', $11, $12)
         RETURNING public_id, batch_id, status, start_date, end_date, batch_name, batch_sequence`,
       [
         cluster_id,
@@ -688,6 +703,7 @@ export const createShsBatch = async (pool, {
         end_date || null,
         required_number_of_students,
         max_students,
+        max_applicants,
         remarks || null,
         created_by || null,
         nextSeq,
@@ -727,6 +743,7 @@ export const updateShsBatchDetails = async (pool, publicId, {
   end_date,
   required_number_of_students,
   max_students,
+  max_applicants,
   course_trainers,
   groupchat_link,
   remarks,
@@ -742,18 +759,21 @@ export const updateShsBatchDetails = async (pool, publicId, {
               end_date                     = $3,
               required_number_of_students  = $4,
               max_students                 = $5,
-              groupchat_link                = $6,
-              remarks                      = COALESCE($7, remarks),
+              max_applicants               = $6,
+              groupchat_link                = $7,
+              remarks                      = COALESCE($8, remarks),
               updated_at                   = NOW()
-        WHERE public_id = $8
+        WHERE public_id = $9
         RETURNING public_id, batch_id, school_year, start_date, end_date,
-                  required_number_of_students, max_students, groupchat_link, remarks`,
+                  required_number_of_students, max_students, max_applicants,
+                  groupchat_link, remarks`,
       [
         school_year || null,
         start_date || null,
         end_date || null,
         required_number_of_students,
         max_students,
+        max_applicants,
         groupchat_link || null,
         remarks || null,
         publicId,
@@ -811,77 +831,241 @@ export const markShsBatchGrade11Completed = async (pool, publicId) => {
 //    picks a batch, then assigns a waiting enrollment into it)
 // ════════════════════════════════════════════
 
-export const getTesdaAssignmentContext = async (pool, enrollmentPublicId, batchPublicId) => {
-  const result = await pool.query(
-    `SELECT
-        e.enrollment_id,
-        e.status            AS enrollment_status,
-        e.course_id          AS enrollment_course_id,
-        b.batch_id,
-        b.course_id          AS batch_course_id,
-        b.max_students,
-        (SELECT COUNT(*) FROM tesda_enrollments
-          WHERE batch_id = b.batch_id AND status NOT IN ('Rejected', 'Dropped')
-        )::int               AS current_batch_count
-      FROM tesda_enrollments e
-      CROSS JOIN LATERAL (
-        SELECT batch_id, course_id, max_students
-        FROM tesda_batches
+// => Locked, atomic version of assignment - resolves the batch's public_id
+//    to its internal batch_id first, acquires pg_advisory_xact_lock on
+//    that batch_id, then re-checks course match, pool cap, and Approved
+//    capacity ALL inside the lock before writing. This replaces the old
+//    getTesdaAssignmentContext + assignTesdaEnrollmentToBatch two-step
+//    pattern, which had a race window: two staff assigning into the same
+//    near-full batch at once could both pass the checks before either
+//    write committed. Same lock pattern as approveTesdaEnrollmentWithLock.
+export const assignTesdaEnrollmentWithLock = async (pool, enrollmentPublicId, batchPublicId) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const batchLookup = await client.query(
+      `SELECT batch_id, course_id, max_students, max_applicants
+         FROM tesda_batches WHERE public_id = $1`,
+      [batchPublicId]
+    );
+    const batchRow = batchLookup.rows[0];
+    if (!batchRow) throw new Error('Batch not found.');
+
+    await client.query('SELECT pg_advisory_xact_lock($1)', [batchRow.batch_id]);
+
+    // => Re-fetched now that the lock is held, so course match and both
+    //    counts reflect the true state at the moment of assignment
+    const enrollmentResult = await client.query(
+      `SELECT enrollment_id, status, course_id, batch_id
+         FROM tesda_enrollments WHERE public_id = $1`,
+      [enrollmentPublicId]
+    );
+    const enrollment = enrollmentResult.rows[0];
+    if (!enrollment) throw new Error('Enrollment not found.');
+
+    if (enrollment.course_id !== batchRow.course_id) {
+      throw new Error('This batch does not offer the course the student enrolled in.');
+    }
+
+    const countResult = await client.query(
+      `SELECT
+          COUNT(*) FILTER (WHERE status = 'Approved')::int AS approved_count,
+          COUNT(*) FILTER (WHERE status NOT IN ('Rejected', 'Dropped'))::int AS pool_count
+        FROM tesda_enrollments
+        WHERE batch_id = $1`,
+      [batchRow.batch_id]
+    );
+    const { approved_count, pool_count } = countResult.rows[0];
+
+    // => Pool cap checked first - assigning adds to total applicant
+    //    volume even before the student is Approved
+    if (pool_count >= batchRow.max_applicants) {
+      throw new Error("This batch's applicant pool is already full.");
+    }
+    // => Approved-capacity is the hard ceiling regardless of pool room -
+    //    a batch that's already full on Approved never accepts more,
+    //    max_applicants is only leeway during the pre-Approval phase
+    if (approved_count >= batchRow.max_students) {
+      throw new Error('This batch is already full.');
+    }
+
+    const updateResult = await client.query(
+      `UPDATE tesda_enrollments
+          SET batch_id = $1, updated_at = NOW()
         WHERE public_id = $2
-      ) b
-      WHERE e.public_id = $1`,
-    [enrollmentPublicId, batchPublicId]
-  );
-  return result.rows[0] ?? null;
+        RETURNING public_id, batch_id, status`,
+      [batchRow.batch_id, enrollmentPublicId]
+    );
+
+    await client.query('COMMIT');
+    return updateResult.rows[0];
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 };
 
-export const assignTesdaEnrollmentToBatch = async (pool, enrollmentPublicId, batchId) => {
-  const result = await pool.query(
-    `UPDATE tesda_enrollments
-        SET batch_id   = $1,
-            updated_at = NOW()
-      WHERE public_id  = $2
-      RETURNING public_id, batch_id, status`,
-    [batchId, enrollmentPublicId]
-  );
-  return result.rows[0] ?? null;
-};
+// => Same locked pattern for SHS - matches on cluster only (track removed)
+export const assignShsEnrollmentWithLock = async (pool, enrollmentPublicId, batchPublicId) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
 
-// => Same pattern for SHS - matches on cluster only (track removed)
-export const getShsAssignmentContext = async (pool, enrollmentPublicId, batchPublicId) => {
-  const result = await pool.query(
-    `SELECT
-        e.enrollment_id,
-        e.status              AS enrollment_status,
-        e.cluster_id           AS enrollment_cluster_id,
-        b.batch_id,
-        b.cluster_id           AS batch_cluster_id,
-        b.max_students,
-        (SELECT COUNT(*) FROM shs_enrollments
-          WHERE batch_id = b.batch_id AND status NOT IN ('Rejected', 'Dropped')
-        )::int                 AS current_batch_count
-      FROM shs_enrollments e
-      CROSS JOIN LATERAL (
-        SELECT batch_id, cluster_id, max_students
-        FROM shs_batches
+    const batchLookup = await client.query(
+      `SELECT batch_id, cluster_id, max_students, max_applicants
+         FROM shs_batches WHERE public_id = $1`,
+      [batchPublicId]
+    );
+    const batchRow = batchLookup.rows[0];
+    if (!batchRow) throw new Error('Batch not found.');
+
+    await client.query('SELECT pg_advisory_xact_lock($1)', [batchRow.batch_id]);
+
+    const enrollmentResult = await client.query(
+      `SELECT enrollment_id, status, cluster_id, batch_id
+         FROM shs_enrollments WHERE public_id = $1`,
+      [enrollmentPublicId]
+    );
+    const enrollment = enrollmentResult.rows[0];
+    if (!enrollment) throw new Error('Enrollment not found.');
+
+    if (enrollment.cluster_id && enrollment.cluster_id !== batchRow.cluster_id) {
+      throw new Error("This batch does not match the student's cluster.");
+    }
+
+    const countResult = await client.query(
+      `SELECT
+          COUNT(*) FILTER (WHERE status = 'Approved')::int AS approved_count,
+          COUNT(*) FILTER (WHERE status NOT IN ('Rejected', 'Dropped'))::int AS pool_count
+        FROM shs_enrollments
+        WHERE batch_id = $1`,
+      [batchRow.batch_id]
+    );
+    const { approved_count, pool_count } = countResult.rows[0];
+
+    if (pool_count >= batchRow.max_applicants) {
+      throw new Error("This batch's applicant pool is already full.");
+    }
+    if (approved_count >= batchRow.max_students) {
+      throw new Error('This batch is already full.');
+    }
+
+    const updateResult = await client.query(
+      `UPDATE shs_enrollments
+          SET batch_id = $1, updated_at = NOW()
         WHERE public_id = $2
-      ) b
-      WHERE e.public_id = $1`,
-    [enrollmentPublicId, batchPublicId]
-  );
-  return result.rows[0] ?? null;
+        RETURNING public_id, batch_id, status`,
+      [batchRow.batch_id, enrollmentPublicId]
+    );
+
+    await client.query('COMMIT');
+    return updateResult.rows[0];
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 };
 
-export const assignShsEnrollmentToBatch = async (pool, enrollmentPublicId, batchId) => {
-  const result = await pool.query(
-    `UPDATE shs_enrollments
-        SET batch_id   = $1,
-            updated_at = NOW()
-      WHERE public_id  = $2
-      RETURNING public_id, batch_id, status`,
-    [batchId, enrollmentPublicId]
-  );
-  return result.rows[0] ?? null;
+// ════════════════════════════════════════════
+// BULK RELEASE: overflow back to Reserved
+// => Manual, staff-initiated trigger for the same outcome the automatic
+//    sweep produces - only usable once the batch has actually reached
+//    max_students on Approved count. Releases every remaining
+//    Pending/Reviewed/Needs Clarification enrollment in the batch back
+//    to Reserved, all in one locked transaction.
+// ════════════════════════════════════════════
+
+export const bulkReleaseTesdaEnrollmentsFromBatch = async (pool, batchId) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    await client.query('SELECT pg_advisory_xact_lock($1)', [batchId]);
+
+    const batchResult = await client.query(
+      `SELECT max_students FROM tesda_batches WHERE batch_id = $1`,
+      [batchId]
+    );
+    const batch = batchResult.rows[0];
+    if (!batch) throw new Error('Batch not found.');
+
+    const countResult = await client.query(
+      `SELECT COUNT(*)::int AS approved_count
+         FROM tesda_enrollments
+        WHERE batch_id = $1 AND status = 'Approved'`,
+      [batchId]
+    );
+    const approvedCount = countResult.rows[0].approved_count;
+
+    if (approvedCount < batch.max_students) {
+      throw new Error('Cannot bulk-release: this batch has not reached its max_students capacity yet.');
+    }
+
+    const sweepResult = await client.query(
+      `UPDATE tesda_enrollments
+          SET batch_id = NULL, status = 'Reserved', updated_at = NOW()
+        WHERE batch_id = $1 AND status IN ('Pending', 'Reviewed', 'Needs Clarification')
+        RETURNING public_id, enrollment_id, student_id`,
+      [batchId]
+    );
+
+    await client.query('COMMIT');
+    return sweepResult.rows;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
+export const bulkReleaseShsEnrollmentsFromBatch = async (pool, batchId) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    await client.query('SELECT pg_advisory_xact_lock($1)', [batchId]);
+
+    const batchResult = await client.query(
+      `SELECT max_students FROM shs_batches WHERE batch_id = $1`,
+      [batchId]
+    );
+    const batch = batchResult.rows[0];
+    if (!batch) throw new Error('Batch not found.');
+
+    const countResult = await client.query(
+      `SELECT COUNT(*)::int AS approved_count
+         FROM shs_enrollments
+        WHERE batch_id = $1 AND status = 'Approved'`,
+      [batchId]
+    );
+    const approvedCount = countResult.rows[0].approved_count;
+
+    if (approvedCount < batch.max_students) {
+      throw new Error('Cannot bulk-release: this batch has not reached its max_students capacity yet.');
+    }
+
+    const sweepResult = await client.query(
+      `UPDATE shs_enrollments
+          SET batch_id = NULL, status = 'Reserved', updated_at = NOW()
+        WHERE batch_id = $1 AND status IN ('Pending', 'Reviewed', 'Needs Clarification')
+        RETURNING public_id, enrollment_id, student_id`,
+      [batchId]
+    );
+
+    await client.query('COMMIT');
+    return sweepResult.rows;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 };
 
 // 

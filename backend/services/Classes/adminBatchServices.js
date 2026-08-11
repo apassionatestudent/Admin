@@ -23,10 +23,10 @@ import {
   getBatchFormOptions,
   isTrainerQualifiedForTesdaCourse,
   isTrainerQualifiedForShsCourse,
-  getTesdaAssignmentContext,
-  assignTesdaEnrollmentToBatch,
-  getShsAssignmentContext,
-  assignShsEnrollmentToBatch,
+  assignTesdaEnrollmentWithLock,
+  assignShsEnrollmentWithLock,
+  bulkReleaseTesdaEnrollmentsFromBatch,
+  bulkReleaseShsEnrollmentsFromBatch,
   getAdminNameById,
   getMiscFeesByBatch,
   addBatchMiscFee,
@@ -243,10 +243,11 @@ export const changeShsBatchStatus = async (publicId, newStatus, remarks, adminId
 //    real TESDA accreditation form: a trainer either is or isn't accredited
 //    for a course, there's no "assign anyway" path
 export const addTesdaBatch = async (batchData) => {
-  const { course_id, trainer_id, start_date, end_date, required_number_of_students, max_students } = batchData;
+  const { course_id, trainer_id, start_date, end_date, required_number_of_students, max_students, max_applicants } = batchData;
   if (!course_id)                    throw new Error('course_id is required.');
   if (!required_number_of_students)  throw new Error('required_number_of_students is required.');
   if (!max_students)                 throw new Error('max_students is required.');
+  if (!max_applicants)               throw new Error('max_applicants is required.');
 
   // => Dates are optional at creation - admins may just be pooling
   //    students for enrollment before a firm schedule exists
@@ -254,6 +255,11 @@ export const addTesdaBatch = async (batchData) => {
 
   if (Number(required_number_of_students) > Number(max_students)) {
     throw new Error('required_number_of_students cannot exceed max_students.');
+  }
+  // => max_students is the real Approved cap - it can never exceed the
+  //    total applicant pool, since not everyone who applies gets approved
+  if (Number(max_students) > Number(max_applicants)) {
+    throw new Error('max_students cannot exceed max_applicants.');
   }
 
   if (trainer_id) {
@@ -274,16 +280,21 @@ export const addTesdaBatch = async (batchData) => {
 //    the Trainers page first, not overriding it here.
 export const addShsBatch = async (batchData) => {
   const {
-    cluster_id, school_year, required_number_of_students, max_students,
+    cluster_id, school_year, required_number_of_students, max_students, max_applicants,
     course_trainers,
   } = batchData;
 
   if (!cluster_id)    throw new Error('cluster_id is required.');
   if (!required_number_of_students) throw new Error('required_number_of_students is required.');
   if (!max_students) throw new Error('max_students is required.');
+  if (!max_applicants) throw new Error('max_applicants is required.');
 
   if (Number(required_number_of_students) > Number(max_students)) {
     throw new Error('required_number_of_students cannot exceed max_students.');
+  }
+  // => Same pool-vs-approved-cap reasoning as addTesdaBatch
+  if (Number(max_students) > Number(max_applicants)) {
+    throw new Error('max_students cannot exceed max_applicants.');
   }
 
   if (batchData.start_date && batchData.end_date &&
@@ -317,15 +328,19 @@ export const addShsBatch = async (batchData) => {
 // => TESDA trainer qualification stays a HARD block on edit too, same as
 //    creation - no override path
 export const editTesdaBatchDetails = async (publicId, batchData, existingCourseId, adminId, batchId) => {
-  const { trainer_id, start_date, end_date, required_number_of_students, max_students } = batchData;
+  const { trainer_id, start_date, end_date, required_number_of_students, max_students, max_applicants } = batchData;
 
   if (!required_number_of_students) throw new Error('required_number_of_students is required.');
   if (!max_students)                throw new Error('max_students is required.');
+  if (!max_applicants)              throw new Error('max_applicants is required.');
 
   validateBatchDates(start_date, end_date);
 
   if (Number(required_number_of_students) > Number(max_students)) {
     throw new Error('required_number_of_students cannot exceed max_students.');
+  }
+  if (Number(max_students) > Number(max_applicants)) {
+    throw new Error('max_students cannot exceed max_applicants.');
   }
 
   if (trainer_id) {
@@ -362,17 +377,21 @@ export const editTesdaBatchDetails = async (publicId, batchData, existingCourseI
 //    creation and TESDA - no more substitute confirm path
 export const editShsBatchDetails = async (publicId, batchData, existingClusterId, adminId, batchId) => {
   const {
-    school_year, start_date, end_date, required_number_of_students, max_students,
+    school_year, start_date, end_date, required_number_of_students, max_students, max_applicants,
     course_trainers,
   } = batchData;
 
   if (!required_number_of_students) throw new Error('required_number_of_students is required.');
   if (!max_students)                throw new Error('max_students is required.');
+  if (!max_applicants)              throw new Error('max_applicants is required.');
 
   validateBatchDates(start_date, end_date);
 
   if (Number(required_number_of_students) > Number(max_students)) {
     throw new Error('required_number_of_students cannot exceed max_students.');
+  }
+  if (Number(max_students) > Number(max_applicants)) {
+    throw new Error('max_students cannot exceed max_applicants.');
   }
 
   // => Same per-course qualification check as addShsBatch - existingClusterId
@@ -442,34 +461,74 @@ export const fetchBatchFormOptions = async () => {
 // => Validates course/cluster match and remaining capacity before writing
 // ════════════════════════════════════════════
 
-export const assignTesdaEnrollment = async (enrollmentPublicId, batchPublicId) => {
-  const ctx = await getTesdaAssignmentContext(pool, enrollmentPublicId, batchPublicId);
-  if (!ctx || !ctx.batch_id) {
-    throw new Error('Enrollment or batch not found.');
-  }
-  if (ctx.enrollment_course_id !== ctx.batch_course_id) {
-    throw new Error('This batch does not offer the course the student enrolled in.');
-  }
-  if (ctx.current_batch_count >= ctx.max_students) {
-    throw new Error('This batch is already full.');
-  }
+// ════════════════════════════════════════════
+// ASSIGN A RESERVED ENROLLMENT TO A BATCH
+// => Course/cluster match, pool cap, and Approved capacity are now all
+//    validated INSIDE assignTesdaEnrollmentWithLock/assignShsEnrollmentWithLock,
+//    under an advisory lock on the batch - this closes the race window
+//    where two staff assigning into the same near-full batch at once
+//    could both pass a check before either write committed. This
+//    function is now just a thin pass-through.
+// ════════════════════════════════════════════
 
-  return await assignTesdaEnrollmentToBatch(pool, enrollmentPublicId, ctx.batch_id);
+export const assignTesdaEnrollment = async (enrollmentPublicId, batchPublicId) => {
+  return await assignTesdaEnrollmentWithLock(pool, enrollmentPublicId, batchPublicId);
 };
 
 export const assignShsEnrollment = async (enrollmentPublicId, batchPublicId) => {
-  const ctx = await getShsAssignmentContext(pool, enrollmentPublicId, batchPublicId);
-  if (!ctx || !ctx.batch_id) {
-    throw new Error('Enrollment or batch not found.');
-  }
-  if (ctx.enrollment_cluster_id && ctx.enrollment_cluster_id !== ctx.batch_cluster_id) {
-    throw new Error("This batch does not match the student's cluster.");
-  }
-  if (ctx.current_batch_count >= ctx.max_students) {
-    throw new Error('This batch is already full.');
+  return await assignShsEnrollmentWithLock(pool, enrollmentPublicId, batchPublicId);
+};
+
+// ════════════════════════════════════════════
+// BULK RELEASE: overflow back to Reserved
+// => Manual trigger for the same outcome the automatic sweep produces -
+//    only usable once the batch's Approved count has actually reached
+//    max_students. Releases every remaining Pending/Reviewed/Needs
+//    Clarification enrollment in the batch at once.
+// ════════════════════════════════════════════
+
+export const bulkReleaseTesdaEnrollments = async (batchPublicId, adminId) => {
+  const batchRow = await getTesdaBatchByPublicId(pool, batchPublicId);
+  if (!batchRow) throw new Error('Batch not found.');
+
+  const released = await bulkReleaseTesdaEnrollmentsFromBatch(pool, batchRow.batch_id);
+
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  for (const r of released) {
+    await logActivity(pool, {
+      entity_type:   'tesda_enrollment',
+      entity_id:     r.enrollment_id,
+      actor_type:    'Admin',
+      actor_id:      adminId,
+      actor_name:    actorName,
+      action:        'Status changed to Reserved',
+      action_detail: `Bulk-released from Batch #${batchRow.batch_id} by staff after the batch reached full capacity - moved back to Reserved to await placement in a future batch.`,
+    });
   }
 
-  return await assignShsEnrollmentToBatch(pool, enrollmentPublicId, ctx.batch_id);
+  return released;
+};
+
+export const bulkReleaseShsEnrollments = async (batchPublicId, adminId) => {
+  const batchRow = await getShsBatchByPublicId(pool, batchPublicId);
+  if (!batchRow) throw new Error('Batch not found.');
+
+  const released = await bulkReleaseShsEnrollmentsFromBatch(pool, batchRow.batch_id);
+
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  for (const r of released) {
+    await logActivity(pool, {
+      entity_type:   'shs_enrollment',
+      entity_id:     r.enrollment_id,
+      actor_type:    'Admin',
+      actor_id:      adminId,
+      actor_name:    actorName,
+      action:        'Status changed to Reserved',
+      action_detail: `Bulk-released from Batch #${batchRow.batch_id} by staff after the batch reached full capacity - moved back to Reserved to await placement in a future batch.`,
+    });
+  }
+
+  return released;
 };
 
 //

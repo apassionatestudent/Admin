@@ -123,6 +123,7 @@ const EMPTY_SHS_BATCH_FORM = {
   end_date:                    '',
   required_number_of_students: '',
   max_students:                '',
+  max_applicants:              '',
   remarks:                     '',
 };
 
@@ -135,6 +136,7 @@ const EMPTY_CLASS_FORM = {
   end_date:                    '',
   required_number_of_students: '',
   max_students:                '',
+  max_applicants:              '',
   remarks:                     '',
 };
 
@@ -568,6 +570,7 @@ export default function Classes() {
         trainer_id:               classForm.trainer_id ? Number(classForm.trainer_id) : null,
         required_number_of_students: Number(classForm.required_number_of_students),
         max_students:                Number(classForm.max_students),
+        max_applicants:               Number(classForm.max_applicants),
       });
 
       // => Close modal and navigate straight to the new batch's detail page
@@ -608,6 +611,7 @@ export default function Classes() {
         cluster_id:                  Number(shsBatchForm.cluster_id),
         required_number_of_students: Number(shsBatchForm.required_number_of_students),
         max_students:                Number(shsBatchForm.max_students),
+        max_applicants:               Number(shsBatchForm.max_applicants),
         course_trainers,
       });
 
@@ -1284,6 +1288,21 @@ export default function Classes() {
                     </div>
                   </div>
 
+                  {/* => Max Applicant Pool - caps total enrollment attempts
+                         (any status except Rejected/Dropped), separate from
+                         Max Students which caps Approved only */}
+                  <div className="adm-form-group">
+                    <label className="adm-form-label">Max Applicant Pool <span className="adm-form-required">*</span></label>
+                    <input
+                      type="number"
+                      className="adm-form-input"
+                      min="1"
+                      placeholder="e.g. 50"
+                      value={classForm.max_applicants}
+                      onChange={e => setClassForm(f => ({ ...f, max_applicants: e.target.value }))}
+                    />
+                  </div>
+
                   {/* => Remarks (optional) */}
                   <div className="adm-form-group">
                     <label className="adm-form-label">Remarks <span className="adm-form-optional">(optional)</span></label>
@@ -1445,6 +1464,19 @@ export default function Classes() {
                         onChange={e => setShsBatchForm(f => ({ ...f, max_students: e.target.value }))}
                       />
                     </div>
+                  </div>
+
+                  {/* => Max Applicant Pool - same reasoning as the TESDA form */}
+                  <div className="adm-form-group">
+                    <label className="adm-form-label">Max Applicant Pool <span className="adm-form-required">*</span></label>
+                    <input
+                      type="number"
+                      className="adm-form-input"
+                      min="1"
+                      placeholder="e.g. 60"
+                      value={shsBatchForm.max_applicants}
+                      onChange={e => setShsBatchForm(f => ({ ...f, max_applicants: e.target.value }))}
+                    />
                   </div>
 
                   {/* => Remarks (optional) */}
@@ -2138,7 +2170,9 @@ function ClassTable({ rows, onRowClick }) {
             <th>Trainer</th>
             <th>Start Date</th>
             <th>End Date</th>
-            <th>Enrolled / Max</th>
+            {/* => Header clarified - this column now specifically reflects
+                   Approved enrollments against capacity, not total roster */}
+            <th>Approved / Max</th>
             <th>Status</th>
           </tr>
         </thead>

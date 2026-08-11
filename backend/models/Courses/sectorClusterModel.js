@@ -7,7 +7,6 @@
 // => nothing in the UI calls for it.
 
 import { pool } from '../../config/db.js';
-import { slugify } from '../../utils/slugify.js';
 
 // => Excludes soft-deleted rows so the dropdown never offers a deleted
 // => sector for a NEW selection - existing courses that already reference
@@ -59,19 +58,17 @@ export async function restoreSector(sectorId) {
 
 export async function findAllClusters() {
   const result = await pool.query(
-    `SELECT cluster_id, value, name FROM shs_clusters WHERE deleted_at IS NULL ORDER BY name ASC`
+    `SELECT cluster_id, name FROM shs_clusters WHERE deleted_at IS NULL ORDER BY name ASC`
   );
   return result.rows;
 }
 
-// => shs_clusters has both a machine-readable 'value' and a display 'name' -
-// => value is auto-derived from name via the same slugify() used for public
-// => course slugs, so the admin only ever types the one field
+// => value column was dropped from shs_clusters in a prior migration -
+//    name is now the sole identifying label, no derived slug needed
 export async function insertCluster(clusterName) {
-  const value = slugify(clusterName);
   const result = await pool.query(
-    `INSERT INTO shs_clusters (value, name) VALUES ($1, $2) RETURNING cluster_id, value, name`,
-    [value, clusterName]
+    `INSERT INTO shs_clusters (name) VALUES ($1) RETURNING cluster_id, name`,
+    [clusterName]
   );
   return result.rows[0];
 }
@@ -87,14 +84,14 @@ export async function softDeleteCluster(clusterId) {
 // => Deleted-clusters list - mirror of findAllClusters, flipped filter
 export async function findAllDeletedClusters() {
   const result = await pool.query(
-    `SELECT cluster_id, value, name, deleted_at FROM shs_clusters WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC`
+    `SELECT cluster_id, name, deleted_at FROM shs_clusters WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC`
   );
   return result.rows;
 }
 
 export async function restoreCluster(clusterId) {
   const result = await pool.query(
-    `UPDATE shs_clusters SET deleted_at = NULL WHERE cluster_id = $1 AND deleted_at IS NOT NULL RETURNING cluster_id, value, name`,
+    `UPDATE shs_clusters SET deleted_at = NULL WHERE cluster_id = $1 AND deleted_at IS NOT NULL RETURNING cluster_id, name`,
     [clusterId]
   );
   return result.rows[0] || null;

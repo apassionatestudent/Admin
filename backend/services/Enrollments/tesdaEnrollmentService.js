@@ -24,6 +24,7 @@ import {
   getTesdaDocsByEnrollmentId,
   getClassificationsByEnrollmentId,
   updateTesdaEnrollmentStatus,
+  approveTesdaEnrollmentWithLock,
   updateTesdaEnrollmentFields,
   replaceClassifications,
   addTesdaDocument,
@@ -157,6 +158,12 @@ export const changeTesdaEnrollmentStatus = async (publicId, newStatus, externalR
     );
   }
 
+  // => Approval is now capacity-gated against the batch's Approved count,
+  //    so a batch must actually be assigned before Approved is reachable
+  if (newStatus === 'Approved' && !enrollment.batch_id) {
+    throw new Error('Cannot approve: no batch is assigned to this enrollment.');
+  }
+
   // => class_type comes from the LEFT JOIN on tesda_batches - NULL when
   //    no batch is assigned yet, so the rule is skipped in that case
   if (newStatus === 'Approved' && enrollment.class_type === 'Regular') {
@@ -231,7 +238,19 @@ export const changeTesdaEnrollmentStatus = async (publicId, newStatus, externalR
     );
   }
 
-  const updated = await updateTesdaEnrollmentStatus(pool, publicId, newStatus, externalRemarks);
+  // => Approved goes through the locked, capacity-checked path -
+  //    everything else keeps the plain update, since only Approved
+  //    consumes a batch slot
+  let updated;
+  let sweptEnrollments = [];
+
+  if (newStatus === 'Approved') {
+    const result = await approveTesdaEnrollmentWithLock(pool, publicId, enrollment.batch_id, externalRemarks);
+    updated = result.updated;
+    sweptEnrollments = result.sweptEnrollments;
+  } else {
+    updated = await updateTesdaEnrollmentStatus(pool, publicId, newStatus, externalRemarks);
+  }
 
   // => Activity log entry - mirrors adminBatchServices.js's
   //    changeTesdaBatchStatus pattern exactly
@@ -248,6 +267,23 @@ export const changeTesdaEnrollmentStatus = async (publicId, newStatus, externalR
     //    twice once this renders in the Audit Log section
     action_detail: `Previous status: ${enrollment.status}.${externalRemarks?.trim() ? ` Remarks: ${externalRemarks.trim()}` : ''}`,
   });
+
+  // => Each swept enrollment gets its own audit trail entry explaining
+  //    why it landed back on Reserved - the batch filled up before it
+  //    could be approved. actor_type 'System' since no individual staff
+  //    member made this specific call, the sweep is a side effect of
+  //    approving a different enrollment.
+  for (const swept of sweptEnrollments) {
+    await logActivity(pool, {
+      entity_type:   'tesda_enrollment',
+      entity_id:     swept.enrollment_id,
+      actor_type:    'System',
+      actor_id:      null,
+      actor_name:    'System',
+      action:        'Status changed to Reserved',
+      action_detail: `Batch #${enrollment.batch_id} reached full capacity after another enrollment was approved - moved back to Reserved and unassigned from the batch to await placement in a future batch.`,
+    });
+  }
 
   return updated;
 };

@@ -235,6 +235,11 @@ export default function ShsBatchDetail() {
   // => Holds the fee object pending deletion, or null. Delete only fires
   //    once the admin confirms via ConfirmModal below.
   const [deleteFeeConfirm, setDeleteFeeConfirm] = useState(null);
+  // => Bulk release only fires once the admin confirms via ConfirmModal
+  //    below - no per-enrollment state needed, the whole batch's overflow
+  //    releases together
+  const [bulkReleaseConfirm, setBulkReleaseConfirm] = useState(false);
+  const [bulkReleasing, setBulkReleasing] = useState(false);
 
   const handleAddMiscFee = async () => {
     if (!newFeeLabel.trim()) {
@@ -345,6 +350,7 @@ export default function ShsBatchDetail() {
       end_date:                     toDateInputValue(batchRow.end_date),
       required_number_of_students:  batchRow.required_number_of_students ?? '',
       max_students:                 batchRow.max_students ?? '',
+      max_applicants:                batchRow.max_applicants ?? '',
       course_trainers:              courseTrainerMap,
       groupchat_link:               batchRow.groupchat_link ?? '',
     });
@@ -356,12 +362,16 @@ export default function ShsBatchDetail() {
   const submitBatchInfo = async () => {
     setSectionError(null);
 
-    if (!draft.required_number_of_students || !draft.max_students) {
-      setSectionError('Required Students and Max Students are both required.');
+    if (!draft.required_number_of_students || !draft.max_students || !draft.max_applicants) {
+      setSectionError('Required Students, Max Students, and Max Applicant Pool are all required.');
       return;
     }
     if (Number(draft.required_number_of_students) > Number(draft.max_students)) {
       setSectionError('Required Students cannot exceed Max Students.');
+      return;
+    }
+    if (Number(draft.max_students) > Number(draft.max_applicants)) {
+      setSectionError('Max Students cannot exceed Max Applicant Pool.');
       return;
     }
     const dateError = validateDatesClient(draft.start_date, draft.end_date);
@@ -382,6 +392,7 @@ export default function ShsBatchDetail() {
         end_date:                     draft.end_date || null,
         required_number_of_students:  Number(draft.required_number_of_students),
         max_students:                 Number(draft.max_students),
+        max_applicants:                Number(draft.max_applicants),
         course_trainers,
         groupchat_link:               draft.groupchat_link?.trim() || null,
       });
@@ -499,7 +510,14 @@ export default function ShsBatchDetail() {
   }
 
   const { batchRow, enrolledStudents } = data;
-  const remainingSlots = batchRow.max_students - (enrolledStudents?.length ?? 0);
+  // => Slots are consumed only by Approved enrollments now, not by the
+  //    full roster - Pending/Reviewed/Reserved students no longer count
+  //    against max_students, matching the backend's current_batch_count
+  const approvedCount = enrolledStudents?.filter(s => s.enrollment_status === 'Approved').length ?? 0;
+  const remainingSlots = batchRow.max_students - approvedCount;
+  // => Everyone still waiting once the batch is full - what Release
+  //    Overflow would actually release
+  const releasableCount = enrolledStudents?.filter(s => ['Pending', 'Reviewed', 'Needs Clarification'].includes(s.enrollment_status)).length ?? 0;
   const isEditingBatchInfo = editingSection === 'batchInfo';
 
   // => Per-course trainer assignments, straight from the API - replaces
@@ -665,12 +683,19 @@ export default function ShsBatchDetail() {
               </div>
 
               <div className="adm-info-card">
+                <p className="adm-info-label">Max Applicant Pool</p>
+                <p className="adm-info-value">{batchRow.max_applicants ?? '-'}</p>
+              </div>
+
+              <div className="adm-info-card">
                 <p className="adm-info-label">Enrolled</p>
                 <p className="adm-info-value">
                   {enrolledStudents?.length ?? 0}
                   {' '}
+                  {/* => Note now clarifies that remaining slots track Approved
+                         count specifically, not the total roster shown above */}
                   <span className="adm-slots-note">
-                    ({remainingSlots > 0 ? `${remainingSlots} slot${remainingSlots !== 1 ? 's' : ''} remaining` : 'Full'})
+                    ({approvedCount} approved &middot; {remainingSlots > 0 ? `${remainingSlots} slot${remainingSlots !== 1 ? 's' : ''} remaining` : 'Full'})
                   </span>
                 </p>
               </div>
@@ -799,6 +824,17 @@ export default function ShsBatchDetail() {
               </div>
 
               <div className="adm-form-group">
+                <label className="adm-form-label">Max Applicant Pool <span className="adm-form-required">*</span></label>
+                <input
+                  type="number"
+                  className="adm-form-input"
+                  min="1"
+                  value={draft.max_applicants}
+                  onChange={e => updateDraft('max_applicants', e.target.value)}
+                />
+              </div>
+
+              <div className="adm-form-group">
                 <label className="adm-form-label">Groupchat Link <span className="adm-form-optional">(optional)</span></label>
                 <input
                   type="text"
@@ -889,10 +925,21 @@ export default function ShsBatchDetail() {
 
         {/* ENROLLED STUDENTS TABLE */}
         <div className="adm-batch-section">
-          <p className="adm-section-title">
-            Enrolled Students
-            <span className="adm-section-count-inline">{enrolledStudents?.length ?? 0}</span>
-          </p>
+          <div className="adm-section-header">
+            <p className="adm-section-title">
+              Enrolled Students
+              <span className="adm-section-count-inline">{enrolledStudents?.length ?? 0}</span>
+            </p>
+            {/* => Only shows once the batch has actually reached max_students
+                   on Approved count, and only if there's overflow left to
+                   release - a full batch with nobody else waiting shows
+                   nothing here */}
+            {approvedCount >= batchRow.max_students && releasableCount > 0 && (
+              <button className="adm-release-btn" onClick={() => setBulkReleaseConfirm(true)}>
+                Release Overflow ({releasableCount})
+              </button>
+            )}
+          </div>
 
           {!enrolledStudents || enrolledStudents.length === 0 ? (
             <p className="adm-empty-note">No students enrolled in this batch yet.</p>
@@ -913,7 +960,9 @@ export default function ShsBatchDetail() {
                     <tr
                       key={s.enrollment_public_id}
                       className="adm-sub-table-row"
-                      onClick={() => navigate(`/dashboard/enrollments/${s.enrollment_public_id}`)}
+                      // => Route must match App.jsx: /dashboard/enrollments/shs/:publicId -
+                      //    hardcoded 'shs' since this page only ever lists SHS enrollments
+                      onClick={() => navigate(`/dashboard/enrollments/shs/${s.enrollment_public_id}`)}
                       title="View enrollment detail"
                     >
                       <td className="adm-td-student-name">{fullName(s)}</td>
@@ -1081,6 +1130,29 @@ export default function ShsBatchDetail() {
         message="Mark Grade 11 as completed for this batch? Only Grade 12 courses will be selectable for new class sessions afterward."
         onConfirm={runMarkGrade11Complete}
         onCancel={() => setShowGrade11CompleteConfirm(false)}
+      />
+
+      {/* => Bulk-releases every remaining Pending/Reviewed/Needs
+             Clarification enrollment in this batch back to Reserved in
+             one go, once the batch has actually reached max_students */}
+      <ConfirmModal
+        isOpen={bulkReleaseConfirm}
+        message={`This batch has reached its maximum capacity (${approvedCount}/${batchRow.max_students} approved). Release the remaining ${releasableCount} student${releasableCount !== 1 ? 's' : ''} still waiting back to Reserved? They will be unassigned from this batch, but their submitted information stays intact for placement into a future batch.`}
+        onConfirm={async () => {
+          setBulkReleasing(true);
+          try {
+            const res = await axiosAdmin.patch(`/api/admin/batches/shs/${publicId}/bulk-release`);
+            await fetchDetail(true);
+            await fetchLogs();
+            toast.success(`${res.data.releasedCount} enrollment(s) released back to Reserved.`);
+          } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to release enrollments.');
+          } finally {
+            setBulkReleasing(false);
+            setBulkReleaseConfirm(false);
+          }
+        }}
+        onCancel={() => { if (!bulkReleasing) setBulkReleaseConfirm(false); }}
       />
     </div>
   );
