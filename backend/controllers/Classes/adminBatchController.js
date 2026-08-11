@@ -19,6 +19,8 @@ import {
   fetchBatchFormOptions,
   assignTesdaEnrollment,
   assignShsEnrollment,
+  bulkReleaseTesdaEnrollments,
+  bulkReleaseShsEnrollments,
   fetchBatchMiscFees,
   createBatchMiscFee,
   removeBatchMiscFee,
@@ -294,6 +296,39 @@ export const assignShsEnrollmentController = async (req, res) => {
       : (err.message.includes('full') || err.message.includes('does not match')) ? 400
       : 500;
     if (statusCode === 500) console.error('assignShsEnrollmentController error:', err);
+    return res.status(statusCode).json({ error: err.message });
+  }
+};
+
+// PATCH /api/admin/batches/tesda/:publicId/bulk-release
+// => No body needed - releases every Pending/Reviewed/Needs Clarification
+//    enrollment still in this batch back to Reserved, in one go. Only
+//    allowed once Approved count has reached max_students.
+export const bulkReleaseTesdaEnrollmentController = async (req, res) => {
+  const { publicId } = req.params;
+  try {
+    const released = await bulkReleaseTesdaEnrollments(publicId, req.admin?.admin_id ?? null);
+    return res.status(200).json({ success: true, releasedCount: released.length, released });
+  } catch (err) {
+    const statusCode = err.message.includes('not found') ? 404
+      : err.message.includes('Cannot bulk-release') ? 400
+      : 500;
+    if (statusCode === 500) console.error('bulkReleaseTesdaEnrollmentController error:', err);
+    return res.status(statusCode).json({ error: err.message });
+  }
+};
+
+// PATCH /api/admin/batches/shs/:publicId/bulk-release
+export const bulkReleaseShsEnrollmentController = async (req, res) => {
+  const { publicId } = req.params;
+  try {
+    const released = await bulkReleaseShsEnrollments(publicId, req.admin?.admin_id ?? null);
+    return res.status(200).json({ success: true, releasedCount: released.length, released });
+  } catch (err) {
+    const statusCode = err.message.includes('not found') ? 404
+      : err.message.includes('Cannot bulk-release') ? 400
+      : 500;
+    if (statusCode === 500) console.error('bulkReleaseShsEnrollmentController error:', err);
     return res.status(statusCode).json({ error: err.message });
   }
 };

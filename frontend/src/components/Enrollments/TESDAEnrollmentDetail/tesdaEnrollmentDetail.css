@@ -354,6 +354,21 @@
   word-break: break-word;
 }
 
+/* => Persistent link to the batch detail page, shown next to the Class
+      Period value whenever a batch is currently assigned - always
+      visible, regardless of enrollment status */
+.adm-view-batch-link {
+  color: var(--sidebar-bg);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.12s;
+}
+
+.adm-view-batch-link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
 /*  Contact numbers row  */
 .adm-contact-row {
   display: flex;

@@ -14,7 +14,7 @@
 //    both-parents-or-guardian DEFERRABLE constraint trigger on the backend.
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import BackButton from '../../BackButton/BackButton.jsx';
 import axiosAdmin from '../../../utils/axiosAdmin.js';
 import toast from 'react-hot-toast';
@@ -64,9 +64,10 @@ const STATUS_DESCRIPTIONS = {
 };
 
 // => Same warnings as TESDA, minus the reservation-fee mention since SHS
-//    has no such fee
+//    has no such fee. Batch-capacity sweep note added below, same
+//    reasoning as tesdaEnrollmentDetail.jsx's version.
 const STATUS_CONFIRM_WARNINGS = {
-  'Approved': 'Please confirm the student has submitted physical photocopies of their documents and that these have been compared against the original copies before proceeding.',
+  'Approved': 'Please confirm the student has submitted physical photocopies of their documents and that these have been compared against the original copies before proceeding. Note: if this approval fills the batch to its max capacity, any other students still Pending or Reviewed in this same batch will automatically be moved back to Reserved so they can be placed in a future batch.',
   'Failed Assessment': 'This marks the assessment as failed and will be visible to the student on their dashboard.',
   'Rejected': 'This will reject the enrollment application and will be visible to the student on their dashboard.',
   'Dropped': 'This will mark the student as dropped from the program and will be visible to the student on their dashboard.',
@@ -872,7 +873,38 @@ export default function SHSEnrollmentDetail() {
       await refreshDetail();
       toast.success(`Status updated to "${selectedStatus}".`);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to update status.');
+      const errorMsg = err.response?.data?.error || 'Failed to update status.';
+      // => Same actionable toast as the TESDA version - links straight to
+      //    the batch detail page on a capacity rejection
+      if (errorMsg.includes('already full') && enrollment.batch_public_id) {
+        toast.error((t) => (
+          <span>
+            {errorMsg}
+            {' '}
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                navigate(`/dashboard/classes/shs/${enrollment.batch_public_id}`);
+              }}
+              style={{
+                marginLeft: 6,
+                background: 'none',
+                border: 'none',
+                color: '#1a56db',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                fontWeight: 600,
+                padding: 0,
+                font: 'inherit',
+              }}
+            >
+              Go to Batch →
+            </button>
+          </span>
+        ), { duration: 8000 });
+      } else {
+        toast.error(errorMsg);
+      }
     } finally {
       setSaving(false);
     }
@@ -1108,6 +1140,25 @@ export default function SHSEnrollmentDetail() {
       : !enrollment.end_date
         ? `${enrollment.batch_name} – ${formatDate(enrollment.start_date)} – Ongoing`
         : `${enrollment.batch_name} – ${formatDate(enrollment.start_date)} – ${formatDate(enrollment.end_date)}`;  
+
+  // => The batch name itself is the clickable link to the batch detail
+  //    page - same reasoning as the TESDA version
+  const classPeriodSuffix = !enrollment.batch_id
+    ? ''
+    : !enrollment.start_date
+      ? ' (dates TBA)'
+      : !enrollment.end_date
+        ? ` – ${formatDate(enrollment.start_date)} – Ongoing`
+        : ` – ${formatDate(enrollment.start_date)} – ${formatDate(enrollment.end_date)}`;
+
+  const classPeriodValue = enrollment.batch_id && enrollment.batch_public_id ? (
+    <>
+      <Link to={`/dashboard/classes/shs/${enrollment.batch_public_id}`} className="adm-view-batch-link">
+        {enrollment.batch_name}
+      </Link>
+      {classPeriodSuffix}
+    </>
+  ) : classPeriodDisplay;  
 
   return (
     <div className="adm-detail-page">
@@ -1518,7 +1569,7 @@ export default function SHSEnrollmentDetail() {
               //    show the InfoCard grid with '-' fallbacks instead of a special
               //    "reserved" message box, regardless of whether a class is assigned.
               <div className="adm-info-grid adm-info-grid--halves">
-                <InfoCard label="Class Period" value={classPeriodDisplay} copyable={false} />
+                <InfoCard label="Class Period" value={classPeriodValue} copyable={false} />
                 <InfoCard label="Groupchat Link" value={enrollment.groupchat_link || '-'} copyable={true} />
               </div>
             )}

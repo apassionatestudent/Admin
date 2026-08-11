@@ -13,7 +13,7 @@
 //    proper picker endpoint exists (matches earlier project decision).
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import BackButton from '../../BackButton/BackButton.jsx';
 // => axiosAdmin auto-attaches credentials + x-csrf-token on every mutating
 //    call - required or csrfProtection middleware silently rejects PATCH/POST.
@@ -75,7 +75,14 @@ const STATUS_DESCRIPTIONS = {
 //    "Change status to X?" question. Statuses not listed here just get
 //    the base question with nothing extra appended.
 const STATUS_CONFIRM_WARNINGS = {
-  'Approved': 'Please confirm the student has submitted physical photocopies of their documents and that these have been compared against the original copies before proceeding.',
+  // => Appended a note about the batch capacity sweep - approving can
+  //    fill the batch to max_students, which automatically moves every
+  //    other Pending/Reviewed enrollment still in this batch back to
+  //    Reserved (unassigned from the batch) so they can be placed in a
+  //    future batch instead. The exact server-side outcome isn't knowable
+  //    client-side, so this stays a general heads-up rather than a
+  //    conditional message.
+  'Approved': 'Please confirm the student has submitted physical photocopies of their documents and that these have been compared against the original copies before proceeding. Note: if this approval fills the batch to its max capacity, any other students still Pending or Reviewed in this same batch will automatically be moved back to Reserved so they can be placed in a future batch.',
   'Failed Assessment': 'This marks the assessment as failed and will be visible to the student on their dashboard.',
   'Rejected': 'This will reject the enrollment application and will be visible to the student on their dashboard.',
   'Dropped': 'This will mark the student as dropped from the program and will be visible to the student on their dashboard.',
@@ -1031,7 +1038,40 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
       await refreshDetail();
       toast.success(`Status updated to "${selectedStatus}".`);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to update status.');
+      const errorMsg = err.response?.data?.error || 'Failed to update status.';
+      // => Batch-at-capacity rejection gets an actionable toast instead of
+      //    a plain error - links straight to the batch detail page so the
+      //    admin can Release Overflow or reassign the student without
+      //    having to hunt down which batch this even is
+      if (errorMsg.includes('already full') && enrollment.batch_public_id) {
+        toast.error((t) => (
+          <span>
+            {errorMsg}
+            {' '}
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                navigate(`/dashboard/classes/tesda/${enrollment.batch_public_id}`);
+              }}
+              style={{
+                marginLeft: 6,
+                background: 'none',
+                border: 'none',
+                color: '#1a56db',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                fontWeight: 600,
+                padding: 0,
+                font: 'inherit',
+              }}
+            >
+              Go to Batch →
+            </button>
+          </span>
+        ), { duration: 8000 });
+      } else {
+        toast.error(errorMsg);
+      }
     } finally {
       setSaving(false);
     }
@@ -1260,6 +1300,26 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
       : !enrollment.end_date
         ? `${enrollment.batch_name} – ${formatDate(enrollment.start_date)} – Ongoing`
         : `${enrollment.batch_name} – ${formatDate(enrollment.start_date)} – ${formatDate(enrollment.end_date)}`;
+
+  // => The batch name itself is the clickable link to the batch detail
+  //    page - dates stay as plain text right after it. Falls back to
+  //    plain text if batch_public_id isn't present for some reason.
+  const classPeriodSuffix = !enrollment.batch_id
+    ? ''
+    : !enrollment.start_date
+      ? ' (dates TBA)'
+      : !enrollment.end_date
+        ? ` – ${formatDate(enrollment.start_date)} – Ongoing`
+        : ` – ${formatDate(enrollment.start_date)} – ${formatDate(enrollment.end_date)}`;
+
+  const classPeriodValue = enrollment.batch_id && enrollment.batch_public_id ? (
+    <>
+      <Link to={`/dashboard/classes/tesda/${enrollment.batch_public_id}`} className="adm-view-batch-link">
+        {enrollment.batch_name}
+      </Link>
+      {classPeriodSuffix}
+    </>
+  ) : classPeriodDisplay;
 
   const selectedClassifications = classifications.map(c => c.classification_value);
   const othersRow = classifications.find(c => c.classification_value === 'others');
@@ -1593,7 +1653,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               </div>
             ) : (
               <div className="adm-info-grid adm-info-grid--halves">
-                <InfoCard label="Class Period" value={classPeriodDisplay} copyable={false} />
+                <InfoCard label="Class Period" value={classPeriodValue} copyable={false} />
                 <InfoCard label="Groupchat Link" value={enrollment.groupchat_link || '-'} />
               </div>
             )}

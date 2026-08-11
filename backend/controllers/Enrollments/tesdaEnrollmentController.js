@@ -76,8 +76,13 @@ export const patchTesdaEnrollmentStatus = async (req, res) => {
     if (err.message?.startsWith('Cannot set status to Reserved')) {
       return res.status(400).json({ error: err.message });
     }
-    // => Approval-before-Reviewed sequencing failure - same 400 treatment
+    // => Approval-before-Reviewed sequencing failure, and the no-batch-
+    //    assigned guard, both start with "Cannot approve" - same 400 treatment
     if (err.message?.startsWith('Cannot approve')) {
+      return res.status(400).json({ error: err.message });
+    }
+    // => Batch-at-capacity failure from approveTesdaEnrollmentWithLock
+    if (err.message?.startsWith('This batch is already full')) {
       return res.status(400).json({ error: err.message });
     }
     // => Missing external remarks on Needs Clarification - same 400 treatment

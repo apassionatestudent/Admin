@@ -23,6 +23,8 @@ import {
   markShsGrade11CompletedController,
   assignTesdaEnrollmentController,
   assignShsEnrollmentController,
+  bulkReleaseTesdaEnrollmentController,
+  bulkReleaseShsEnrollmentController,
   getTesdaBatchMiscFeesController,
   getShsBatchMiscFeesController,
   postTesdaBatchMiscFeeController,
@@ -53,6 +55,7 @@ router.get('/tesda/:publicId/logs', adminApiRateLimit, protectAdmin, requireSect
 router.patch('/tesda/:publicId', adminApiRateLimit, protectAdmin, requireSection('classes'), updateTesdaBatchController);
 router.patch('/tesda/:publicId/status', adminApiRateLimit, protectAdmin, requireSection('classes'), patchTesdaBatchStatus);
 router.patch('/tesda/:publicId/assign-enrollment', adminApiRateLimit, protectAdmin, requireSection('classes'), assignTesdaEnrollmentController);
+router.patch('/tesda/:publicId/bulk-release', adminApiRateLimit, protectAdmin, requireSection('classes'), bulkReleaseTesdaEnrollmentController);
 router.post('/tesda', adminApiRateLimit, protectAdmin, requireSection('classes'), createTesdaBatchController);
 
 // => SHS batch detail + mutations
@@ -62,6 +65,7 @@ router.patch('/shs/:publicId', adminApiRateLimit, protectAdmin, requireSection('
 router.patch('/shs/:publicId/status', adminApiRateLimit, protectAdmin, requireSection('classes'), patchShsBatchStatus);
 router.patch('/shs/:publicId/grade11-completed', adminApiRateLimit, protectAdmin, requireSection('classes'), markShsGrade11CompletedController);
 router.patch('/shs/:publicId/assign-enrollment', adminApiRateLimit, protectAdmin, requireSection('classes'), assignShsEnrollmentController);
+router.patch('/shs/:publicId/bulk-release', adminApiRateLimit, protectAdmin, requireSection('classes'), bulkReleaseShsEnrollmentController);
 router.post('/shs', adminApiRateLimit, protectAdmin, requireSection('classes'), createShsBatchController);
 
 // => Miscellaneous fee line items per batch
