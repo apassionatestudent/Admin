@@ -54,7 +54,7 @@
 .adm-enroll-count-num {
   font-size: 2.25rem;
   font-weight: 800;
-  color: #1a56db;
+  color: var(--accent-hover, #8a0d17); /* => was #1a56db blue, now matches Classes page maroon */
   line-height: 1;
   letter-spacing: -0.04em;
 }
@@ -91,7 +91,7 @@
   width: 36px;
   height: 36px;
   border: 3px solid #e5e7eb;
-  border-top-color: #1a56db;
+  border-top-color: var(--accent-hover, #8a0d17); /* => was #1a56db blue */
   border-radius: 50%;
   animation: adm-spin 0.8s linear infinite;
 }
@@ -167,6 +167,7 @@
   font-size: 0.875rem;
   color: #374151;
   min-width: 760px;
+  table-layout: fixed; /* => uses the colgroup widths instead of auto-sizing to each table's own content, which is what caused Pending and Needs Clarification to misalign */
 }
 
 .adm-table thead tr {
@@ -203,7 +204,7 @@
 }
 
 .adm-table-row:hover {
-  background: #f0f4ff;
+  background: #f0f4ff; /* => default hover kept for any table NOT using the maroon variant below */
 }
 
 .adm-table td {
@@ -213,7 +214,12 @@
 
 /*  Student cell  */
 .adm-td-student {
-  min-width: 180px;
+  overflow: hidden; /* => min-width removed since it fought the colgroup's fixed width; overflow now truncates instead of stretching the column */
+}
+
+/*  Program cell => wraps long course or cluster names within the fixed column width instead of pushing it wider */
+.adm-td-program {
+  word-wrap: break-word;
 }
 
 .adm-student-name {
@@ -244,7 +250,7 @@
 }
 
 .adm-table-row:hover .adm-td-arrow {
-  color: #1a56db;
+  color: #1a56db; /* => default hover kept for any table NOT using the maroon variant below */
 }
 
 /*  Status badge  */
@@ -299,7 +305,7 @@
 
 .adm-search-input:focus {
   outline: none;
-  border-color: #1a56db;
+  border-color: var(--accent-hover, #8a0d17); /* => was #1a56db blue */
 }
 
 .adm-search-btn {
@@ -344,8 +350,8 @@
 }
 
 .adm-more-btn--open {
-  border-color: #1a56db;
-  color: #1a56db;
+  border-color: var(--accent-hover, #8a0d17); /* => was #1a56db blue */
+  color: var(--accent-hover, #8a0d17);
 }
 
 .adm-clear-btn {
@@ -407,7 +413,7 @@
 
 .adm-more-input:focus {
   outline: none;
-  border-color: #1a56db;
+  border-color: var(--accent-hover, #8a0d17); /* => was #1a56db blue */
 }
 
 .adm-search-error {
@@ -481,7 +487,7 @@
 
 .adm-filter-select:focus {
   outline: none;
-  border-color: #1a56db;
+  border-color: var(--accent-hover, #8a0d17); /* => was #1a56db blue */
 }
 
 /* ════════════════════════════════════
@@ -505,6 +511,30 @@
 .adm-type-badge--shs {
   background: #fce7f3;
   color: #9d174d;
+}
+
+.adm-table-row:hover .adm-td-arrow {
+  color: #1a56db; /* => default hover kept for any table NOT using the maroon variant below */
+}/* ════════════════════════════════════
+   MAROON TABLE VARIANT
+   => Matches Classes.css's .adm-table-wrap--maroon exactly, for visual
+      consistency between Enrollments and Classes admin tables
+   ════════════════════════════════════ */
+.adm-table-wrap--maroon .adm-table thead tr {
+  background: var(--sidebar-bg, #660911);
+  border-bottom: 1px solid var(--sidebar-bg, #660911);
+}
+
+.adm-table-wrap--maroon .adm-table th {
+  color: #fff;
+}
+
+.adm-table-wrap--maroon .adm-table-row:hover {
+  background: rgba(102, 9, 17, 0.08);
+}
+
+.adm-table-wrap--maroon .adm-table-row:hover .adm-td-arrow {
+  color: var(--accent-hover, #8a0d17);
 }
 
 /*  Responsive  */

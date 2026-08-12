@@ -54,7 +54,11 @@ const clusterLabel = (value, shsLookups) =>
 const programDisplay = (row, shsLookups) =>
   row.enrollment_type === 'SHS'
     ? (row.cluster && clusterLabel(row.cluster, shsLookups)) || '-'
-    : row.course_name ?? '-';
+    // => Appends NC level in parenthesis only if this course has one,
+    //    same convention as the student-side Enrollment.jsx list card
+    : row.course_name
+      ? `${row.course_name}${row.nc_level ? ` (${row.nc_level})` : ''}`
+      : '-';
 
 
 // => Empty search filters - used for reset
@@ -497,8 +501,19 @@ export default function Enrollments() {
 // 
 function EnrollmentTable({ rows, onRowClick, shsLookups }) {
   return (
-    <div className="adm-table-wrap">
+    <div className="adm-table-wrap adm-table-wrap--maroon">
       <table className="adm-table">
+        {/* => Fixed column widths shared by every instance of this table, so
+               Pending and Needs Clarification always line up regardless of
+               how long any single row's content is */}
+        <colgroup>
+          <col style={{ width: '26%' }} />  {/* Student */}
+          <col style={{ width: '10%' }} />  {/* Type */}
+          <col style={{ width: '28%' }} />  {/* Program */}
+          <col style={{ width: '14%' }} />  {/* Submitted */}
+          <col style={{ width: '18%' }} />  {/* Status */}
+          <col style={{ width: '4%' }} />   {/* Arrow */}
+        </colgroup>
         <thead>
           <tr>
             <th>Student</th>
@@ -535,7 +550,7 @@ function EnrollmentTable({ rows, onRowClick, shsLookups }) {
                   {TYPE_LABEL[row.enrollment_type] ?? row.enrollment_type ?? '-'}
                 </span>
               </td>
-               <td>{programDisplay(row, shsLookups)}</td>
+               <td className="adm-td-program">{programDisplay(row, shsLookups)}</td>
               <td className="adm-td-date">{formatDate(row.submitted_at)}</td>
               <td>
                 <span className={`adm-badge ${statusClass[row.status] || ''}`}>

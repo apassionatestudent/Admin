@@ -28,11 +28,13 @@ export const getPendingEnrollments = async (pool) => {
         sp.last_name,
         sp.name_extension,
         c.title                                               AS course_name,
+        nct.certification_type                                AS nc_level, -- => NC I / NC II / NC III label for this course, null if the course has none
         NULL::text                                            AS cluster
       FROM tesda_enrollments e
       JOIN  student_accounts sa    ON sa.student_id  = e.student_id
       LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
       LEFT JOIN tesda_courses c          ON c.course_id    = e.course_id
+      LEFT JOIN national_certification_types nct ON nct.certification_id = c.certification_id
       LEFT JOIN tesda_batches cl   ON cl.batch_id    = e.batch_id
       WHERE e.status IN ('Pending', 'Needs Clarification')
 
@@ -49,6 +51,7 @@ export const getPendingEnrollments = async (pool) => {
         sp.last_name,
         sp.name_extension,
         NULL::text                                            AS course_name,
+        NULL::VARCHAR(100)                                    AS nc_level, -- => SHS has no NC level, placeholder keeps column types aligned with the TESDA branch above
         sc.name                                               AS cluster
       FROM shs_enrollments e
       JOIN  student_accounts sa    ON sa.student_id  = e.student_id
@@ -85,11 +88,13 @@ export const searchEnrollments = async (pool, { email, first_name, middle_name, 
           sp.last_name,
           sp.name_extension,
           c.title                                               AS course_name,
+          nct.certification_type                                AS nc_level, -- => same NC level join as the list query above
           NULL::text                                            AS cluster
         FROM tesda_enrollments e
         JOIN  student_accounts sa    ON sa.student_id  = e.student_id
         LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
         LEFT JOIN tesda_courses c          ON c.course_id    = e.course_id
+        LEFT JOIN national_certification_types nct ON nct.certification_id = c.certification_id
         LEFT JOIN tesda_batches cl   ON cl.batch_id    = e.batch_id
         WHERE
           ($1::text IS NULL OR sa.username      ILIKE '%' || $1 || '%')
@@ -111,6 +116,7 @@ export const searchEnrollments = async (pool, { email, first_name, middle_name, 
           sp.last_name,
           sp.name_extension,
           NULL::text                                            AS course_name,
+          NULL::VARCHAR(100)                                    AS nc_level, -- => placeholder to align with the TESDA branch's nc_level column
           sc.name                                               AS cluster
         FROM shs_enrollments e
         JOIN  student_accounts sa    ON sa.student_id  = e.student_id
