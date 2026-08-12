@@ -35,6 +35,10 @@ import {
 
 import { ALLOWED_STATUSES } from './sharedEnrollmentService.js';
 
+// => Enrollment status email notification - shared util handles both
+// => TESDA and SHS, tailored content per status lives inside it
+import { sendEnrollmentStatusEmail } from '../../utils/sendEnrollmentStatusEmail.js';
+
 // => Payment History section pulls from both Payments and Refunds -
 //    each model stays strictly single-table, the merge happens here.
 import * as paymentsModel from '../../models/Payments/paymentsModel.js';
@@ -283,6 +287,30 @@ export const changeTesdaEnrollmentStatus = async (publicId, newStatus, externalR
       action:        'Status changed to Reserved',
       action_detail: `Batch #${enrollment.batch_id} reached full capacity after another enrollment was approved - moved back to Reserved and unassigned from the batch to await placement in a future batch.`,
     });
+  }
+
+  // => Email notification - only fires when the status is actually
+  // => changing, so re-saving the same status from the dashboard does
+  // => not spam the student with a duplicate email
+  // => Wrapped in try/catch and never rethrown - if Resend fails, the
+  // => status change itself still succeeds, same "do not block on email"
+  // => behavior as staffService.js's createAdmin
+  if (newStatus !== enrollment.status) {
+    const profile = await getProfileByStudentId(pool, enrollment.student_id);
+    try {
+      await sendEnrollmentStatusEmail({
+        toEmail: enrollment.student_username,
+        studentName: profile?.first_name || 'Student',
+        enrollmentType: 'TESDA',
+        newStatus,
+        courseOrTrack: enrollment.course_name,
+        batchName: enrollment.batch_name,
+        startDate: enrollment.start_date,
+        externalRemarks,
+      });
+    } catch (emailError) {
+      console.error('Enrollment status email failed:', emailError);
+    }
   }
 
   return updated;
