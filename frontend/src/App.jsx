@@ -14,7 +14,7 @@ import Payments      from './pages/Payments/payments.jsx';
 import Courses       from './pages/Courses/Courses.jsx';
 import Pages         from './pages/Pages/pages.jsx';
 import Logs          from './pages/Logs/Logs.jsx';
-import Chatbots      from './pages/Chatbots/Chatbots.jsx';
+import Chatbots      from './pages/Chatbots/chatbots.jsx';
 import Staff          from './pages/Staff/staff.jsx';
 import Account from './pages/Account/account.jsx';
 import SetAdminPassword from './pages/SetAdminPassword/setAdminPassword.jsx';
@@ -35,6 +35,7 @@ import PaymentDetail  from './components/Payments/PaymentDetail/paymentDetail.js
 
 import RefundDetail   from './components/Payments/RefundDetail/refundDetail.jsx';
 import StaffDetail    from './components/Staff/StaffDetail/staffDetail.jsx';
+import ChatbotDetail  from './components/Chatbots/ChatbotDetail/chatbotDetail.jsx';
 
 import PublicSupportTicketDetail from './components/SupportTickets/PublicSupportTicketDetail/publicSupportTicketDetail.jsx';
 import StudentSupportTicketDetail from './components/SupportTickets/StudentSupportTicketDetail/studentSupportTicketDetail.jsx';
@@ -97,6 +98,8 @@ function App() {
                     <Route path="chatbots"              element={<Chatbots />} />
                     <Route path="staff"                element={<Staff />} />
                     <Route path="staff/:publicId"      element={<StaffDetail />} />
+                    <Route path="chatbots"              element={<Chatbots />} />
+                    <Route path="chatbots/:publicId"    element={<ChatbotDetail />} />
                     <Route path="account" element={<Account />} />
                 </Route>
                 

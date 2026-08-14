@@ -1,0 +1,175 @@
+.test-widget-panel {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 380px;
+  max-height: 560px;
+  background: var(--bg, #fff);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 900;
+  font-family: var(--font-body), sans-serif;
+}
+
+.test-widget-header {
+  background: linear-gradient(135deg, var(--sidebar-bg, #660911), var(--accent-hover, #8a0d17));
+  color: #fff;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+.test-widget-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.test-widget-header-icon {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) invert(1);
+}
+
+.test-widget-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.test-widget-close-icon {
+  width: 14px;
+  height: 14px;
+  filter: brightness(0) invert(1);
+}
+
+.test-widget-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--code-bg, #f8f4f4);
+  min-height: 280px;
+}
+
+.test-widget-bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.test-widget-bubble-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+  opacity: 0.6;
+}
+
+.test-widget-bubble-bot {
+  align-self: flex-start;
+  background: #fff;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.test-widget-bubble-user {
+  align-self: flex-end;
+  background: var(--sidebar-bg, #660911);
+  color: #fff;
+}
+
+.test-widget-bubble-user .test-widget-bubble-label {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.test-widget-bubble-error {
+  border-color: #fca5a5;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.test-widget-bubble-typing {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* => Styling for the HTML tags Gemini is instructed to use, scoped to
+   => bot bubbles only since user bubbles never contain markup */
+.test-widget-bubble-bot p {
+  margin: 0 0 6px;
+}
+
+.test-widget-bubble-bot p:last-child {
+  margin-bottom: 0;
+}
+
+.test-widget-bubble-bot ul,
+.test-widget-bubble-bot ol {
+  margin: 6px 0 6px 20px;
+}
+
+.test-widget-bubble-bot li {
+  margin-bottom: 2px;
+}
+
+.test-widget-bubble-bot a {
+  color: var(--accent-hover, #8a0d17);
+  text-decoration: underline;
+}
+
+.test-widget-input-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg, #fff);
+}
+
+.test-widget-input {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-family: var(--font-body), sans-serif;
+}
+
+.test-widget-input:focus {
+  outline: none;
+  border-color: var(--accent-hover, #8a0d17);
+}
+
+.test-widget-send-btn {
+  background: var(--sidebar-bg, #660911);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 9px 18px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+}
+
+.test-widget-send-btn:hover:not(:disabled) {
+  background: var(--accent-hover, #8a0d17);
+}
+
+.test-widget-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

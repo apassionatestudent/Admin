@@ -1,0 +1,321 @@
+.chatbot-detail-page {
+  padding: 32px;
+  color: var(--text);
+  font-family: var(--font-body), sans-serif;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* => BackButton.jsx/.css now handles the back link's styling */
+
+.chatbot-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.chatbot-detail-header h2 {
+  margin: 0 0 8px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.chatbot-detail-header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.chatbot-detail-btn-primary,
+.chatbot-detail-btn-secondary,
+.chatbot-detail-btn-danger {
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+  border: none;
+}
+
+.chatbot-detail-btn-primary {
+  background: var(--sidebar-bg, #660911);
+  color: #fff;
+}
+
+.chatbot-detail-btn-primary:hover {
+  background: var(--accent-hover, #8a0d17);
+}
+
+.chatbot-detail-btn-secondary {
+  background: var(--code-bg, #f4f3ec);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.chatbot-detail-btn-danger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.chatbot-detail-danger-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.chatbot-detail-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chatbot-detail-row {
+  display: flex;
+  gap: 16px;
+}
+
+.chatbot-detail-row .chatbot-detail-label {
+  flex: 1;
+}
+
+.chatbot-detail-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.chatbot-detail-input,
+.chatbot-detail-textarea,
+.chatbot-detail-select {
+  padding: 9px 12px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-family: var(--font-body), sans-serif;
+  color: #111827;
+  resize: vertical;
+}
+
+.chatbot-detail-input:disabled,
+.chatbot-detail-textarea:disabled,
+.chatbot-detail-select:disabled {
+  background: var(--code-bg, #f9fafb);
+  color: var(--text);
+  cursor: default;
+}
+
+.chatbot-detail-input:focus,
+.chatbot-detail-textarea:focus,
+.chatbot-detail-select:focus {
+  outline: none;
+  border-color: var(--accent-hover, #8a0d17);
+}
+
+/* => Own copy of the status-badge classes, same colors as chatbots.css,
+   => per the no-shared-abstraction convention */
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  border: 1.5px solid transparent;
+}
+
+.status-badge-active {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
+.status-badge-inactive {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+.chatbot-detail-btn-test {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+}
+
+.chatbot-detail-test-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.chatbot-detail-btn-activate,
+.chatbot-detail-btn-deactivate {
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+}
+
+.chatbot-detail-btn-activate {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.chatbot-detail-btn-activate:hover {
+  background: #bbf7d0;
+}
+
+.chatbot-detail-btn-deactivate {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.chatbot-detail-btn-deactivate:hover {
+  background: #fecaca;
+}
+
+/* ════════════════════════════════════
+   ACTIVITY LOGS
+   => Own copy of the enrollment-detail log-table look, scoped under
+      chatbot-detail-* rather than the shared adm-* classes
+   ════════════════════════════════════ */
+.chatbot-detail-section {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 24px 28px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  margin-top: 24px;
+}
+
+.chatbot-detail-section-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+  margin: 0 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chatbot-detail-section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.chatbot-detail-empty-note {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.chatbot-detail-log-table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.chatbot-detail-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8375rem;
+  color: #374151;
+  min-width: 600px;
+}
+
+.chatbot-detail-log-table thead tr {
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.chatbot-detail-log-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.chatbot-detail-log-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+
+.chatbot-detail-log-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.chatbot-detail-log-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.chatbot-detail-log-pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.chatbot-detail-log-page-btn {
+  min-width: 32px;
+  padding: 6px 10px;
+  background: #fff;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.chatbot-detail-log-page-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.chatbot-detail-log-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.chatbot-detail-log-page-btn--active {
+  background: var(--sidebar-bg, #660911);
+  border-color: var(--sidebar-bg, #660911);
+  color: #fff;
+}

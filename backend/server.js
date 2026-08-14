@@ -55,6 +55,9 @@ import faqRoutes from './routes/Pages/faqRoutes.js';
 // Page: Logs
 import logsRoutes from './routes/Logs/logsRoutes.js';
 
+// Page: Chatbots
+import chatbotRouter from './routes/Chatbots/chatbotRoutes.js';
+
 dotenv.config(); // => moved up - must run before any module reads process.env
 
 // => CSRF validation middleware - token is generated in adminAuthController on login
@@ -134,6 +137,9 @@ app.use('/api/admin/pages/faqs', faqRoutes);
 
 // Logs
 app.use('/api/admin/logs', logsRoutes);
+
+// Chatbots
+app.use('/api/admin/chatbots', chatbotRouter);
 
 
 // => Initialize DB tables that the admin backend needs
@@ -271,6 +277,60 @@ async function initDB() {
                 updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
                 UNIQUE (batch_id, course_id)
             )
+        `;
+
+        // => Chatbot configs. scope_type + course_id decide which page(s)
+        // => a bot serves: one for the whole public site (Home + About),
+        // => one per individual course, one for the student dashboard.
+        // => Uniqueness of "only one active per scope" is enforced by the
+        // => three partial indexes below, not application code alone.
+        await sql`
+            CREATE TABLE IF NOT EXISTS chatbots (
+                chatbot_id            SERIAL PRIMARY KEY,
+                public_id              UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+                name                   VARCHAR(150) NOT NULL,
+                widget_header_title    VARCHAR(150) NOT NULL,
+                welcome_message        TEXT NOT NULL,
+                instructions           TEXT NOT NULL,
+                context                TEXT,
+                scope_type              VARCHAR(20) NOT NULL CHECK (scope_type IN ('public_site', 'tesda_course', 'shs_course', 'student_dashboard')),
+                course_id               INTEGER,
+                status                   VARCHAR(10) NOT NULL DEFAULT 'inactive' CHECK (status IN ('active', 'inactive')),
+                created_by               INTEGER REFERENCES admins(admin_id) ON DELETE SET NULL,
+                created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+        `;
+
+        await sql`
+            DO $$ BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_trigger WHERE tgname = 'chatbots_set_updated_at'
+                ) THEN
+                    CREATE TRIGGER chatbots_set_updated_at
+                    BEFORE UPDATE ON chatbots
+                    FOR EACH ROW
+                    EXECUTE FUNCTION set_updated_at();
+                END IF;
+            END $$
+        `;
+
+        await sql`
+            CREATE UNIQUE INDEX IF NOT EXISTS chatbots_one_active_public_site
+            ON chatbots (scope_type)
+            WHERE status = 'active' AND scope_type = 'public_site'
+        `;
+
+        await sql`
+            CREATE UNIQUE INDEX IF NOT EXISTS chatbots_one_active_student_dashboard
+            ON chatbots (scope_type)
+            WHERE status = 'active' AND scope_type = 'student_dashboard'
+        `;
+
+        await sql`
+            CREATE UNIQUE INDEX IF NOT EXISTS chatbots_one_active_per_course
+            ON chatbots (scope_type, course_id)
+            WHERE status = 'active' AND scope_type IN ('tesda_course', 'shs_course')
         `;
 
         console.log('Admin database initialized successfully');
