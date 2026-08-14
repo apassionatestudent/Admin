@@ -91,6 +91,98 @@ export const getActivityLogsForEntityPaginated = async (pool, entityType, entity
   };
 };
 
+// => Paginated, filterable query across ALL logs, not scoped to one entity or actor.
+//    Powers the main Logs page table. Filters are optional, an empty/undefined
+//    filter is skipped rather than matched literally.
+// => search matches actor_name only (case-insensitive, partial) since that's the
+//    one free-text field a staff member would realistically search by.
+export const getAllActivityLogsPaginated = async (pool, {
+  page = 1,
+  pageSize = 10,
+  entityType,
+  actorType,
+  action,
+  search,
+} = {}) => {
+  const offset = (page - 1) * pageSize;
+
+  // => Built up dynamically so unset filters don't add unnecessary WHERE clauses
+  const conditions = [];
+  const values = [];
+
+  if (entityType) {
+    values.push(entityType);
+    conditions.push(`entity_type = $${values.length}`);
+  }
+  if (actorType) {
+    values.push(actorType);
+    conditions.push(`actor_type = $${values.length}`);
+  }
+  if (action) {
+    values.push(action);
+    conditions.push(`action = $${values.length}`);
+  }
+  if (search) {
+    values.push(`%${search}%`);
+    conditions.push(`actor_name ILIKE $${values.length}`);
+  }
+
+  const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  // => LIMIT/OFFSET placeholders come after all filter placeholders
+  const rowsResult = await pool.query(
+    `SELECT log_id, entity_type, entity_id, actor_type, actor_name, action, action_detail, created_at
+       FROM activity_logs
+       ${whereClause}
+       ORDER BY created_at DESC
+       LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+    [...values, pageSize, offset]
+  );
+
+  const countResult = await pool.query(
+    `SELECT COUNT(*)::int AS total FROM activity_logs ${whereClause}`,
+    values
+  );
+
+  return {
+    logs: rowsResult.rows,
+    total: countResult.rows[0].total,
+  };
+};
+
+// => Distinct entity_type values currently in the table, used to populate the
+//    Entity Type filter dropdown without hardcoding a list that could drift
+//    from what's actually being written.
+export const getDistinctEntityTypes = async (pool) => {
+  const result = await pool.query(
+    `SELECT DISTINCT entity_type
+       FROM activity_logs
+      WHERE entity_type IS NOT NULL
+      ORDER BY entity_type`
+  );
+  return result.rows.map(row => row.entity_type);
+};
+
+// => Distinct actor_type values, same reasoning as above
+export const getDistinctActorTypes = async (pool) => {
+  const result = await pool.query(
+    `SELECT DISTINCT actor_type
+       FROM activity_logs
+      ORDER BY actor_type`
+  );
+  return result.rows.map(row => row.actor_type);
+};
+
+// => Count of logs created today (server/DB timezone), feeds the "Logs Today" stat card
+export const getActivityLogsTodayCount = async (pool) => {
+  const result = await pool.query(
+    `SELECT COUNT(*)::int AS total
+       FROM activity_logs
+      WHERE created_at >= CURRENT_DATE`
+  );
+  return result.rows[0].total;
+};
+
 // => Paginated logs for everything a specific actor has done, regardless
 //    of which entity_type each action touched. Used by the Account page
 //    to show "my activity" across the whole system, not just actions
