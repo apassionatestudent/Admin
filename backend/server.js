@@ -52,6 +52,9 @@ import cmsPageRoutes from './routes/Pages/cmsPageRoutes.js';
 import faqSectionRoutes from './routes/Pages/faqSectionRoutes.js';
 import faqRoutes from './routes/Pages/faqRoutes.js';
 
+// Page: Logs
+import logsRoutes from './routes/Logs/logsRoutes.js';
+
 dotenv.config(); // => moved up - must run before any module reads process.env
 
 // => CSRF validation middleware - token is generated in adminAuthController on login
@@ -128,6 +131,9 @@ app.use('/api/admin/pages/announcements', announcementRoutes);
 app.use('/api/admin/pages/privacy-policy', cmsPageRoutes);
 app.use('/api/admin/pages/faqs-sections', faqSectionRoutes);
 app.use('/api/admin/pages/faqs', faqRoutes);
+
+// Logs
+app.use('/api/admin/logs', logsRoutes);
 
 
 // => Initialize DB tables that the admin backend needs

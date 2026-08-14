@@ -1,7 +1,7 @@
 # though some files/folders don't basically exist, I still want to add then just in case they'll be added down the line
 
 # Logs
-logs
+/logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
