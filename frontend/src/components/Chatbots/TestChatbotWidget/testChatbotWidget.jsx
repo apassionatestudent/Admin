@@ -1,8 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
+import DOMPurify from 'dompurify';
 import axiosAdmin from '../../../utils/axiosAdmin.js';
 import chatBubbleIcon from '../../../assets/icons/chat-bubble.png';
 import closeIcon from '../../../assets/icons/close.png';
 import './testChatbotWidget.css';
+
+// => Same allowlist as chatbotGeminiService.js's sanitizeHtml call.
+//    That backend sanitization is the real trust boundary - the bot's
+//    reply is already safe by the time it reaches this component. This
+//    second pass is defense-in-depth so this file doesn't itself contain
+//    an unverified dangerouslySetInnerHTML sink, which is what CodeQL's
+//    DOM-XSS check (js/xss-through-dom, "DOM text reinterpreted as HTML")
+//    correctly flags - it can't see across into a separate backend
+//    service to confirm the data was already cleaned.
+const SANITIZE_CONFIG = {
+  ALLOWED_TAGS: ['p', 'br', 'b', 'strong', 'i', 'em', 'ul', 'ol', 'li', 'a'],
+  ALLOWED_ATTR: ['href', 'target', 'rel'],
+};
 
 // => Test-only chat panel launched from ChatbotDetail. Nothing here is
 //    persisted - messages live only in this component's state, so closing
@@ -77,11 +91,12 @@ export default function TestChatbotWidget({ chatbotPublicId, headerTitle, welcom
             className={`test-widget-bubble ${m.role === 'user' ? 'test-widget-bubble-user' : 'test-widget-bubble-bot'} ${m.isError ? 'test-widget-bubble-error' : ''}`}
           >
             <span className="test-widget-bubble-label">{m.role === 'user' ? 'You' : 'Bot'}</span>
-            {/* => Bot replies come back as sanitized HTML from the backend
-                   (see chatbotGeminiService.js), so they render as markup.
-                   User's own messages stay plain text - never run through
+            {/* => Bot replies are already sanitized server-side (see
+                   chatbotGeminiService.js), sanitized again here right
+                   before the sink as defense-in-depth. User's own
+                   messages stay plain text - never run through
                    dangerouslySetInnerHTML. */}
-            {m.role === 'user' ? m.text : <span dangerouslySetInnerHTML={{ __html: m.text }} />}
+            {m.role === 'user' ? m.text : <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(m.text, SANITIZE_CONFIG) }} />}
           </div>
         ))}
 
