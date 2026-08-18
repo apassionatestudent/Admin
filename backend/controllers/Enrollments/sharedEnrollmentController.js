@@ -8,6 +8,7 @@
 import {
   fetchPendingEnrollments,
   searchEnrollmentsService,
+  fetchEnrollmentsByStatus,
 } from '../../services/Enrollments/sharedEnrollmentService.js';
 
 //
@@ -37,5 +38,29 @@ export const searchEnrollmentsController = async (req, res) => {
   } catch (err) {
     const status = err.message.includes('required') ? 400 : 500;
     return res.status(status).json({ error: err.message });
+  }
+};
+
+// => GET /api/admin/enrollments/by-status?status=Approved&page=1
+// => Any status besides Pending/Needs Clarification, paginated 10 per page.
+//    page defaults to 1 when missing or not a valid number.
+export const listEnrollmentsByStatusController = async (req, res) => {
+  const { status } = req.query;
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = 10; // => fixed page size
+
+  if (!status) {
+    return res.status(400).json({ error: 'status is required.' });
+  }
+
+  try {
+    const data = await fetchEnrollmentsByStatus(status, page, limit);
+    return res.status(200).json(data);
+  } catch (err) {
+    if (err.message?.startsWith('Invalid status')) {
+      return res.status(400).json({ error: err.message });
+    }
+    console.error('listEnrollmentsByStatusController error:', err);
+    return res.status(500).json({ error: 'Failed to fetch enrollments.' });
   }
 };

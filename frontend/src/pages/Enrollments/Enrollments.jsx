@@ -109,6 +109,15 @@ export default function Enrollments() {
   //    since programDisplay lives outside this component
   const [shsLookups, setShsLookups] = useState({ clusters: [] });
 
+  // => Status browse mode - only active when statusFilter points at a
+  //    status outside the default Pending / Needs Clarification view.
+  //    Paginated 10 rows per page via /api/admin/enrollments/by-status.
+  const [statusPage,       setStatusPage]       = useState(1);
+  const [statusResults,    setStatusResults]    = useState([]);
+  const [statusPagination, setStatusPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
+  const [statusLoading,    setStatusLoading]    = useState(false);
+  const [statusError,      setStatusError]      = useState(null);
+
   // => Fetch default (Pending + Needs Clarification) enrollments on mount
   useEffect(() => {
     const fetchEnrollments = async () => {
@@ -146,6 +155,43 @@ export default function Enrollments() {
       })
       .catch(err => console.error('Failed to fetch SHS lookups:', err));
   }, []);
+
+  // => Reset back to page 1 every time a different status is picked
+  useEffect(() => {
+    setStatusPage(1);
+  }, [statusFilter]);
+
+  // => Fetch a specific status's enrollments, paginated 10 per page.
+  //    Only fires when statusFilter points at a status outside the
+  //    default Pending / Needs Clarification view, and never while a
+  //    name/email search is active - search takes priority.
+  useEffect(() => {
+    const isOtherStatus = statusFilter !== 'ALL' && statusFilter !== 'Pending' && statusFilter !== 'Needs Clarification';
+    if (!isOtherStatus || searchResults !== null) return;
+
+    const fetchByStatus = async () => {
+      setStatusLoading(true);
+      setStatusError(null);
+      try {
+        const res = await fetch(`/api/admin/enrollments/by-status?status=${encodeURIComponent(statusFilter)}&page=${statusPage}`, {
+          credentials: 'include',
+        });
+        if (!res.ok) {
+          const body = await res.json();
+          throw new Error(body.error || 'Failed to fetch enrollments.');
+        }
+        const data = await res.json();
+        setStatusResults(data.enrollments);
+        setStatusPagination(data.pagination);
+      } catch (err) {
+        setStatusError(err.message);
+      } finally {
+        setStatusLoading(false);
+      }
+    };
+
+    fetchByStatus();
+  }, [statusFilter, statusPage, searchResults]);
 
   // => Applies type/status filters in memory only - no fetch, no API call
   const applyFilters = (rows) => rows.filter(r =>
@@ -230,6 +276,16 @@ export default function Enrollments() {
   //    empty states below can be told apart
   const filteredSearchResults = isSearchMode ? applyFilters(searchResults) : [];
 
+  // => Status browse mode - active whenever the Status dropdown points at
+  //    anything other than 'ALL', 'Pending', or 'Needs Clarification', and
+  //    no name/email search is currently active
+  const isStatusBrowseMode = !isSearchMode &&
+    statusFilter !== 'ALL' && statusFilter !== 'Pending' && statusFilter !== 'Needs Clarification';
+
+  // => Type filter still applies client-side on top of the already
+  //    status-filtered, already-paginated page of rows from the backend
+  const filteredStatusResults = isStatusBrowseMode ? applyFilters(statusResults) : [];
+
   return (
     <div className="adm-enroll-page">
 
@@ -249,8 +305,9 @@ export default function Enrollments() {
           </p>
         </div>
 
-        {/* => Live count badge - only shown in default mode */}
-        {!loading && !error && !isSearchMode && (
+        {/* => Live count badge - only shown in true default mode, not
+               search mode and not status browse mode */}
+        {!loading && !error && !isSearchMode && !isStatusBrowseMode && (
           <div className="adm-enroll-count">
             <span className="adm-enroll-count-num">{enrollments.length}</span>
             <span className="adm-enroll-count-label">awaiting review</span>
@@ -388,7 +445,9 @@ export default function Enrollments() {
                values (from statusClass) is too many for a comfortable
                button row */}
         <div className="adm-filter-group">
-          {/* TODO: Only filtering based on pending and needs clarification, need to actual fetch when other statuses are selected */}
+          {/* => Picking any status other than Pending/Needs Clarification
+                 switches the page into status browse mode below, which
+                 fetches that status from the backend, 10 rows per page */}
           <span className="adm-filter-label">Status</span>
           <select
             className="adm-filter-select"
@@ -436,9 +495,72 @@ export default function Enrollments() {
       )}
 
       {/* ════════════════════════════════════
+          STATUS BROWSE MODE (any status besides Pending / Needs
+          Clarification) - paginated 10 rows per page from the backend
+          ════════════════════════════════════ */}
+      {isStatusBrowseMode && (
+        <>
+          {statusLoading && (
+            <LoadingState message={`Loading ${statusFilter} enrollments…`} />
+          )}
+
+          {!statusLoading && statusError && (
+            <LoadingState variant="error" message={statusError} />
+          )}
+
+          {!statusLoading && !statusError && statusResults.length === 0 && (
+            <div className="adm-enroll-state">
+              <span className="adm-state-icon">🔍</span>
+              <p>No {statusFilter} enrollments found.</p>
+            </div>
+          )}
+
+          {/* => statusResults has rows, but the Type filter narrowed it to 0 */}
+          {!statusLoading && !statusError && statusResults.length > 0 && filteredStatusResults.length === 0 && (
+            <div className="adm-enroll-state">
+              <span className="adm-state-icon">🔍</span>
+              <p>No results match the selected Type filter.</p>
+            </div>
+          )}
+
+          {!statusLoading && !statusError && filteredStatusResults.length > 0 && (
+            <section className="adm-enroll-section">
+              <EnrollmentTable rows={filteredStatusResults} onRowClick={handleRowClick} shsLookups={shsLookups} />
+
+              {/* => Pagination - 10 rows per page, page count comes from
+                     the backend's total count, not computed client-side */}
+              <div className="adm-pagination">
+                <button
+                  type="button"
+                  className="adm-page-btn"
+                  onClick={() => setStatusPage(p => Math.max(1, p - 1))}
+                  disabled={statusPagination.page <= 1}
+                >
+                  Prev
+                </button>
+
+                <span className="adm-page-label">
+                  Page {statusPagination.page} of {statusPagination.totalPages} ({statusPagination.total} total)
+                </span>
+
+                <button
+                  type="button"
+                  className="adm-page-btn"
+                  onClick={() => setStatusPage(p => Math.min(statusPagination.totalPages, p + 1))}
+                  disabled={statusPagination.page >= statusPagination.totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            </section>
+          )}
+        </>
+      )}
+
+      {/* ════════════════════════════════════
           DEFAULT MODE (Pending + Needs Clarification)
           ════════════════════════════════════ */}
-      {!isSearchMode && (
+      {!isSearchMode && !isStatusBrowseMode && (
         <>
           {/*  Loading state  */}
           {loading && (

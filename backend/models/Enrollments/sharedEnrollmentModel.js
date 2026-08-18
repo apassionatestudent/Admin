@@ -66,6 +66,78 @@ export const getPendingEnrollments = async (pool) => {
 };
 
 //
+// GET BY STATUS: any single status, combined TESDA + SHS, paginated
+// => Used for every status besides Pending/Needs Clarification, which stay
+//    on the default getPendingEnrollments query above. Wrapped in an outer
+//    SELECT so COUNT(*) OVER() can return the total row count in the same
+//    round trip, instead of a second query.
+// => Newest first (submitted_at DESC) since this is historical browsing,
+//    not a review queue like the default list.
+//
+export const getEnrollmentsByStatus = async (pool, status, limit, offset) => {
+  const result = await pool.query(
+    `SELECT *, COUNT(*) OVER()::int AS total_count
+       FROM (
+         SELECT
+            e.public_id,
+            'TESDA'::text                                        AS enrollment_type,
+            e.status,
+            e.submitted_at,
+            sa.username                                          AS student_email,
+            sp.first_name,
+            sp.middle_name,
+            sp.last_name,
+            sp.name_extension,
+            c.title                                               AS course_name,
+            nct.certification_type                                AS nc_level,
+            NULL::text                                            AS cluster
+          FROM tesda_enrollments e
+          JOIN  student_accounts sa    ON sa.student_id  = e.student_id
+          LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
+          LEFT JOIN tesda_courses c          ON c.course_id    = e.course_id
+          LEFT JOIN national_certification_types nct ON nct.certification_id = c.certification_id
+          LEFT JOIN tesda_batches cl   ON cl.batch_id    = e.batch_id
+          WHERE e.status = $1
+
+          UNION ALL
+
+          SELECT
+            e.public_id,
+            'SHS'::text                                          AS enrollment_type,
+            e.status,
+            e.submitted_at,
+            sa.username                                          AS student_email,
+            sp.first_name,
+            sp.middle_name,
+            sp.last_name,
+            sp.name_extension,
+            NULL::text                                            AS course_name,
+            NULL::VARCHAR(100)                                    AS nc_level,
+            sc.name                                               AS cluster
+          FROM shs_enrollments e
+          JOIN  student_accounts sa    ON sa.student_id  = e.student_id
+          LEFT JOIN student_profile sp ON sp.student_id  = e.student_id
+          LEFT JOIN shs_batches cl     ON cl.batch_id    = e.batch_id
+          LEFT JOIN shs_clusters sc    ON sc.cluster_id  = e.cluster_id
+          WHERE e.status = $1
+       ) combined
+       ORDER BY submitted_at DESC
+       LIMIT $2 OFFSET $3`,
+    [status, limit, offset]
+  );
+
+  const rows  = result.rows;
+  const total = rows.length > 0 ? rows[0].total_count : 0;
+
+  // => total_count was only along for the ride to get the row count out in
+  //    one query - strip it back off before handing rows to the service
+  //    layer, so it doesn't leak into the API response on every row
+  const cleaned = rows.map(({ total_count, ...rest }) => rest);
+
+  return { rows: cleaned, total };
+};
+
+//
 // SEARCH: across ALL statuses, both TESDA and SHS, by email or profile name
 // => Same UNION ALL shape as the list query above
 // => Filter key is last_name, matching what the controller actually sends

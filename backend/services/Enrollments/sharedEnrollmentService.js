@@ -6,7 +6,7 @@
 // => pool is imported here so controllers stay thin
 
 import { pool } from '../../config/db.js';
-import { getPendingEnrollments, searchEnrollments } from '../../models/Enrollments/sharedEnrollmentModel.js';
+import { getPendingEnrollments, searchEnrollments, getEnrollmentsByStatus } from '../../models/Enrollments/sharedEnrollmentModel.js';
 
 //
 // GET LIST: pending + needs-clarification, combined TESDA + SHS
@@ -22,6 +22,35 @@ export const searchEnrollmentsService = async (filters) => {
   const hasFilter = Object.values(filters).some(v => v && v.trim());
   if (!hasFilter) throw new Error('At least one search field is required.');
   return searchEnrollments(pool, filters);
+};
+
+//
+// GET BY STATUS: any single status, paginated 10 rows per page (fixed by
+//   the controller) - used for every status besides Pending/Needs
+//   Clarification, which stay on fetchPendingEnrollments above
+// => Validated against ALLOWED_STATUSES (declared further below in this
+//    same file) so an arbitrary/misspelled status can't silently return
+//    an empty page with no feedback to the admin
+//
+export const fetchEnrollmentsByStatus = async (status, page = 1, limit = 10) => {
+  if (!ALLOWED_STATUSES.includes(status)) {
+    throw new Error(`Invalid status: ${status}`);
+  }
+
+  const safePage = Math.max(1, page);
+  const offset   = (safePage - 1) * limit;
+
+  const { rows, total } = await getEnrollmentsByStatus(pool, status, limit, offset);
+
+  return {
+    enrollments: rows,
+    pagination: {
+      page: safePage,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    },
+  };
 };
 
 //
