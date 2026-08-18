@@ -62,7 +62,7 @@ export const getClassSessionsTodayCount = async () => {
     const result = await sql`
         SELECT COUNT(*)::int AS count
         FROM class_sessions
-        WHERE session_date = CURRENT_DATE
+        WHERE session_date = (now() AT TIME ZONE 'Asia/Manila')::date
     `;
     const rows = toRows(result);
     return rows[0]?.count ?? 0;

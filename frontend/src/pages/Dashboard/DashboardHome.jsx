@@ -49,7 +49,7 @@ export default function DashboardHome() {
             {/* => Title now uses dashboard-home__title, matching Enrollments
                page's header styling for visual consistency */}
             <h2 className="dashboard-home__title">Dashboard</h2>
-            <p className="dashboard-home__subtitle">Quick overview of what needs attention right now.</p>
+            <p className="dashboard-home__subtitle">Quick overview of today's operations.</p>
 
             <div className="dashboard-home__grid">
 
