@@ -1,0 +1,104 @@
+/* => DashboardHome.css */
+
+.dashboard-home {
+    padding: 32px;
+}
+
+/* => Title style matched to Enrollments.css's .adm-enroll-title so page
+   headers look consistent across the admin dashboard */
+.dashboard-home__title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #0f1724;
+    letter-spacing: -0.02em;
+    margin: 0 0 4px;
+}
+
+/* => Subtitle style matched to Enrollments.css's .adm-enroll-subtitle */
+.dashboard-home__subtitle {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0 0 24px;
+}
+
+.dashboard-home__grid {
+    display: grid;
+    /* => Single column, each card takes the full width and sits on its own
+       row - avoids the leftover empty space caused by row height matching */
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+.dashboard-home__card {
+    background: #fff;
+    border: 1px solid var(--border, #e0d8d0);
+    border-radius: 10px;
+    padding: 20px;
+    /* => Flex column so content can be vertically centered when a card
+       has fewer stat rows than its neighbor in the same grid row */
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-home__card-body {
+    display: flex;
+    flex-direction: column;
+}
+
+/* => Sizes the crude PNG icons consistently, since raw <img> tags don't
+   self-size like lucide-react icons did */
+.dashboard-home__icon {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+}
+
+/* => Restored: this rule aligns the icon and title side by side and colors
+   the title maroon - it was accidentally dropped in the last edit, which is
+   why the titles went missing */
+.dashboard-home__card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    color: var(--accent-hover, #8a0d17);
+}
+
+.dashboard-home__card-header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.dashboard-home__stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border, #e0d8d0);
+}
+
+.dashboard-home__stat-row:last-child {
+    border-bottom: none;
+}
+
+.dashboard-home__stat-label {
+    color: var(--text-muted, #666);
+    font-size: 0.95rem;
+}
+
+.dashboard-home__stat-value {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--text-primary, #1a0305);
+}
+
+/* => Class Sessions Today card shows one big number instead of a list */
+.dashboard-home__stat-row--single {
+    justify-content: center;
+    border-bottom: none;
+    padding: 12px 0 4px;
+}
+
+.dashboard-home__stat-value--large {
+    font-size: 2.2rem;
+}

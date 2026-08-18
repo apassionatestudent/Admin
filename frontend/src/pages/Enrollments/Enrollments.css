@@ -537,6 +537,51 @@
   color: var(--accent-hover, #8a0d17);
 }
 
+/* ════════════════════════════════════
+   PAGINATION (status browse mode)
+   ════════════════════════════════════ */
+.adm-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 12px 0;
+}
+
+.adm-page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 16px;
+  background: #fff;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.adm-page-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: var(--accent-hover, #8a0d17);
+}
+
+.adm-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.adm-page-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
 /*  Responsive  */
 @media (max-width: 640px) {
   .adm-enroll-page {

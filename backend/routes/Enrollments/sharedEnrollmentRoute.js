@@ -11,6 +11,7 @@ import { adminApiRateLimit } from '../../middleware/adminRateLimit.js';
 import {
   listPendingEnrollments,
   searchEnrollmentsController,
+  listEnrollmentsByStatusController,
 } from '../../controllers/Enrollments/sharedEnrollmentController.js';
 import { adminProxyDocument } from '../../controllers/adminDocProxyController.js';
 
@@ -25,6 +26,9 @@ router.get('/', adminApiRateLimit, protectAdmin, requireSection('enrollments'), 
 
 // => GET /api/admin/enrollments/search - combined TESDA + SHS search
 router.get('/search', adminApiRateLimit, protectAdmin, requireSection('enrollments'), searchEnrollmentsController);
+
+// => GET /api/admin/enrollments/by-status - any single status, paginated 10 per page
+router.get('/by-status', adminApiRateLimit, protectAdmin, requireSection('enrollments'), listEnrollmentsByStatusController);
 
 // => GET /api/admin/enrollments/docs/:documentKey
 // => Proxy route: streams R2 object to the browser through the server
