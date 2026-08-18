@@ -11,21 +11,10 @@ import ConfirmModal from '../../ConfirmModal/ConfirmModal.jsx';
 import './chatbotDetail.css';
 
 const COURSE_SCOPE_TYPES = ['tesda_course', 'shs_course'];
-const LOGS_PER_PAGE = 10;
-
-// => DESIGN PLACEHOLDER - no chatbot_logs table or endpoint exists yet.
-//    Swap this out for a real fetch (e.g. GET /api/admin/chatbots/:publicId/logs)
-//    once that backend piece is built. Kept here only so the layout below
-//    can be reviewed with realistic-looking content.
-const MOCK_LOGS = [
-  { log_id: 1, created_at: '2026-08-14T06:20:00Z', performed_by_name: 'LoneWolf The Wolf', action: 'Activated', remarks: 'Chatbot switched from inactive to active.' },
-  { log_id: 2, created_at: '2026-08-14T06:05:00Z', performed_by_name: 'LoneWolf The Wolf', action: 'Updated', remarks: 'Context field edited.' },
-  { log_id: 3, created_at: '2026-08-13T22:41:00Z', performed_by_name: 'LoneWolf The Wolf', action: 'Created', remarks: 'Chatbot created with scope Public Site.' },
-];
 
 // => Same format used across the enrollment detail pages, for consistency
 const formatDateTime = (isoString) => {
-  if (!isoString) return '—';
+  if (!isoString) return '-';
   return new Date(isoString).toLocaleString('en-PH', {
     year: 'numeric', month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
@@ -48,8 +37,6 @@ export default function ChatbotDetail() {
   const [form, setForm] = useState(null);
   const [courseOptions, setCourseOptions] = useState([]);
   const [courseLoading, setCourseLoading] = useState(false);
-  const [logs] = useState(MOCK_LOGS); // => placeholder, see MOCK_LOGS note above
-  const [logPage, setLogPage] = useState(1);
 
   useEffect(() => {
     fetchChatbot();
@@ -310,83 +297,28 @@ export default function ChatbotDetail() {
       </div>
 
       {/* ════════════════════════════════════
-          ACTIVITY LOGS
-          => Design reference: TESDAEnrollmentDetail's Activity Logs
-             section. Own class names (chatbot-detail-log-*), no shared
-             CSS file between admin pages per the no-shared-abstraction
-             convention.
+          ATTRIBUTION
+          => Lightweight tier only, same as Announcements/FAQs - just who
+             created it and when, who last touched it and when. No full
+             activity_logs history for this table by design.
           ════════════════════════════════════ */}
       <section className="chatbot-detail-section">
-        <h3 className="chatbot-detail-section-title">
-          Activity Logs
-          <span className="chatbot-detail-section-count">{logs.length}</span>
-        </h3>
-
-        {logs.length === 0 ? (
-          <p className="chatbot-detail-empty-note">No activity recorded yet.</p>
-        ) : (() => {
-          const totalLogPages = Math.max(1, Math.ceil(logs.length / LOGS_PER_PAGE));
-          const currentLogPage = Math.min(logPage, totalLogPages);
-          const pagedLogs = logs.slice(
-            (currentLogPage - 1) * LOGS_PER_PAGE,
-            currentLogPage * LOGS_PER_PAGE
-          );
-
-          return (
-            <>
-              <div className="chatbot-detail-log-table-wrap">
-                <table className="chatbot-detail-log-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Actor</th>
-                      <th>Action</th>
-                      <th>Details</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagedLogs.map((log, i) => (
-                      <tr key={log.log_id ?? i}>
-                        <td>{formatDateTime(log.created_at)}</td>
-                        <td>{log.performed_by_name ?? 'System'}</td>
-                        <td>{log.action}</td>
-                        <td>{log.remarks || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {totalLogPages > 1 && (
-                <div className="chatbot-detail-log-pagination">
-                  <button
-                    className="chatbot-detail-log-page-btn"
-                    onClick={() => setLogPage((p) => Math.max(1, p - 1))}
-                    disabled={currentLogPage === 1}
-                  >
-                    Prev
-                  </button>
-                  {Array.from({ length: totalLogPages }, (_, i) => i + 1).map((p) => (
-                    <button
-                      key={p}
-                      className={`chatbot-detail-log-page-btn ${p === currentLogPage ? 'chatbot-detail-log-page-btn--active' : ''}`}
-                      onClick={() => setLogPage(p)}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                  <button
-                    className="chatbot-detail-log-page-btn"
-                    onClick={() => setLogPage((p) => Math.min(totalLogPages, p + 1))}
-                    disabled={currentLogPage === totalLogPages}
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </>
-          );
-        })()}
+        <h3 className="chatbot-detail-section-title">Record Info</h3>
+        <div className="chatbot-detail-meta">
+          <p className="chatbot-detail-meta-line">
+            Created by <strong>{chatbot.created_by_name ?? 'Unknown'}</strong> on {formatDateTime(chatbot.created_at)}
+          </p>
+          {/* => updated_by is null until the first edit happens, so this
+                 line only renders once there's actually something to show.
+                 Pushed to the right via margin-left: auto on the line itself
+                 rather than a wrapping flex container, so the single-line
+                 case (no update yet) doesn't need a conditional wrapper. */}
+          {chatbot.updated_by && (
+            <p className="chatbot-detail-meta-line chatbot-detail-meta-line--right">
+              Last updated by <strong>{chatbot.updated_by_name ?? 'Unknown'}</strong> on {formatDateTime(chatbot.updated_at)}
+            </p>
+          )}
+        </div>
       </section>
 
       <ConfirmModal

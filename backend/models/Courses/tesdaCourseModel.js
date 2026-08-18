@@ -212,96 +212,56 @@ export async function restoreTesdaCourse(adminUuid) {
 // => "+ Add Row"). Takes the course's admin_uuid (what the frontend has) and
 // => resolves it to the internal course_id in the same query via a subquery -
 // => avoids a separate round-trip just to look up the internal id first.
-export async function insertSingleCompetency(adminUuid, type, { code, competency }) {
-  const config = COMPETENCY_TABLES[type];
-  if (!config) throw new Error('Invalid competency type');
-
-  const result = await pool.query(
-    `INSERT INTO ${config.table} (course_id, code, competency)
-     SELECT course_id, $2, $3
-     FROM tesda_courses
-     WHERE admin_uuid = $1 AND deleted_at IS NULL
-     RETURNING ${config.idColumn} AS id, code, competency`,
-    [adminUuid, code, competency]
-  );
-  return result.rows[0] || null; // => null means the admin_uuid didn't match any course
-}
-
 export async function updateCompetency(type, competencyId, { code, competency }) {
   const config = COMPETENCY_TABLES[type];
   if (!config) throw new Error('Invalid competency type');
 
   const result = await pool.query(
+    // => course_id added to RETURNING so the service layer can log the
+    // => correct entity_id without a separate lookup query
     `UPDATE ${config.table}
      SET code = $1, competency = $2
      WHERE ${config.idColumn} = $3
-     RETURNING ${config.idColumn} AS id, code, competency`,
+     RETURNING course_id, ${config.idColumn} AS id, code, competency`,
     [code, competency, competencyId]
   );
   return result.rows[0] || null;
 }
+
+export async function insertSingleCompetency(adminUuid, type, { code, competency }) {
+  const config = COMPETENCY_TABLES[type];
+  if (!config) throw new Error('Invalid competency type');
+
+  const result = await pool.query(
+    // => course_id added to RETURNING so the service layer can log without
+    // => a separate findTesdaCourseByAdminUuid call
+    `INSERT INTO ${config.table} (course_id, code, competency)
+     SELECT course_id, $2, $3
+     FROM tesda_courses
+     WHERE admin_uuid = $1 AND deleted_at IS NULL
+     RETURNING course_id, ${config.idColumn} AS id, code, competency`,
+    [adminUuid, code, competency]
+  );
+  return result.rows[0] || null; // => null means the admin_uuid didn't match any course
+}
+
 
 export async function deleteCompetency(type, competencyId) {
   const config = COMPETENCY_TABLES[type];
   if (!config) throw new Error('Invalid competency type');
 
   const result = await pool.query(
-    `DELETE FROM ${config.table} WHERE ${config.idColumn} = $1 RETURNING ${config.idColumn} AS id`,
+    // => course_id added to RETURNING, same reasoning as updateCompetency above
+    `DELETE FROM ${config.table} WHERE ${config.idColumn} = $1 RETURNING course_id, ${config.idColumn} AS id`,
     [competencyId]
   );
   return result.rows[0] || null;
 }
 
-// => Public link sub-resource - 1-to-1 with a course, entirely decoupled
-// => from admin_uuid. Keyed by the INTERNAL course_id (resolved from
-// => admin_uuid by the service layer first), same pattern as competencies.
-
-export async function findPublicLinkByCourseId(courseId) {
-  const result = await pool.query(
-    `SELECT link_id, course_id, public_slug, is_published, published_at, created_at, updated_at
-     FROM tesda_course_public_links WHERE course_id = $1`,
-    [courseId]
-  );
-  return result.rows[0] || null;
-}
-
-// => excludeCourseId lets an update check "is this slug taken by ANOTHER
-// => course" without flagging the course's own current slug as a conflict
-export async function isSlugTaken(slug, excludeCourseId = null) {
-  const result = await pool.query(
-    `SELECT 1 FROM tesda_course_public_links
-     WHERE public_slug = $1 AND ($2::int IS NULL OR course_id != $2)`,
-    [slug, excludeCourseId]
-  );
-  return result.rowCount > 0;
-}
-
-export async function createPublicLink(courseId, slug) {
-  const result = await pool.query(
-    `INSERT INTO tesda_course_public_links (course_id, public_slug, is_published)
-     VALUES ($1, $2, FALSE)
-     RETURNING *`,
-    [courseId, slug]
-  );
-  return result.rows[0];
-}
-
-export const PUBLIC_LINK_ALLOWED_COLUMNS = new Set(['public_slug', 'is_published', 'published_at']);
-
-export async function updatePublicLink(courseId, fields) {
-  const query = buildPartialUpdate({
-    table: 'tesda_course_public_links',
-    idColumn: 'course_id',
-    idValue: courseId,
-    fields,
-    allowedColumns: PUBLIC_LINK_ALLOWED_COLUMNS,
-  });
-
-  if (!query) return null;
-
-  const result = await pool.query(query.text, query.values);
-  return result.rows[0] || null;
-}
+// => Public link sub-resource removed (findPublicLinkByCourseId, isSlugTaken,
+// => createPublicLink, updatePublicLink, PUBLIC_LINK_ALLOWED_COLUMNS) - the
+// => publish gate was redundant with tesda_courses.status, which is what the
+// => public site actually filters on. tesda_course_public_links table dropped in Neon.
 
 // => Job opportunities sub-resource - same pattern as competencies: keyed by
 // => the INTERNAL course_id for reads, resolved from admin_uuid via subquery
@@ -319,11 +279,12 @@ export async function findJobOpportunitiesByCourseId(courseId) {
 
 export async function insertSingleJobOpportunity(adminUuid, jobTitle) {
   const result = await pool.query(
+    // => course_id added to RETURNING, same reasoning as the competency inserts above
     `INSERT INTO tesda_job_opportunities (course_id, job_title)
      SELECT course_id, $2
      FROM tesda_courses
      WHERE admin_uuid = $1 AND deleted_at IS NULL
-     RETURNING job_id AS id, job_title`,
+     RETURNING course_id, job_id AS id, job_title`,
     [adminUuid, jobTitle]
   );
   return result.rows[0] || null; // => null means the admin_uuid didn't match any course
@@ -331,7 +292,7 @@ export async function insertSingleJobOpportunity(adminUuid, jobTitle) {
 
 export async function updateJobOpportunity(jobId, jobTitle) {
   const result = await pool.query(
-    `UPDATE tesda_job_opportunities SET job_title = $1 WHERE job_id = $2 RETURNING job_id AS id, job_title`,
+    `UPDATE tesda_job_opportunities SET job_title = $1 WHERE job_id = $2 RETURNING course_id, job_id AS id, job_title`,
     [jobTitle, jobId]
   );
   return result.rows[0] || null;
@@ -339,7 +300,7 @@ export async function updateJobOpportunity(jobId, jobTitle) {
 
 export async function deleteJobOpportunity(jobId) {
   const result = await pool.query(
-    `DELETE FROM tesda_job_opportunities WHERE job_id = $1 RETURNING job_id AS id`,
+    `DELETE FROM tesda_job_opportunities WHERE job_id = $1 RETURNING course_id, job_id AS id`,
     [jobId]
   );
   return result.rows[0] || null;

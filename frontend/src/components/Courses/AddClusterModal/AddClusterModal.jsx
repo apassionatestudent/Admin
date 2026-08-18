@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import axiosAdmin from '../../../utils/axiosAdmin.js';
 import trashIcon from '../../../assets/icons/trash.png'; 
 import ConfirmModal from '../../ConfirmModal/ConfirmModal.jsx';
@@ -62,12 +63,21 @@ export default function AddClusterModal({ onClose, onCreated }) {
   };
 
   const handleDelete = (item) => {
-    openConfirm(`Delete "${item.name}"? Courses already using it keep showing it, but it won't be selectable for new ones.`, async () => {
+    // => Reworded: deleting a cluster now cascades to deactivate any course
+    // => still referencing it, so the confirm message needs to warn about
+    // => that instead of promising courses keep showing unaffected
+    openConfirm(`Delete "${item.name}"? Any active course still using it will be marked inactive.`, async () => {
       try {
-        await axiosAdmin.delete(`/api/admin/clusters/${item.cluster_id}`);
+        const res = await axiosAdmin.delete(`/api/admin/clusters/${item.cluster_id}`);
         setClusters((prev) => prev.filter((c) => c.cluster_id !== item.cluster_id));
+        toast.success(res.data.message || 'Cluster deleted');
+        // => Delete can now cascade-deactivate courses behind this modal, so
+        // => the parent Courses list needs to refetch immediately rather
+        // => than showing stale "Active" badges until a manual page reload
+        onCreated();
       } catch (error) {
         console.error('Failed to delete cluster:', error);
+        toast.error(error.response?.data?.message || 'Failed to delete cluster.');
       }
     });
   };

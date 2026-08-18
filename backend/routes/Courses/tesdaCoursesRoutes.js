@@ -13,13 +13,12 @@ import {
   addCompetency,
   updateCompetency,
   deleteCompetency,
-  enablePublicLink,
-  updatePublicLink,
   addJobOpportunity,
   updateJobOpportunity,
   deleteJobOpportunity,
   getDeletedTesdaCourses,
   restoreTesdaCourse,
+  getTesdaCourseLogsController,
 } from '../../controllers/Courses/tesdaCourseController.js';
 
 const router = express.Router();
@@ -39,6 +38,7 @@ router.get('/:adminUuid', getTesdaCourseById);
 router.patch('/:adminUuid', updateTesdaCourse);
 router.delete('/:adminUuid', deleteTesdaCourse);
 router.post('/:adminUuid/restore', restoreTesdaCourse);
+router.get('/:adminUuid/logs', getTesdaCourseLogsController);
 
 router.post('/:adminUuid/competencies', addCompetency);
 router.patch('/competencies/:type/:competencyId', updateCompetency);
@@ -47,8 +47,5 @@ router.delete('/competencies/:type/:competencyId', deleteCompetency);
 router.post('/:adminUuid/job-opportunities', addJobOpportunity);
 router.patch('/job-opportunities/:jobId', updateJobOpportunity);
 router.delete('/job-opportunities/:jobId', deleteJobOpportunity);
-
-router.post('/:adminUuid/public-link', enablePublicLink);
-router.patch('/:adminUuid/public-link', updatePublicLink);
 
 export default router;

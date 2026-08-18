@@ -1,0 +1,108 @@
+/* => components/Pages/PrivacyPolicyRevisions/privacyPolicyRevisions.css */
+
+.ppr-wrap {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border, #e0d8d0);
+}
+
+.ppr-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ppr-header-icon {
+  width: 18px;
+  height: 18px;
+  opacity: 0.75;
+}
+
+.ppr-header-title {
+  font-family: var(--font-body), sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-h);
+  margin: 0;
+}
+
+.ppr-empty {
+  font-size: 0.875rem;
+  color: var(--text-muted, var(--text));
+}
+
+.ppr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ppr-item {
+  border: 1px solid var(--border, #e0d8d0);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ppr-item-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #faf7f5;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body), sans-serif;
+}
+
+.ppr-item-meta {
+  font-size: 0.8125rem;
+  color: var(--text);
+}
+
+.ppr-chevron {
+  width: 14px;
+  height: 14px;
+  opacity: 0.6;
+  transition: transform 0.15s;
+}
+
+.ppr-chevron--open {
+  transform: rotate(180deg);
+}
+
+.ppr-item-content {
+  padding: 14px 18px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--text);
+  border-top: 1px solid var(--border, #e0d8d0);
+}
+
+.ppr-load-more {
+  margin-top: 12px;
+  background: transparent;
+  color: var(--accent-hover, #8a0d17);
+  border: 1px solid var(--accent-hover, #8a0d17);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  font-family: var(--font-body), sans-serif;
+}
+
+.ppr-load-more:hover:not(:disabled) {
+  background: var(--sidebar-hover-bg, #262626);
+  color: #fff;
+  border-color: var(--sidebar-hover-bg, #262626);
+}
+
+.ppr-load-more:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

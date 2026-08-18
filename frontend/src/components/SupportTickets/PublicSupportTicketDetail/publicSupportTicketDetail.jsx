@@ -11,6 +11,8 @@ import pencilIcon from '../../../assets/icons/pencil.png';
 //    uses for its copy button, same relative depth from this file
 import clipboardIcon from '../../../assets/icons/clipboard.png';
 import checkMarkIcon from '../../../assets/icons/checkmark.png';
+// => Same chevron used by FacilityDetail/TrainerDetail's Activity Logs section
+import chevronDown from '../../../assets/icons/chevron-down.png';
 import './publicSupportTicketDetail.css';
 
 const ALLOWED_STATUSES = ['Open', 'In Progress', 'Resolved', 'Unresolved'];
@@ -79,12 +81,35 @@ export default function PublicSupportTicketDetail() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
-  // => Client-side pagination for the Activity Logs table, mirrors
-  //    tesdaEnrollmentDetail.jsx's logPage state
-  const [logPage, setLogPage] = useState(1);
+  // => Activity Logs state - matches FacilityDetail/TrainerDetail exactly:
+  //    fetch everything at once, no pagination, chevron-expandable rows.
+  const [logs, setLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  // => Which log row is currently expanded to show its full action_detail
+  const [expandedLogId, setExpandedLogId] = useState(null);
 
   useEffect(() => {
     fetchTicket();
+  }, [publicId]);
+
+  // => Fetches every activity log for this ticket. Called on mount and
+  //    again after every successful save, so a newly written log shows up
+  //    immediately instead of waiting for an unrelated action to refetch -
+  //    same fetchLogs() pattern used on the Batch/Facility detail pages.
+  const fetchLogs = async () => {
+    setLogsLoading(true);
+    try {
+      const res = await axiosAdmin.get(`/api/admin/public-support-tickets/${publicId}/logs`);
+      setLogs(res.data.logs || []);
+    } catch (err) {
+      console.error('Failed to fetch public support ticket logs:', err);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
   }, [publicId]);
 
   const fetchTicket = async () => {
@@ -127,6 +152,8 @@ export default function PublicSupportTicketDetail() {
       });
       setTicket(res.data.data);
       setIsEditingHandling(false);
+      // => Refetch so the newly written log shows up immediately
+      fetchLogs();
     } catch (error) {
       console.error('Failed to update ticket status/remarks:', error);
       setSaveError('Failed to save changes. Please try again.');
@@ -134,10 +161,6 @@ export default function PublicSupportTicketDetail() {
       setSaving(false);
     }
   };
-
-  // => No backend log endpoint yet for support tickets - defaults to
-  //    empty until ticket.logs is actually returned by the API
-  const logs = ticket?.logs ?? [];
 
   const statusClass = (status) => `status-badge status-badge-${status.toLowerCase().replace(' ', '-')}`;
 
@@ -233,84 +256,83 @@ export default function PublicSupportTicketDetail() {
 
       {/* ════════════════════════════════════
           ACTIVITY LOGS
-          => Same section pattern as tesdaEnrollmentDetail.jsx's Activity
-             Logs section, own copy under this file's ticket-detail-*
-             prefix per no-shared-code convention
+          => Design/classes match FacilityDetail/TrainerDetail's Activity
+             Logs section exactly for visual consistency across all entity
+             detail pages - entity_type = 'public_support_ticket', entity_id
+             = ticket_id directly.
           ════════════════════════════════════ */}
-      <section className="ticket-detail-section">
-        <h3 className="ticket-detail-section-title">
+      <div className="adm-batch-section">
+        <p className="adm-section-title">
           Activity Logs
-          <span className="ticket-detail-section-count-inline">{logs.length}</span>
-        </h3>
+          <span className="adm-section-count-inline">{logs.length}</span>
+        </p>
 
-        {logs.length === 0 ? (
-          <p className="ticket-detail-empty-note">No activity recorded yet.</p>
-        ) : (() => {
-          // => IIFE so pagination math stays local to this section
-          const LOGS_PER_PAGE = 10;
-          const totalLogPages = Math.max(1, Math.ceil(logs.length / LOGS_PER_PAGE));
-          const currentLogPage = Math.min(logPage, totalLogPages);
-          const pagedLogs = logs.slice(
-            (currentLogPage - 1) * LOGS_PER_PAGE,
-            currentLogPage * LOGS_PER_PAGE
-          );
+        {logsLoading && <p className="adm-empty-note">Loading logs…</p>}
 
-          return (
-            <>
-              <div className="ticket-detail-sub-table-wrap">
-                <table className="ticket-detail-sub-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Actor</th>
-                      <th>Action</th>
-                      <th>Details</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagedLogs.map((log, i) => (
-                      <tr key={log.log_id ?? i}>
-                        <td>{formatDateTime(log.created_at)}</td>
-                        <td>{log.performed_by_name ?? 'System'}</td>
+        {!logsLoading && logs.length === 0 && (
+          <p className="adm-empty-note">No activity recorded for this ticket yet.</p>
+        )}
+
+        {!logsLoading && logs.length > 0 && (
+          <div className="adm-sub-table-wrap">
+            <table className="adm-sub-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Actor</th>
+                  <th>Action</th>
+                  <th>Details</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map(log => {
+                  const isExpanded = expandedLogId === log.log_id;
+                  return (
+                    <React.Fragment key={log.log_id}>
+                      <tr
+                        className="adm-log-row"
+                        onClick={() => setExpandedLogId(isExpanded ? null : log.log_id)}
+                      >
+                        <td className="adm-td-date">{formatDateTime(log.created_at)}</td>
+                        <td>
+                          {log.actor_type === 'System' ? (
+                            <span className="adm-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>
+                              System
+                            </span>
+                          ) : (
+                            log.actor_name
+                          )}
+                        </td>
                         <td>{log.action}</td>
-                        <td>{log.remarks || '—'}</td>
+                        <td className="adm-log-detail-cell" title={log.action_detail || ''}>
+                          {log.action_detail || '-'}
+                        </td>
+                        <td>
+                          <img
+                            src={chevronDown}
+                            alt="Expand row"
+                            className={`adm-log-chevron ${isExpanded ? 'adm-log-chevron-open' : ''}`}
+                          />
+                        </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {totalLogPages > 1 && (
-                <div className="ticket-detail-log-pagination">
-                  <button
-                    className="ticket-detail-log-page-btn"
-                    onClick={() => setLogPage(p => Math.max(1, p - 1))}
-                    disabled={currentLogPage === 1}
-                  >
-                    Prev
-                  </button>
-                  {Array.from({ length: totalLogPages }, (_, i) => i + 1).map(p => (
-                    <button
-                      key={p}
-                      className={`ticket-detail-log-page-btn ${p === currentLogPage ? 'ticket-detail-log-page-btn--active' : ''}`}
-                      onClick={() => setLogPage(p)}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                  <button
-                    className="ticket-detail-log-page-btn"
-                    onClick={() => setLogPage(p => Math.min(totalLogPages, p + 1))}
-                    disabled={currentLogPage === totalLogPages}
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </>
-          );
-        })()}
-      </section>
+                      {isExpanded && (
+                        <tr className="adm-log-detail-row">
+                          <td colSpan={5}>
+                            <div className="adm-log-detail-full">
+                              <p>{log.action_detail || '-'}</p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
         </>
       )}
     </main>

@@ -9,6 +9,7 @@ import {
   toggleActiveStatus,
   updateStudentRecord,
   fetchStudentPaymentHistory,
+  fetchStudentLogs,
 } from '../../services/Students/adminStudentService.js';
 
 // GET /api/admin/students
@@ -75,7 +76,11 @@ export const patchStudentActive = async (req, res) => {
   }
 
   try {
-    const updated = await toggleActiveStatus(publicId, is_active);
+    // => actor passed through for activity logging
+    const updated = await toggleActiveStatus(publicId, is_active, {
+      admin_id: req.admin.admin_id,
+      full_name: req.admin.full_name,
+    });
     return res.status(200).json({ success: true, updated });
   } catch (err) {
     if (err.message === 'Student not found.') {
@@ -91,7 +96,11 @@ export const patchStudentActive = async (req, res) => {
 export const updateStudentController = async (req, res) => {
   const { publicId } = req.params;
   try {
-    const result = await updateStudentRecord(publicId, req.body);
+    // => actor passed through for activity logging
+    const result = await updateStudentRecord(publicId, req.body, {
+      admin_id: req.admin.admin_id,
+      full_name: req.admin.full_name,
+    });
     return res.status(200).json({ success: true, ...result });
   } catch (err) {
     if (err.message.includes('required') || err.message === 'Student not found.') {
@@ -116,5 +125,24 @@ export const getStudentPaymentHistoryController = async (req, res) => {
   } catch (err) {
     console.error('getStudentPaymentHistoryController error:', err);
     return res.status(500).json({ error: 'Failed to fetch payment history.' });
+  }
+};
+
+// GET /api/admin/students/:publicId/logs
+// => Read-only. Fetch-all-at-once, no pagination - matches Facilities/
+//    Trainers/Support Tickets pattern.
+export const getStudentLogsController = async (req, res) => {
+  const { publicId } = req.params;
+  const { page } = req.query;
+  try {
+    const result = await fetchStudentLogs(publicId, page);
+    if (result === null) {
+      return res.status(404).json({ error: 'Student not found.' });
+    }
+    // => result already has { logs, total, page, limit, totalPages }
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error('getStudentLogsController error:', err);
+    return res.status(500).json({ error: 'Failed to fetch student activity logs.' });
   }
 };

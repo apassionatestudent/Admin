@@ -32,6 +32,7 @@ import checkMarkIcon from '../../../assets/icons/checkmark.png';
 import errorIcon from '../../../assets/icons/warning.png';
 import pencilIcon from '../../../assets/icons/pencil.png';
 import trashIcon from '../../../assets/icons/trash.png';
+import chevronDown from '../../../assets/icons/chevron-down.png';
 
 // Constants
 
@@ -682,6 +683,8 @@ export default function TESDAEnrollmentDetail() {
   //    bundled in the main detail fetch, not a separate endpoint, so
   //    paging is just slicing the already-loaded array
   const [logPage, setLogPage] = useState(1);
+  // => Which Activity Logs row is expanded to show its full diff, null when none
+  const [expandedLogId, setExpandedLogId] = useState(null);
   const [nationalities, setNationalities] = useState([]);
   const [saving,         setSaving]         = useState(false);
   // => saveMsg state removed - status save feedback now goes through
@@ -1097,10 +1100,12 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
 
   const handleSaveEnrollmentInfo = async () => {
     try {
-      const result = await patchSection('enrollment', {
+      await patchSection('enrollment', {
         uli: draft.uli,
       });
-      setData(prev => ({ ...prev, enrollment: { ...prev.enrollment, ...result.enrollment } }));
+      // => Full refetch instead of local merge - picks up the new
+      //    Activity Logs row immediately, same pattern as status changes
+      await refreshDetail();
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
@@ -1108,8 +1113,8 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
   const handleSaveInternalRemarks = async () => {
     setSavingInternalRemarks(true);
     try {
-      const result = await patchSection('enrollment', { internal_remarks: internalRemarksDraft });
-      setData(prev => ({ ...prev, enrollment: { ...prev.enrollment, ...result.enrollment } }));
+      await patchSection('enrollment', { internal_remarks: internalRemarksDraft });
+      await refreshDetail();
     } catch { /* sectionError already set by patchSection */ }
     finally { setSavingInternalRemarks(false); }
   };
@@ -1121,21 +1126,17 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
       return;
     }
     try {
-      const result = await patchSection('enrollment', {
+      await patchSection('enrollment', {
         ncae_taken: draft.ncae_taken,
         ncae_where: draft.ncae_where,
         ncae_when: draft.ncae_when,
       });
-      setData(prev => ({ ...prev, enrollment: { ...prev.enrollment, ...result.enrollment } }));
+      await refreshDetail();
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
 
   const handleSaveScholarship = async () => {
-    // => Mirrors TESDAStep5's rule: Scholarship Type becomes required once
-    //    TESDA Scholar = Yes, and Other Scholarship becomes required when
-    //    Type is literally "Others" (admin free-text, so this only catches
-    //    an exact match - not a strict enum like the public form's radio).
     if (draft.is_tesda_scholar && !draft.scholarship_type.trim()) {
       setSectionError('Scholarship Type is required when TESDA Scholar is Yes.');
       return;
@@ -1145,25 +1146,23 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
       return;
     }
     try {
-      const result = await patchSection('enrollment', {
+      await patchSection('enrollment', {
         is_tesda_scholar: draft.is_tesda_scholar,
         scholarship_type: draft.scholarship_type,
         other_scholarship: draft.other_scholarship,
       });
-      setData(prev => ({ ...prev, enrollment: { ...prev.enrollment, ...result.enrollment } }));
+      await refreshDetail();
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
 
   const handleSaveClassifications = async () => {
     try {
-      const result = await patchSection('classifications', {
-        // => Backend still stores classifications as a list - just always
-        //    a single-element list now, matching the physical form's intent
+      await patchSection('classifications', {
         classifications: draft.classification ? [draft.classification] : [],
         othersText: draft.othersText || '',
       });
-      setData(prev => ({ ...prev, classifications: result.classifications }));
+      await refreshDetail();
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
@@ -1181,24 +1180,24 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
       return;
     }
     try {
-      const result = await patchSection('profile', draft);
-      setData(prev => ({ ...prev, profile: { ...prev.profile, ...result.profile } }));
+      await patchSection('profile', draft);
+      await refreshDetail();
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
 
   const handleSaveAddress = async () => {
     try {
-      const result = await patchSection('address', draft);
-      setData(prev => ({ ...prev, address: { ...prev.address, ...result.address } }));
+      await patchSection('address', draft);
+      await refreshDetail();
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
 
   const handleSaveGuardian = async () => {
     try {
-      const result = await patchSection('guardian', draft);
-      setData(prev => ({ ...prev, guardian: result.guardian }));
+      await patchSection('guardian', draft);
+      await refreshDetail();
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
@@ -1207,7 +1206,10 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
   const handleSaveClassAssign = async () => {
     try {
       await patchSection('enrollment', { batch_id: draft.batch_id || null });
-      await fetchDetail();
+      // => Swapped fetchDetail() for refreshDetail() - same data, but skips
+      //    setLoading(true), so this stays consistent with every other
+      //    section save instead of flashing the whole page into the spinner
+      await refreshDetail();
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
@@ -1226,10 +1228,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
         formData,
         { headers: { 'Content-Type': undefined } } // => lets the browser set the multipart boundary itself, to upload new files
       );
-      setData(prev => ({
-        ...prev,
-        docs: prev.docs.map(d => d.public_id === docPublicId ? res.data.document : d),
-      }));
+      await refreshDetail();
     } catch (err) {
       setDocError(err.response?.data?.error || 'Failed to replace document.');
     } finally {
@@ -1242,7 +1241,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
     setDocError(null);
     try {
       await axiosAdmin.delete(`/api/admin/enrollments/tesda/${publicId}/docs/${docPublicId}`);
-      setData(prev => ({ ...prev, docs: prev.docs.filter(d => d.public_id !== docPublicId) }));
+      await refreshDetail();
     } catch (err) {
       setDocError(err.response?.data?.error || 'Failed to delete document.');
     } finally {
@@ -1262,12 +1261,12 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
       const formData = new FormData();
       formData.append('document', addDocFile);
       formData.append('documentType', addDocType.trim());
-      const res = await axiosAdmin.post(
+      await axiosAdmin.post(
         `/api/admin/enrollments/tesda/${publicId}/docs`,
         formData,
         { headers: { 'Content-Type': undefined } }
       );
-      setData(prev => ({ ...prev, docs: [...prev.docs, res.data.document] }));
+      await refreshDetail();
       setAddDocType('');
       setAddDocFile(null);
       setAddDocInputKey(k => k + 1); // => forces the file input to remount, clearing its display
@@ -1298,8 +1297,8 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
     : !enrollment.start_date
       ? `${enrollment.batch_name} (dates TBA)`
       : !enrollment.end_date
-        ? `${enrollment.batch_name} – ${formatDate(enrollment.start_date)} – Ongoing`
-        : `${enrollment.batch_name} – ${formatDate(enrollment.start_date)} – ${formatDate(enrollment.end_date)}`;
+        ? `${enrollment.batch_name} - ${formatDate(enrollment.start_date)} - Ongoing`
+        : `${enrollment.batch_name} - ${formatDate(enrollment.start_date)} - ${formatDate(enrollment.end_date)}`;
 
   // => The batch name itself is the clickable link to the batch detail
   //    page - dates stay as plain text right after it. Falls back to
@@ -1309,8 +1308,8 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
     : !enrollment.start_date
       ? ' (dates TBA)'
       : !enrollment.end_date
-        ? ` – ${formatDate(enrollment.start_date)} – Ongoing`
-        : ` – ${formatDate(enrollment.start_date)} – ${formatDate(enrollment.end_date)}`;
+        ? ` - ${formatDate(enrollment.start_date)} - Ongoing`
+        : ` - ${formatDate(enrollment.start_date)} - ${formatDate(enrollment.end_date)}`;
 
   const classPeriodValue = enrollment.batch_id && enrollment.batch_public_id ? (
     <>
@@ -2140,17 +2139,48 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                           <th>Actor</th>
                           <th>Action</th>
                           <th>Details</th>
+                          <th></th>
                         </tr>
                       </thead>
                       <tbody>
-                        {pagedLogs.map((log, i) => (
-                          <tr key={log.log_id ?? i}>
-                            <td>{formatDateTime(log.created_at)}</td>
-                            <td>{log.performed_by_name ?? 'System'}</td>
-                            <td>{log.action}</td>
-                            <td>{log.remarks || '—'}</td>
-                          </tr>
-                        ))}
+                        {pagedLogs.map((log, i) => {
+                          const logKey = log.log_id ?? i;
+                          const isExpanded = expandedLogId === logKey;
+                          return (
+                            <React.Fragment key={logKey}>
+                              <tr
+                                className="adm-log-row"
+                                onClick={() => setExpandedLogId(isExpanded ? null : logKey)}
+                              >
+                                <td>{formatDateTime(log.created_at)}</td>
+                                <td>{log.performed_by_name ?? 'System'}</td>
+                                <td>{log.action}</td>
+                                <td className="adm-log-detail-cell" title={log.remarks || ''}>
+                                  {log.remarks || '-'}
+                                </td>
+                                <td>
+                                  <img
+                                    src={chevronDown}
+                                    alt="Expand row"
+                                    className={`adm-log-chevron ${isExpanded ? 'adm-log-chevron-open' : ''}`}
+                                  />
+                                </td>
+                              </tr>
+                              {isExpanded && (
+                                <tr className="adm-log-detail-row">
+                                  <td colSpan={5}>
+                                    <div className="adm-log-detail-full">
+                                      {/* => Single flowing paragraph - wraps naturally to fill the
+                                           full row width, only breaking when text actually runs out
+                                           of room, instead of hard-breaking on every changed field */}
+                                      <p>{log.remarks || '-'}</p>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

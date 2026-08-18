@@ -8,11 +8,24 @@ import {
   getDeletedTrainers,
   createTrainerWithCourses,
   getTrainerById,
+  getTrainerIdByPublicId,
   updateTrainerWithCourses,
   softDeleteTrainer,
   restoreTrainer,
+  getTesdaCourseTitlesByIds,
+  getShsCourseTitlesByIds,
 } from '../../models/Classes/adminTrainerModel.js';
-import { logActivity } from '../../models/adminActivityLogModel.js';
+// => Non-paginated fetch, matches the Batches/Facilities pattern - one
+//    trainer won't accumulate enough log rows to need pagination
+import { logActivity, getActivityLogsForEntity } from '../../models/adminActivityLogModel.js';
+// => Canonical action taxonomy - replaces the free-text action strings below,
+//    which were silently failing logActivity's INSERT against the
+//    activity_logs_action_check constraint (same bug pattern found in
+//    Class Sessions, Batches, and Facilities)
+import { ACTIVITY_ACTIONS } from '../../constants/activityActions.js';
+// => Real old -> new diff builder, same pattern already used on
+//    Enrollments, Batches, and Facilities
+import { buildFieldDiff, formatDiffDetail } from '../../utils/buildFieldDiff.js';
 
 // => Shared validation: at least one program type enabled, and every
 //    enabled program type has at least one course selected. Used by both
@@ -83,10 +96,10 @@ export const addTrainer = async (data, actor) => {
   await logActivity(pool, {
     entity_type: 'trainer',
     entity_id: created.trainer_id,
-    actor_type: 'Admin',
+    actor_type: 'Staff',
     actor_id: actor?.admin_id,
     actor_name: actor?.full_name,
-    action: 'Trainer Created',
+    action: ACTIVITY_ACTIONS.CREATE,
     action_detail: `Created trainer "${created.trainer_full_name}".`,
   });
 
@@ -158,19 +171,80 @@ export const editTrainer = async (publicId, data, actor) => {
     updated_by: actor?.admin_id || null,
   });
 
-  // => Logs every save, not just status changes, per standing audit
-  //    requirement - the action label and detail differ depending on
-  //    whether this particular save happened to change the status
+  // => Builds a real old -> new diff for the action_detail instead of a
+  //    flat "Updated details..." string - same buildFieldDiff/
+  //    formatDiffDetail pattern used on Facilities. A status change keeps
+  //    its own distinct message, since STATUS_CHANGE is a different
+  //    action type from a routine field UPDATE.
+  let actionDetail;
+  if (isStatusChange) {
+    actionDetail = `Status changed from "${existing.status}" to "${normalizedStatus}". Reason: ${remarksTrimmed}`;
+  } else {
+    const scalarChanges = buildFieldDiff(existing, {
+      trainer_full_name: trainer_full_name.trim(),
+      contact_number: contact_number.trim(),
+      email: emailTrimmed,
+    }, {
+      trainer_full_name: 'Full Name',
+      contact_number: 'Contact Number',
+      email: 'Email',
+    });
+
+    const extraChanges = [];
+
+    // => handles_tesda/handles_shs are booleans - buildFieldDiff's generic
+    //    normalize() would print raw "true"/"false", so these are built
+    //    manually for readable Yes/No lines instead
+    if (!!existing.handles_tesda !== !!handles_tesda) {
+      extraChanges.push(
+        `Handles TESDA Courses: "${existing.handles_tesda ? 'Yes' : 'No'}" => "${handles_tesda ? 'Yes' : 'No'}"`
+      );
+    }
+    if (!!existing.handles_shs !== !!handles_shs) {
+      extraChanges.push(
+        `Handles SHS Courses: "${existing.handles_shs ? 'Yes' : 'No'}" => "${handles_shs ? 'Yes' : 'No'}"`
+      );
+    }
+
+    // => Course assignments only matter while their program type is
+    //    enabled - mirrors updateTrainerWithCourses' own logic, where a
+    //    handles_tesda=false save wipes trainer_tesda_courses regardless
+    //    of what was submitted in the array
+    const effectiveNewTesdaIds = handles_tesda ? (tesda_course_ids || []) : [];
+    const effectiveNewShsIds = handles_shs ? (shs_course_ids || []) : [];
+
+    const [oldTesdaTitles, newTesdaTitles, oldShsTitles, newShsTitles] = await Promise.all([
+      getTesdaCourseTitlesByIds(pool, existing.tesda_course_ids),
+      getTesdaCourseTitlesByIds(pool, effectiveNewTesdaIds),
+      getShsCourseTitlesByIds(pool, existing.shs_course_ids),
+      getShsCourseTitlesByIds(pool, effectiveNewShsIds),
+    ]);
+
+    const oldTesdaStr = oldTesdaTitles.slice().sort().join(', ') || 'None';
+    const newTesdaStr = newTesdaTitles.slice().sort().join(', ') || 'None';
+    if (oldTesdaStr !== newTesdaStr) {
+      extraChanges.push(`Assigned TESDA Courses: "${oldTesdaStr}" => "${newTesdaStr}"`);
+    }
+
+    const oldShsStr = oldShsTitles.slice().sort().join(', ') || 'None';
+    const newShsStr = newShsTitles.slice().sort().join(', ') || 'None';
+    if (oldShsStr !== newShsStr) {
+      extraChanges.push(`Assigned SHS Courses: "${oldShsStr}" => "${newShsStr}"`);
+    }
+
+    actionDetail = formatDiffDetail('Trainer Details', [...scalarChanges, ...extraChanges]);
+  }
+
+  // => Logs every save, not just status changes - the action label
+  //    differs depending on whether this particular save changed the status
   await logActivity(pool, {
     entity_type: 'trainer',
     entity_id: updated.trainer_id,
-    actor_type: 'Admin',
+    actor_type: 'Staff',
     actor_id: actor?.admin_id,
     actor_name: actor?.full_name,
-    action: isStatusChange ? 'Status Change' : 'Trainer Updated',
-    action_detail: isStatusChange
-      ? `Status changed from "${existing.status}" to "${normalizedStatus}". Reason: ${remarksTrimmed}`
-      : `Updated details for trainer "${updated.trainer_full_name}".`,
+    action: isStatusChange ? ACTIVITY_ACTIONS.STATUS_CHANGE : ACTIVITY_ACTIONS.UPDATE,
+    action_detail: actionDetail,
   });
 
   return updated;
@@ -190,10 +264,10 @@ export const deleteTrainer = async (publicId, remarks, actor) => {
     await logActivity(pool, {
       entity_type: 'trainer',
       entity_id: deleted.trainer_id,
-      actor_type: 'Admin',
+      actor_type: 'Staff',
       actor_id: actor?.admin_id,
       actor_name: actor?.full_name,
-      action: 'Trainer Deleted',
+      action: ACTIVITY_ACTIONS.SOFT_DELETE,
       action_detail: `Deleted trainer "${deleted.trainer_full_name}". Reason: ${remarksTrimmed}`,
     });
   }
@@ -209,13 +283,23 @@ export const restoreTrainerService = async (publicId, actor) => {
     await logActivity(pool, {
       entity_type: 'trainer',
       entity_id: restored.trainer_id,
-      actor_type: 'Admin',
+      actor_type: 'Staff',
       actor_id: actor?.admin_id,
       actor_name: actor?.full_name,
-      action: 'Trainer Restored',
+      action: ACTIVITY_ACTIONS.RESTORE,
       action_detail: `Restored trainer "${restored.trainer_full_name}".`,
     });
   }
 
   return restored;
+};
+
+// GET TRAINER ACTIVITY LOGS
+// => Resolves public_id to the internal trainer_id first, then reuses the
+//    generic getActivityLogsForEntity helper - matches Facilities' and the
+//    Batches' fetchLogs pattern (fetch everything, no pagination).
+export const fetchTrainerLogs = async (publicId) => {
+  const trainerId = await getTrainerIdByPublicId(pool, publicId);
+  if (!trainerId) return null;
+  return await getActivityLogsForEntity(pool, 'trainer', trainerId);
 };

@@ -76,8 +76,8 @@ function App() {
                     <Route path="classes/tesda/:publicId" element={<TesdaBatchDetail />} />
                     <Route path="classes/shs/:publicId"   element={<ShsBatchDetail />} />
                     <Route path="classes/sessions/:facilityPublicId" element={<FacilitySessionCalendar />} />
-                    <Route path="facilities/:publicId"  element={<FacilityDetail />} />
-                    <Route path="trainers/:publicId" element={<TrainerDetail />} />
+                    <Route path="classes/facilities/:publicId"  element={<FacilityDetail />} />
+                    <Route path="classes/trainers/:publicId" element={<TrainerDetail />} />
 
                     <Route path="support-tickets"       element={<SupportTickets />} />
                     <Route path="support-tickets/:publicId" element={<PublicSupportTicketDetail />} />

@@ -501,6 +501,90 @@
   color: #4b5563;
 }
 
+/* => FIX: the trainer <select> here had no flex sizing of its own, so it
+      fell back to the browser's shrink-to-content default width instead
+      of filling the remaining row space next to the fixed-width label -
+      that's what made it collapse down to a barely-visible sliver */
+.adm-course-trainer-row .adm-form-select {
+  flex: 1;
+  min-width: 160px;
+}
+
+/* => FIX: Course Trainers needs real width for its label+select rows
+      (160px label + 160px+ select + gap), but as a plain grid item inside
+      .adm-info-grid it only ever got one ~200-250px column, same as
+      Start Date / Max Students / etc. The select then overflowed
+      sideways into the neighboring grid cell, which is what visually
+      "overlapped" the Start Date input next to it.
+   => FIX #2: spanning the FULL row (1 / -1) pushed it onto its own row
+      below Cluster instead of sitting beside it. Starting the span at
+      column 2 keeps it in the same grid row as Cluster (column 1), just
+      claiming all the remaining columns in that row instead of fighting
+      Cluster for a single narrow cell - no more overlap, and it stays
+      on the same line as requested. */
+.adm-course-trainers-group {
+  grid-column: 2 / -1;
+}
+
+.adm-course-trainer-grade-group:last-child {
+  margin-bottom: 0;
+}
+
+/* => Was referenced in the JSX but never actually styled anywhere in
+      this file - rendered as unstyled default text before this */
+.adm-cluster-courses-grade {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #9ca3af;
+  margin-bottom: 6px;
+}
+
+/* ════════════════════════════════════
+   ACTIVITY LOGS - expandable rows
+   => Table itself reuses .adm-sub-table-wrap / .adm-sub-table already
+      defined above, this only adds the row-click/expand behavior on top
+   ════════════════════════════════════ */
+.adm-log-row {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.adm-log-row:hover {
+  background: rgba(102, 9, 17, 0.05);
+}
+
+.adm-log-detail-cell {
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adm-log-detail-row td {
+  background: #f4f3ec;
+  padding: 14px 20px;
+}
+
+.adm-log-detail-full p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+.adm-log-chevron {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.15s ease;
+  opacity: 0.6;
+}
+
+.adm-log-chevron-open {
+  transform: rotate(180deg);
+}
+
 @media (max-width: 640px) {
   .adm-shs-batch-detail-page   { padding: 20px 16px 48px; }
   .adm-batch-detail-hero        { padding: 20px; }

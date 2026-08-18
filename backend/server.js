@@ -49,6 +49,8 @@ import refundsRoutes from './routes/Payments/refundsRoutes.js';
 // Page: Pages (Announcements / Privacy Policy / FAQs)
 import announcementRoutes from './routes/Pages/announcementRoutes.js';
 import cmsPageRoutes from './routes/Pages/cmsPageRoutes.js';
+import termsPageRoutes from './routes/Pages/termsPageRoutes.js';
+
 import faqSectionRoutes from './routes/Pages/faqSectionRoutes.js';
 import faqRoutes from './routes/Pages/faqRoutes.js';
 
@@ -132,6 +134,7 @@ app.use('/api/refunds', refundsRoutes);
 // Pages
 app.use('/api/admin/pages/announcements', announcementRoutes);
 app.use('/api/admin/pages/privacy-policy', cmsPageRoutes);
+app.use('/api/admin/pages/terms-and-conditions', termsPageRoutes);
 app.use('/api/admin/pages/faqs-sections', faqSectionRoutes);
 app.use('/api/admin/pages/faqs', faqRoutes);
 
@@ -225,6 +228,69 @@ async function initDB() {
             )
         `;
 
+        // => System-wide activity log table, mirrored here now that the logging
+        //    campaign is underway. This table already existed live in Neon with
+        //    real data and CHECK constraints applied, but was never mirrored
+        //    into server.js until now.
+        // => entity_type is intentionally left unconstrained (no CHECK) since it
+        //    mirrors table/feature names directly and would need constant upkeep
+        //    as new loggable modules get added.
+        // => action and actor_type are both CHECK-constrained at the DB level.
+        //    action is a generic, reusable taxonomy shared across every entity
+        //    type, specifics belong in action_detail, not in action itself.
+        await sql`
+            CREATE TABLE IF NOT EXISTS activity_logs (
+                log_id          SERIAL        PRIMARY KEY,
+                entity_type     VARCHAR(30),
+                entity_id       INTEGER,
+                actor_type      VARCHAR(10)   NOT NULL
+                                CHECK (actor_type IN ('Staff', 'Student', 'System')),
+                actor_id        INTEGER,
+                actor_name      VARCHAR(150)  NOT NULL,
+                action          VARCHAR(50)   NOT NULL
+                                CHECK (action IN (
+                                    'CREATE', 'UPDATE', 'DELETE', 'STATUS_CHANGE', 'SOFT_DELETE',
+                                    'RESTORE', 'VOID', 'SUSPEND', 'REACTIVATE', 'INVITE',
+                                    'RESET_PASSWORD', 'PASSWORD_CHANGE', 'LOGIN', 'DOCUMENT_ADD',
+                                    'DOCUMENT_REPLACE', 'PERMISSION_CHANGE', 'RELEASE'
+                                )),
+                action_detail   TEXT          NOT NULL,
+                created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+            )
+        `;
+
+        // => Mirrors the live cms_pages table - already exists in Neon,
+        //    never mirrored into server.js until now. Holds Privacy
+        //    Policy today, Terms and Conditions later, one row per slug.
+        await sql`
+            CREATE TABLE IF NOT EXISTS cms_pages (
+                page_id      SERIAL PRIMARY KEY,
+                slug         VARCHAR(50) UNIQUE NOT NULL,
+                content      TEXT NOT NULL DEFAULT '',
+                updated_by   INTEGER NOT NULL REFERENCES admins(admin_id),
+                updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+            )
+        `;
+
+        // => Snapshot of a cms_pages row's content right before every
+        //    overwrite - only written for slugs in
+        //    cmsPageModel.js's REVISIONED_SLUGS (legal docs), so
+        //    Announcements/FAQs never touch this table
+        await sql`
+            CREATE TABLE IF NOT EXISTS cms_page_revisions (
+                revision_id  SERIAL PRIMARY KEY,
+                page_id      INTEGER NOT NULL REFERENCES cms_pages(page_id),
+                content      TEXT NOT NULL,
+                changed_by   INTEGER NOT NULL REFERENCES admins(admin_id),
+                changed_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+            )
+        `;
+
+        await sql`
+            CREATE INDEX IF NOT EXISTS idx_cms_page_revisions_page_id
+            ON cms_page_revisions (page_id, changed_at DESC)
+        `;
+
         // => Miscellaneous fee line items for a batch (SHS or TESDA).
         // => batch_type + batch_id mirrors class_sessions.batch_type /
         // => payments.enrollment_type - no DB-level FK is possible across
@@ -297,6 +363,8 @@ async function initDB() {
                 course_id               INTEGER,
                 status                   VARCHAR(10) NOT NULL DEFAULT 'inactive' CHECK (status IN ('active', 'inactive')),
                 created_by               INTEGER REFERENCES admins(admin_id) ON DELETE SET NULL,
+                -- => Lightweight attribution only, no activity_logs entry for this table
+                updated_by               INTEGER REFERENCES admins(admin_id) ON DELETE SET NULL,
                 created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()
             )

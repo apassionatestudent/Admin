@@ -99,7 +99,7 @@ export const patchShsEnrollmentStatus = async (req, res) => {
 //
 export const patchShsProfile = async (req, res) => {
   try {
-    const updated = await updateShsProfileSection(req.params.publicId, req.body);
+    const updated = await updateShsProfileSection(req.params.publicId, req.body, req.admin?.admin_id ?? null);
     if (!updated) return res.status(404).json({ error: 'Enrollment not found.' });
     return res.status(200).json({ success: true, profile: updated });
   } catch (err) {
@@ -110,7 +110,7 @@ export const patchShsProfile = async (req, res) => {
 
 export const patchShsAddress = async (req, res) => {
   try {
-    const updated = await updateShsAddressSection(req.params.publicId, req.body);
+    const updated = await updateShsAddressSection(req.params.publicId, req.body, req.admin?.admin_id ?? null);
     if (!updated) return res.status(404).json({ error: 'Enrollment not found.' });
     return res.status(200).json({ success: true, address: updated });
   } catch (err) {
@@ -123,7 +123,7 @@ export const patchShsAddress = async (req, res) => {
 //    Health Info, and Consent sections - all columns on shs_enrollments
 export const patchShsEnrollmentFields = async (req, res) => {
   try {
-    const updated = await updateShsEnrollmentSection(req.params.publicId, req.body);
+    const updated = await updateShsEnrollmentSection(req.params.publicId, req.body, req.admin?.admin_id ?? null);
     if (!updated) return res.status(404).json({ error: 'Enrollment not found.' });
     return res.status(200).json({ success: true, enrollment: updated });
   } catch (err) {
@@ -139,7 +139,7 @@ export const patchShsFamily = async (req, res) => {
     return res.status(400).json({ error: 'members must be an array.' });
   }
   try {
-    const updated = await updateShsFamilySection(req.params.publicId, members);
+    const updated = await updateShsFamilySection(req.params.publicId, members, req.admin?.admin_id ?? null);
     if (!updated) return res.status(404).json({ error: 'Enrollment not found.' });
     return res.status(200).json({ success: true, familyMembers: updated });
   } catch (err) {
@@ -166,7 +166,7 @@ export const postShsDocument = async (req, res) => {
     const key = `primeenroll/admin-uploads/${documentType.replace(/\s+/g, '_')}_${Date.now()}.${ext}`;
     await uploadToR2(req.file.buffer, key, req.file.mimetype);
 
-    const doc = await addShsDocumentSection(publicId, { documentType, documentKey: key });
+    const doc = await addShsDocumentSection(publicId, { documentType, documentKey: key }, req.admin?.admin_id ?? null);
     if (!doc) return res.status(404).json({ error: 'Enrollment not found.' });
     return res.status(201).json({ success: true, document: doc });
   } catch (err) {
@@ -184,7 +184,7 @@ export const patchShsDocument = async (req, res) => {
     const key = `primeenroll/admin-uploads/replace_${Date.now()}.${ext}`;
     await uploadToR2(req.file.buffer, key, req.file.mimetype);
 
-    const doc = await replaceShsDocumentSection(docPublicId, key);
+    const doc = await replaceShsDocumentSection(docPublicId, key, req.admin?.admin_id ?? null);
     if (!doc) return res.status(404).json({ error: 'Document not found.' });
     return res.status(200).json({ success: true, document: doc });
   } catch (err) {
@@ -199,7 +199,7 @@ export const patchShsDocument = async (req, res) => {
 export const deleteShsDocumentController = async (req, res) => {
   const { docPublicId } = req.params;
   try {
-    const result = await deleteShsDocumentSection(docPublicId);
+    const result = await deleteShsDocumentSection(docPublicId, req.admin?.admin_id ?? null);
     if (result.notFound) return res.status(404).json({ error: 'Document not found.' });
     if (result.blocked) {
       return res.status(403).json({ error: 'This document was submitted by the student and cannot be deleted. Use Replace instead.' });

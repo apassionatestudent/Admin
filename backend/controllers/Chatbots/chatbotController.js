@@ -45,7 +45,9 @@ export async function createChatbot(req, res) {
 
 export async function updateChatbot(req, res) {
     try {
-        const chatbot = await updateChatbotService(req.params.publicId, req.body);
+        // => req.admin.admin_id is the authenticated admin, used to stamp
+        //    updated_by - never trust an updated_by from req.body
+        const chatbot = await updateChatbotService(req.params.publicId, req.body, req.admin.admin_id);
         res.status(200).json({ data: chatbot });
     } catch (error) {
         console.error('Failed to update chatbot:', error);

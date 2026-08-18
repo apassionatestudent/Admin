@@ -26,8 +26,12 @@ export async function createSector(req, res) {
 export async function deleteSector(req, res) {
   try {
     const { sectorId } = req.params;
-    await SectorClusterService.deleteSector(sectorId);
-    res.status(200).json({ success: true, message: 'Sector deleted' });
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
+    const result = await SectorClusterService.deleteSector(sectorId, actor);
+    const message = result.affectedCourseCount > 0
+      ? `Sector deleted. ${result.affectedCourseCount} related course(s) were marked inactive.`
+      : 'Sector deleted';
+    res.status(200).json({ success: true, message, affectedCourseCount: result.affectedCourseCount });
   } catch (error) {
     console.error('deleteSector error:', error);
     res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Failed to delete sector' });
@@ -79,8 +83,12 @@ export async function createCluster(req, res) {
 export async function deleteCluster(req, res) {
   try {
     const { clusterId } = req.params;
-    await SectorClusterService.deleteCluster(clusterId);
-    res.status(200).json({ success: true, message: 'Cluster deleted' });
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
+    const result = await SectorClusterService.deleteCluster(clusterId, actor);
+    const message = result.affectedCourseCount > 0
+      ? `Cluster deleted. ${result.affectedCourseCount} related course(s) were marked inactive.`
+      : 'Cluster deleted';
+    res.status(200).json({ success: true, message, affectedCourseCount: result.affectedCourseCount });
   } catch (error) {
     console.error('deleteCluster error:', error);
     res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Failed to delete cluster' });

@@ -407,7 +407,7 @@ export default function Students() {
                 onClick={() => goToPage(currentPage - 1)}
                 disabled={currentPage === 1}
               >
-                ‹ Prev
+                Prev
               </button>
 
               {buildPageNumbers().map((p, i) =>
@@ -429,7 +429,7 @@ export default function Students() {
                 onClick={() => goToPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
               >
-                Next ›
+                Next
               </button>
             </div>
           )}

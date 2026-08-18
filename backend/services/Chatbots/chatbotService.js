@@ -119,7 +119,7 @@ export async function createChatbotService(payload, adminId) {
     }
 }
 
-export async function updateChatbotService(publicId, fields) {
+export async function updateChatbotService(publicId, fields, adminId) {
     if (fields.status && !ALLOWED_STATUSES.includes(fields.status)) {
         const error = new Error('Invalid status. Must be active or inactive.');
         error.statusCode = 400;
@@ -142,7 +142,9 @@ export async function updateChatbotService(publicId, fields) {
     }
 
     try {
-        const updated = await updateChatbotByPublicId(publicId, setClause, values);
+        // => adminId comes from the controller (req.admin.admin_id), stamped
+        //    as updated_by inside the model, not part of PATCHABLE_COLUMNS
+        const updated = await updateChatbotByPublicId(publicId, setClause, values, adminId);
         if (!updated) {
             const error = new Error('Chatbot not found');
             error.statusCode = 404;

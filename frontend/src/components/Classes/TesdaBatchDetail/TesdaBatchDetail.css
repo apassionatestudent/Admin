@@ -465,6 +465,49 @@
   white-space: nowrap;
 }
 
+/* ════════════════════════════════════
+   ACTIVITY LOGS - expandable rows
+   => Table itself reuses .adm-sub-table-wrap / .adm-sub-table already
+      defined above, this only adds the row-click/expand behavior on top
+   ════════════════════════════════════ */
+.adm-log-row {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.adm-log-row:hover {
+  background: rgba(102, 9, 17, 0.05);
+}
+
+.adm-log-detail-cell {
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adm-log-detail-row td {
+  background: #f4f3ec;
+  padding: 14px 20px;
+}
+
+.adm-log-detail-full p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+.adm-log-chevron {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.15s ease;
+  opacity: 0.6;
+}
+
+.adm-log-chevron-open {
+  transform: rotate(180deg);
+}
+
 @media (max-width: 640px) {
   .adm-tesda-batch-detail-page { padding: 20px 16px 48px; }
   .adm-batch-detail-hero        { padding: 20px; }

@@ -21,6 +21,7 @@ import AddSessionModal from '../AddSessionModal/addSessionModal.jsx';
 // => Shared spinner/error block, replaces the local fsc-state markup below
 import LoadingState from '../../LoadingState/loadingState.jsx'; 
 import calendarIcon from '../../../assets/icons/calendar.png'; 
+import chevronDown from '../../../assets/icons/chevron-down.png';
 import './facilitySessionCalendar.css';
 
 // => FIX: the previous localizer wrapped startOfWeek in `() => startOfWeek(new
@@ -91,6 +92,15 @@ export default function FacilitySessionCalendar() {
   const [holidays, setHolidays] = useState({});
   const fetchedYearsRef = useRef(new Set());
 
+  // => Activity Logs section state - deliberately NOT tied to visibleRange,
+  //    always shows the most recent logs for this facility regardless of
+  //    which week/month the calendar grid is currently showing
+  const [logs, setLogs] = useState([]);
+  const [logsTotal, setLogsTotal] = useState(0);
+  const [logPage, setLogPage] = useState(1);
+  const [logsLoading, setLogsLoading] = useState(true);
+  const [expandedLogId, setExpandedLogId] = useState(null);
+
   useEffect(() => {
     const years = new Set([visibleRange.start.getFullYear(), visibleRange.end.getFullYear()]);
     const yearsToFetch = [...years].filter(y => !fetchedYearsRef.current.has(y));
@@ -133,6 +143,23 @@ export default function FacilitySessionCalendar() {
     fetchSessions(visibleRange);
   }, [fetchSessions, visibleRange]);
 
+  const fetchLogs = useCallback(async (page) => {
+    setLogsLoading(true);
+    try {
+      const res = await axiosAdmin.get(`/api/admin/class-sessions/facilities/${facilityPublicId}/logs?page=${page}`);
+      setLogs(res.data.logs);
+      setLogsTotal(res.data.total);
+    } catch (err) {
+      console.error('Failed to load facility activity logs:', err);
+    } finally {
+      setLogsLoading(false);
+    }
+  }, [facilityPublicId]);
+
+  useEffect(() => {
+    fetchLogs(logPage);
+  }, [fetchLogs, logPage]);
+
   const handleRangeChange = (range) => {
     if (Array.isArray(range)) {
       setVisibleRange({ start: range[0], end: range[range.length - 1] });
@@ -163,6 +190,8 @@ export default function FacilitySessionCalendar() {
     setShowAddModal(false);
     setSlotPrefill(null);
     fetchSessions(visibleRange);
+    setLogPage(1);
+    fetchLogs(1);
     toast.success('Class session created.');
   };
 
@@ -227,7 +256,7 @@ export default function FacilitySessionCalendar() {
   //    control, so centering just works.
   const CustomEvent = ({ event }) => (
     <div className="fsc-event-inner">
-      <span className="fsc-event-time">{format(event.start, 'h:mm a')} – {format(event.end, 'h:mm a')}</span>
+      <span className="fsc-event-time">{format(event.start, 'h:mm a')} - {format(event.end, 'h:mm a')}</span>
       <span className="fsc-event-title">{event.title}</span>
     </div>
   );
@@ -244,7 +273,7 @@ export default function FacilitySessionCalendar() {
 
   return (
     <div className="fsc-page">
-      <BackButton />
+      <BackButton destination="Classes"/>
 
       <div className="fsc-header">
         <img className="fsc-header-icon" src={calendarIcon} alt="" />
@@ -283,6 +312,106 @@ export default function FacilitySessionCalendar() {
       </div>
 
       <p className="fsc-legend"><span className="fsc-legend-swatch" /> Philippine holiday</p>
+
+      {/* ════════════════════════════════════
+          ACTIVITY LOGS
+          => Facility-scoped, newest first, always 10 per page. Independent
+             of the calendar's visible date range on purpose.
+          ════════════════════════════════════ */}
+      <section className="fsc-logs-section">
+        <h3 className="fsc-logs-title">
+          Activity Logs
+          <span className="fsc-logs-count">{logsTotal}</span>
+        </h3>
+
+        {logsLoading ? (
+          <p className="fsc-empty-note">Loading activity logs…</p>
+        ) : logs.length === 0 ? (
+          <p className="fsc-empty-note">No activity recorded yet.</p>
+        ) : (
+          <>
+            <div className="fsc-log-table-wrap">
+              <table className="fsc-log-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Actor</th>
+                    <th>Action</th>
+                    <th>Details</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map((log) => {
+                    const isExpanded = expandedLogId === log.log_id;
+                    return (
+                      <React.Fragment key={log.log_id}>
+                        <tr
+                          className="fsc-log-row"
+                          onClick={() => setExpandedLogId(isExpanded ? null : log.log_id)}
+                        >
+                          <td>{format(new Date(log.created_at), 'MMM d, yyyy h:mm a')}</td>
+                          <td>{log.actor_name}</td>
+                          <td>{log.action}</td>
+                          <td className="fsc-log-detail-cell" title={log.action_detail || ''}>
+                            {log.action_detail || '-'}
+                          </td>
+                          <td>
+                            <img
+                              src={chevronDown}
+                              alt="Expand row"
+                              className={`fsc-log-chevron ${isExpanded ? 'fsc-log-chevron-open' : ''}`}
+                            />
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr className="fsc-log-detail-row">
+                            <td colSpan={5}>
+                              <div className="fsc-log-detail-full">
+                                {/* => Single flowing paragraph, wraps naturally instead of
+                                     hard-breaking on every changed field */}
+                                <p>{log.action_detail || '-'}</p>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {Math.ceil(logsTotal / 10) > 1 && (
+              <div className="fsc-log-pagination">
+                <button
+                  className="fsc-log-page-btn"
+                  onClick={() => setLogPage(p => Math.max(1, p - 1))}
+                  disabled={logPage === 1}
+                >
+                  Prev
+                </button>
+                {Array.from({ length: Math.ceil(logsTotal / 10) }, (_, i) => i + 1).map(p => (
+                  <button
+                    key={p}
+                    className={`fsc-log-page-btn ${p === logPage ? 'fsc-log-page-btn--active' : ''}`}
+                    onClick={() => setLogPage(p)}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  className="fsc-log-page-btn"
+                  onClick={() => setLogPage(p => Math.min(Math.ceil(logsTotal / 10), p + 1))}
+                  disabled={logPage === Math.ceil(logsTotal / 10)}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </section>
 
       {showAddModal && (
         <AddSessionModal

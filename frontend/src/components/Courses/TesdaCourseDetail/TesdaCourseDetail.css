@@ -361,81 +361,12 @@
   color: var(--text-muted, var(--text));
 }
 
-/* => Publish section */
-
-.publish-section {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
-}
-
-.publish-section h3 {
-  margin: 0;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted, var(--text));
-}
-
-.publish-empty p {
-  color: var(--text-muted, var(--text));
-  margin-bottom: 12px;
-  font-size: 0.875rem;
-}
-
-.publish-details {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.publish-row .field-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--text-muted, var(--text));
-  margin-bottom: 6px;
-}
-
-.publish-row p {
-  margin: 0;
-  color: var(--text);
-}
+/* => Publish section removed - status alone now governs course visibility */
 
 .form-error {
   color: #dc2626;
   font-size: 13px;
   margin: 4px 0 0;
-}
-
-.slug-view-row,
-.slug-edit-row,
-.publish-status-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.slug-view-row code {
-  background: var(--code-bg, var(--bg));
-  color: var(--text);
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 13px;
-}
-
-.slug-edit-row input {
-  flex: 1;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 14px;
-  color: var(--text);
-  background: var(--bg);
 }
 
 
@@ -461,10 +392,15 @@
   color: #991b1b;
 }
 
-/* => Audit Log - fresh CSS, not ported from tesdaEnrollmentDetail.css
-   => (wasn't available this round) - uses this page's own token/naming
-   => convention instead. */
-.audit-log-section {
+/* ════════════════════════════════════
+   ACTIVITY LOGS - chevron-expandable rows
+   => Replaces the old dot-timeline audit log with the standardized pattern
+      from TesdaBatchDetail.css/Facilities/Trainers/Support Tickets - one
+      shared visual language across the admin dashboard's detail pages.
+      Classes duplicated into this page's own CSS file per your
+      no-shared-abstraction policy, not imported from TesdaBatchDetail.css.
+   ════════════════════════════════════ */
+.adm-batch-section {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -472,90 +408,128 @@
   margin-top: 20px;
 }
 
-.audit-log-section .section-header h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.adm-section-title {
   font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted, var(--text));
+  margin: 0 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.section-count {
+.adm-section-count-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
   background: var(--code-bg, var(--bg));
   border: 1px solid var(--border);
   color: var(--text-muted, var(--text));
   font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.adm-empty-note {
+  font-size: 0.875rem;
+  color: var(--text-muted, var(--text));
+  margin: 0;
+}
+
+.adm-sub-table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.adm-sub-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8375rem;
+  color: var(--text);
+  min-width: 560px;
+}
+
+.adm-sub-table thead tr {
+  background: var(--code-bg, var(--bg));
+  border-bottom: 1px solid var(--border);
+}
+
+.adm-sub-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.72rem;
   font-weight: 600;
-  padding: 1px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, var(--text));
+  white-space: nowrap;
+}
+
+.adm-sub-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.adm-sub-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.adm-td-date {
+  white-space: nowrap;
+  color: var(--text-muted, var(--text));
+}
+
+.adm-badge {
+  display: inline-block;
+  padding: 3px 10px;
   border-radius: 999px;
-}
-
-.log-empty {
-  color: var(--text-muted, var(--text));
-  font-size: 0.875rem;
-  margin: 0;
-}
-
-.log-timeline {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.log-item {
-  display: flex;
-  gap: 12px;
-  padding-bottom: 16px;
-  position: relative;
-}
-
-.log-item:not(:last-child)::before {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 12px;
-  bottom: 0;
-  width: 1px;
-  background: var(--border);
-}
-
-.log-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--accent-hover, #8a0d17);
-  margin-top: 4px;
-  flex-shrink: 0;
-  z-index: 1;
-}
-
-.log-content {
-  flex: 1;
-}
-
-.log-action {
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.log-status-change {
-  font-weight: 400;
-  color: var(--text-muted, var(--text));
-}
-
-.log-meta {
-  margin: 2px 0 0;
   font-size: 0.75rem;
-  color: var(--text-muted, var(--text));
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
-.log-remarks {
-  margin: 4px 0 0;
-  font-size: 0.8125rem;
+.adm-log-row {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.adm-log-row:hover {
+  background: rgba(102, 9, 17, 0.05); /* => maroon tint, matches Courses.css's own row-hover tone */
+}
+
+.adm-log-detail-cell {
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adm-log-detail-row td {
+  background: var(--code-bg, var(--bg));
+  padding: 14px 20px;
+}
+
+.adm-log-detail-full p {
+  margin: 0;
+  font-size: 0.85rem;
   color: var(--text);
+}
+
+.adm-log-chevron {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.15s ease;
+  opacity: 0.6;
+}
+
+.adm-log-chevron-open {
+  transform: rotate(180deg);
 }

@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 
 import axiosAdmin from '../../../utils/axiosAdmin.js';
 import RichTextEditor from '../RichTextEditor/richTextEditor.jsx';
+import PrivacyPolicyRevisions from '../PrivacyPolicyRevisions/privacyPolicyRevisions.jsx';
 import LoadingState from '../../LoadingState/loadingState.jsx';
 import './privacyPolicyWYSIWYG.css';
 
@@ -17,6 +18,10 @@ const PrivacyPolicyWYSIWYG = forwardRef(function PrivacyPolicyWYSIWYG(_props, re
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
+  // => Passed down to PrivacyPolicyRevisions as a prop - incrementing it
+  //    forces that component's effect to re-run and refetch, since props
+  //    changing (not just state) is what a child component can react to
+  const [revisionsRefreshKey, setRevisionsRefreshKey] = useState(0);
 
   const fetchPrivacyPolicy = async () => {
     setLoading(true);
@@ -41,6 +46,7 @@ const PrivacyPolicyWYSIWYG = forwardRef(function PrivacyPolicyWYSIWYG(_props, re
       const res = await axiosAdmin.put('/api/admin/pages/privacy-policy', { content });
       setContent(res.data.page.content || '');
       toast.success('Privacy Policy saved.');
+      setRevisionsRefreshKey((prev) => prev + 1); // => tells PrivacyPolicyRevisions a new revision was just written
     } catch (err) {
       console.error('Failed to save privacy policy:', err);
       toast.error(err.response?.data?.error || 'Failed to save privacy policy.');
@@ -63,6 +69,11 @@ const PrivacyPolicyWYSIWYG = forwardRef(function PrivacyPolicyWYSIWYG(_props, re
           placeholder="Write the privacy policy…"
         />
       )}
+
+      {/* => Renders independently of the editor's own loading state, so
+             revision history stays visible even if the live content
+             fetch above fails or is still loading */}
+      <PrivacyPolicyRevisions refreshKey={revisionsRefreshKey} />
     </div>
   );
 });

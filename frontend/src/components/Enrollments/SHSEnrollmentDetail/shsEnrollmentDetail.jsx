@@ -30,6 +30,7 @@ import checkMarkIcon from '../../../assets/icons/checkmark.png';
 import errorIcon from '../../../assets/icons/warning.png';
 import pencilIcon from '../../../assets/icons/pencil.png';
 import trashIcon from '../../../assets/icons/trash.png';
+import chevronDown from '../../../assets/icons/chevron-down.png';
 
 // Constants
 
@@ -581,6 +582,8 @@ export default function SHSEnrollmentDetail() {
   // => Client-side pagination for the Activity Logs table - same
   //    reasoning as tesdaEnrollmentDetail.jsx
   const [logPage, setLogPage] = useState(1);
+  // => Which Activity Logs row is expanded to show its full diff, null when none
+  const [expandedLogId, setExpandedLogId] = useState(null);
   const [nationalities, setNationalities] = useState([]);
   const [saving,         setSaving]         = useState(false);
   // => saveMsg state removed - status save feedback now goes through
@@ -923,26 +926,25 @@ export default function SHSEnrollmentDetail() {
       return;
     }
     try {
-      // => cluster, track, and electives dropped - track/cluster are locked
-      //    (see JSX), and electives is now a read-only InfoCard with a
-      //    view-full modal, not part of this section's editable draft anymore.
-      const result = await patchSection('enrollment', {
+      await patchSection('enrollment', {
         lrn: draft.lrn,
       });
-      setData(prev => ({ ...prev, enrollment: { ...prev.enrollment, ...result.enrollment } }));
+      // => Full refetch instead of local merge - picks up the new
+      //    Activity Logs row immediately, same pattern as status changes
+      await refreshDetail();
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
 
   const handleSaveAcademic = async () => {
     try {
-      const result = await patchSection('enrollment', {
+      await patchSection('enrollment', {
         last_school_attended: draft.last_school_attended,
         school_address: draft.school_address,
         grade_level_completed: draft.grade_level_completed,
         school_year_completed: draft.school_year_completed,
       });
-      setData(prev => ({ ...prev, enrollment: { ...prev.enrollment, ...result.enrollment } }));
+      await refreshDetail();
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
@@ -954,13 +956,13 @@ export default function SHSEnrollmentDetail() {
       return;
     }
     try {
-      const result = await patchSection('enrollment', {
+      await patchSection('enrollment', {
         emergency_name: draft.emergency_name,
         emergency_relationship: draft.emergency_relationship,
         emergency_contact_no: draft.emergency_contact_no,
         emergency_address: draft.emergency_address,
       });
-      setData(prev => ({ ...prev, enrollment: { ...prev.enrollment, ...result.enrollment } }));
+      await refreshDetail();
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
@@ -971,13 +973,13 @@ export default function SHSEnrollmentDetail() {
       return;
     }
     try {
-      const result = await patchSection('enrollment', {
+      await patchSection('enrollment', {
         has_medical_condition: draft.has_medical_condition,
         medical_condition_detail: draft.medical_condition_detail,
         allergies: draft.allergies,
         maintenance_medication: draft.maintenance_medication,
       });
-      setData(prev => ({ ...prev, enrollment: { ...prev.enrollment, ...result.enrollment } }));
+      await refreshDetail();
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
@@ -999,16 +1001,16 @@ export default function SHSEnrollmentDetail() {
     }
 
     try {
-      const result = await patchSection('profile', draft);
-      setData(prev => ({ ...prev, profile: { ...prev.profile, ...result.profile } }));
+      await patchSection('profile', draft);
+      await refreshDetail();
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
 
   const handleSaveAddress = async () => {
     try {
-      const result = await patchSection('address', draft);
-      setData(prev => ({ ...prev, address: { ...prev.address, ...result.address } }));
+      await patchSection('address', draft);
+      await refreshDetail();
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
@@ -1024,8 +1026,8 @@ export default function SHSEnrollmentDetail() {
         contact_no: draft[`${m.role}_contact_no`] ?? m.contact_no,
         relationship_to_student: draft[`${m.role}_relationship_to_student`] ?? m.relationship_to_student,
       }));
-      const result = await patchSection('family', { members });
-      setData(prev => ({ ...prev, familyMembers: result.familyMembers }));
+      await patchSection('family', { members });
+      await refreshDetail();
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
@@ -1033,7 +1035,10 @@ export default function SHSEnrollmentDetail() {
   const handleSaveClassAssign = async () => {
     try {
       await patchSection('enrollment', { batch_id: draft.batch_id || null });
-      await fetchDetail(); // => refetch to pick up the newly joined class period/groupchat
+      // => Swapped fetchDetail() for refreshDetail() - same data, but skips
+      //    setLoading(true), so this stays consistent with every other
+      //    section save instead of flashing the whole page into the spinner
+      await refreshDetail();
       cancelEdit();
     } catch { /* sectionError already set */ }
   };
@@ -1061,10 +1066,7 @@ export default function SHSEnrollmentDetail() {
         formData,
         { headers: { 'Content-Type': undefined } } // => lets the browser set the multipart boundary itself, to upload new files
       );
-      setData(prev => ({
-        ...prev,
-        docs: prev.docs.map(d => d.public_id === docPublicId ? res.data.document : d),
-      }));
+      await refreshDetail();
     } catch (err) {
       setDocError(err.response?.data?.error || 'Failed to replace document.');
     } finally {
@@ -1077,7 +1079,7 @@ export default function SHSEnrollmentDetail() {
     setDocError(null);
     try {
       await axiosAdmin.delete(`/api/admin/enrollments/shs/${publicId}/docs/${docPublicId}`);
-      setData(prev => ({ ...prev, docs: prev.docs.filter(d => d.public_id !== docPublicId) }));
+      await refreshDetail();
     } catch (err) {
       setDocError(err.response?.data?.error || 'Failed to delete document.');
     } finally {
@@ -1097,12 +1099,12 @@ export default function SHSEnrollmentDetail() {
       const formData = new FormData();
       formData.append('document', addDocFile);
       formData.append('documentType', addDocType.trim());
-      const res = await axiosAdmin.post(
+      await axiosAdmin.post(
         `/api/admin/enrollments/shs/${publicId}/docs`,
         formData,
         { headers: { 'Content-Type': undefined } }
       );
-      setData(prev => ({ ...prev, docs: [...prev.docs, res.data.document] }));
+      await refreshDetail();
       setAddDocType('');
       setAddDocFile(null);
       setAddDocInputKey(k => k + 1); // => forces the file input to remount, clearing its display
@@ -1138,8 +1140,8 @@ export default function SHSEnrollmentDetail() {
     : !enrollment.start_date
       ? `${enrollment.batch_name} (dates TBA)`
       : !enrollment.end_date
-        ? `${enrollment.batch_name} – ${formatDate(enrollment.start_date)} – Ongoing`
-        : `${enrollment.batch_name} – ${formatDate(enrollment.start_date)} – ${formatDate(enrollment.end_date)}`;  
+        ? `${enrollment.batch_name} - ${formatDate(enrollment.start_date)} - Ongoing`
+        : `${enrollment.batch_name} - ${formatDate(enrollment.start_date)} - ${formatDate(enrollment.end_date)}`;  
 
   // => The batch name itself is the clickable link to the batch detail
   //    page - same reasoning as the TESDA version
@@ -1148,8 +1150,8 @@ export default function SHSEnrollmentDetail() {
     : !enrollment.start_date
       ? ' (dates TBA)'
       : !enrollment.end_date
-        ? ` – ${formatDate(enrollment.start_date)} – Ongoing`
-        : ` – ${formatDate(enrollment.start_date)} – ${formatDate(enrollment.end_date)}`;
+        ? ` - ${formatDate(enrollment.start_date)} - Ongoing`
+        : ` - ${formatDate(enrollment.start_date)} - ${formatDate(enrollment.end_date)}`;
 
   const classPeriodValue = enrollment.batch_id && enrollment.batch_public_id ? (
     <>
@@ -2014,17 +2016,48 @@ export default function SHSEnrollmentDetail() {
                           <th>Actor</th>
                           <th>Action</th>
                           <th>Details</th>
+                          <th></th>
                         </tr>
                       </thead>
                       <tbody>
-                        {pagedLogs.map((log, i) => (
-                          <tr key={log.log_id ?? i}>
-                            <td>{formatDateTime(log.created_at)}</td>
-                            <td>{log.performed_by_name ?? 'System'}</td>
-                            <td>{log.action}</td>
-                            <td>{log.remarks || '—'}</td>
-                          </tr>
-                        ))}
+                        {pagedLogs.map((log, i) => {
+                          const logKey = log.log_id ?? i;
+                          const isExpanded = expandedLogId === logKey;
+                          return (
+                            <React.Fragment key={logKey}>
+                              <tr
+                                className="adm-log-row"
+                                onClick={() => setExpandedLogId(isExpanded ? null : logKey)}
+                              >
+                                <td>{formatDateTime(log.created_at)}</td>
+                                <td>{log.performed_by_name ?? 'System'}</td>
+                                <td>{log.action}</td>
+                                <td className="adm-log-detail-cell" title={log.remarks || ''}>
+                                  {log.remarks || '-'}
+                                </td>
+                                <td>
+                                  <img
+                                    src={chevronDown}
+                                    alt="Expand row"
+                                    className={`adm-log-chevron ${isExpanded ? 'adm-log-chevron-open' : ''}`}
+                                  />
+                                </td>
+                              </tr>
+                              {isExpanded && (
+                                <tr className="adm-log-detail-row">
+                                  <td colSpan={5}>
+                                    <div className="adm-log-detail-full">
+                                      {/* => Single flowing paragraph - wraps naturally to fill the
+                                           full row width, only breaking when text actually runs out
+                                           of room, instead of hard-breaking on every changed field */}
+                                      <p>{log.remarks || '-'}</p>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

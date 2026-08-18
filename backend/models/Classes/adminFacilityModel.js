@@ -150,6 +150,18 @@ export const getFacilityById = async (pool, publicId) => {
   };
 };
 
+// => Lightweight lookup: resolves a facility's internal facility_id from its
+//    public_id, without pulling in the join-table course/cluster IDs the
+//    way getFacilityById does. Used only by the Activity Logs endpoint,
+//    which just needs the numeric ID to query activity_logs with.
+export const getFacilityIdByPublicId = async (pool, publicId) => {
+  const result = await pool.query(
+    `SELECT facility_id FROM facilities WHERE public_id = $1`,
+    [publicId]
+  );
+  return result.rows[0]?.facility_id ?? null;
+};
+
 // => Updates the facility row (looked up by public_id) and replaces its
 //    restriction join rows wholesale. Blocked on a soft-deleted row - must
 //    restore first before editing.
@@ -255,4 +267,27 @@ export const restoreFacility = async (pool, publicId) => {
     [publicId]
   );
   return result.rows[0] ?? null;
+};
+
+
+// => Resolves an array of TESDA course IDs into their titles - used only
+//    for building a readable "Allowed TESDA Courses" diff line in the
+//    activity log, not for any client-facing response.
+export const getTesdaCourseTitlesByIds = async (pool, courseIds) => {
+  if (!courseIds || courseIds.length === 0) return [];
+  const result = await pool.query(
+    `SELECT title FROM tesda_courses WHERE course_id = ANY($1::int[])`,
+    [courseIds]
+  );
+  return result.rows.map(r => r.title);
+};
+
+// => Same as above, for SHS courses
+export const getShsCourseTitlesByIds = async (pool, courseIds) => {
+  if (!courseIds || courseIds.length === 0) return [];
+  const result = await pool.query(
+    `SELECT title FROM shs_courses WHERE course_id = ANY($1::int[])`,
+    [courseIds]
+  );
+  return result.rows.map(r => r.title);
 };

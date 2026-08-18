@@ -37,6 +37,7 @@ export async function updateAnnouncement(req, res) {
       title,
       message,
       is_active,
+      updated_by: req.admin.admin_id, // => set by protectAdmin
     });
     res.json({ announcement });
   } catch (err) {
@@ -49,7 +50,7 @@ export async function updateAnnouncement(req, res) {
 export async function toggleAnnouncementActive(req, res) {
   try {
     const { is_active } = req.body;
-    const announcement = await announcementService.toggleAnnouncementActive(req.params.publicId, is_active);
+    const announcement = await announcementService.toggleAnnouncementActive(req.params.publicId, is_active, req.admin.admin_id);
     res.json({ announcement });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ error: err.message });

@@ -224,93 +224,185 @@
     cursor: not-allowed;
 }
 
-/* ── Activity Logs ── */
+/* ── Activity Logs, matches StudentDetail's Activity Log section ── */
+
+/* => Section title with inline count badge, mirrors adm-section-title /
+      adm-section-count-inline from StudentDetail.css */
+.adm-admin-detail-section-title {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+    margin: 0 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.adm-admin-detail-section-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #e5e7eb;
+    color: #374151;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
 .adm-admin-detail-logs-empty {
-    font-size: 0.85rem;
-    color: var(--text-muted, #6b6375);
-    padding: 12px 0;
+    font-size: 0.875rem;
+    color: #9ca3af;
     margin: 0;
 }
 
 .adm-admin-detail-logs-table-wrap {
     overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
 }
 
 .adm-admin-detail-logs-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.85rem;
+    font-size: 0.8375rem;
+    color: #374151;
+    min-width: 640px;
 }
 
 .adm-admin-detail-logs-table thead tr {
-    border-bottom: 1px solid var(--border);
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .adm-admin-detail-logs-table th {
+    padding: 10px 14px;
     text-align: left;
-    padding: 8px 12px 8px 0;
     font-size: 0.72rem;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-muted, #6b7280);
+    letter-spacing: 0.06em;
+    color: #6b7280;
     white-space: nowrap;
 }
 
 .adm-admin-detail-logs-table td {
-    padding: 12px 12px 12px 0;
+    padding: 11px 14px;
     border-bottom: 1px solid #f3f4f6;
-    color: var(--text-h);
-    vertical-align: top;
+    vertical-align: middle;
+    color: #374151;
 }
 
-.adm-admin-detail-logs-table tr:last-child td {
+.adm-admin-detail-logs-table tbody tr:last-child td {
     border-bottom: none;
 }
 
 .adm-admin-detail-logs-date {
     white-space: nowrap;
-    font-weight: 600;
-    color: var(--accent-hover, #8a0d17);
+    color: #6b7280;
 }
 
 .adm-admin-detail-logs-action {
     white-space: nowrap;
     font-weight: 600;
-    color: var(--accent-hover, #8a0d17);
+    color: #111827;
 }
 
 .adm-admin-detail-logs-detail {
-    color: var(--text-muted, #6b6375);
+    color: #6b7280;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
+/* => System actor badge, same purple treatment as StudentDetail */
+.adm-admin-detail-logs-badge-system {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+/* => Row hover and expand behavior */
+.adm-admin-detail-logs-row {
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+
+.adm-admin-detail-logs-row:hover {
+    background: #f0f4ff;
+}
+
+.adm-admin-detail-logs-chevron {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.15s ease;
+}
+
+.adm-admin-detail-logs-chevron-open {
+    transform: rotate(180deg);
+}
+
+.adm-admin-detail-logs-detail-row td {
+    background: #f9fafb;
+    padding: 14px 16px;
+}
+
+.adm-admin-detail-logs-detail-full p {
+    margin: 0;
+    font-size: 0.8375rem;
+    color: #374151;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+/* => Centered pagination, ghost disabled state, matches StudentDetail's
+      final resolved .adm-log-pagination / .adm-log-page-btn rules */
 .adm-admin-detail-logs-pagination {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
     gap: 12px;
     margin-top: 16px;
     padding-top: 16px;
-    border-top: 1px solid var(--border);
-    font-size: 0.82rem;
-    color: var(--text-h);
+    border-top: 1px solid #e5e7eb;
 }
 
-.adm-admin-detail-logs-pagination button {
-    padding: 6px 14px;
-    border: 1px solid var(--border);
+.adm-admin-detail-logs-page-btn {
+    padding: 6px 16px;
+    border: 1.5px solid #e5e7eb;
     border-radius: 8px;
     background: #fff;
-    color: var(--text-h);
-    font-family: var(--font-body), sans-serif;
-    font-size: 0.8rem;
+    color: #374151;
+    font-size: 0.8125rem;
     font-weight: 600;
     cursor: pointer;
+    font-family: inherit;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 
-.adm-admin-detail-logs-pagination button:disabled {
+.adm-admin-detail-logs-page-btn:hover:not(:disabled) {
+    background: #f0f4ff;
+    border-color: #1a56db;
+    color: #1a56db;
+}
+
+.adm-admin-detail-logs-page-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+}
+
+.adm-admin-detail-logs-page-indicator {
+    font-size: 0.8125rem;
+    color: #6b7280;
 }
 
 @media (max-width: 640px) {

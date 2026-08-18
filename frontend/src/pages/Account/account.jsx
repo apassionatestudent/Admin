@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import axiosAdmin from '../../utils/axiosAdmin.js';
 import pencilIcon from '../../assets/icons/pencil.png';
+// => Same chevron used by StudentDetail/StaffDetail's Activity Log sections
+import chevronDown from '../../assets/icons/chevron-down.png';
 import './account.css';
 
 // => Icon imports needed, replace src paths with your Icons8 assets
@@ -36,6 +38,9 @@ function Account() {
     const [logsPage, setLogsPage] = useState(1);
     const [logsTotalPages, setLogsTotalPages] = useState(1);
     const [logsLoading, setLogsLoading] = useState(true);
+    // => Which log row is currently expanded to show its full action_detail,
+    // => same chevron-expand pattern as StudentDetail/StaffDetail
+    const [expandedLogId, setExpandedLogId] = useState(null);
 
     useEffect(() => {
         fetchAccount();
@@ -153,10 +158,7 @@ function Account() {
         });
     }
 
-    // => Turn action codes into readable labels, e.g. "profile_updated" -> "Profile updated"
-    function formatAction(action) {
-        return action.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
-    }
+
 
     if (loading) {
         return (
@@ -194,7 +196,8 @@ function Account() {
                         {/* <img src={userIcon} alt="" className="adm-account-icon" /> */}
                         Profile Information
                     </h2>
-                    {!editingProfile && (
+                    {/* => Only super_admin can edit profile info, backend enforces this too (403 otherwise) */}
+                    {!editingProfile && account.role === 'super_admin' && (
                         <button
                             className="section-edit-btn"
                             onClick={() => setEditingProfile(true)}
@@ -349,16 +352,12 @@ function Account() {
                 </form>
             </section>
 
-            {/* => Activity logs section, mirrors the enrollment detail page's logs table */}
+            {/* => Activity logs section, design matches StaffDetail's Activity Logs section exactly */}
             <section className="adm-account-card">
-                <div className="adm-account-logs-title-row">
-                    <h2 className="adm-account-card-title adm-account-card-title--no-border">
-                        {/* <img src={historyIcon} alt="" className="adm-account-icon" /> */}
-                        Activity Logs
-                    </h2>
-                    <span className="adm-account-logs-count">{logsTotal}</span>
-                </div>
-                <hr className="adm-account-divider" />
+                <p className="adm-account-logs-section-title">
+                    Activity Logs
+                    <span className="adm-account-logs-section-count">{logsTotal}</span>
+                </p>
 
                 {logsLoading ? (
                     <div className="adm-account-logs-state">
@@ -380,22 +379,59 @@ function Account() {
                                         <th>Actor</th>
                                         <th>Action</th>
                                         <th>Details</th>
+                                        <th></th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {logs.map((log) => (
-                                        <tr key={log.log_id}>
-                                            <td className="adm-account-logs-date">{formatLogDate(log.created_at)}</td>
-                                            <td>{log.actor_name}</td>
-                                            <td className="adm-account-logs-action">{formatAction(log.action)}</td>
-                                            <td className="adm-account-logs-detail">
-                                                {log.entity_type && (
-                                                    <span className="adm-account-logs-entity">{log.entity_type}</span>
+                                    {logs.map((log) => {
+                                        // => Toggles this row's expanded detail view on click,
+                                        // => same chevron-expand pattern as StudentDetail/StaffDetail
+                                        const isExpanded = expandedLogId === log.log_id;
+                                        return (
+                                            <React.Fragment key={log.log_id}>
+                                                <tr
+                                                    className="adm-account-logs-row"
+                                                    onClick={() => setExpandedLogId(isExpanded ? null : log.log_id)}
+                                                >
+                                                    <td className="adm-account-logs-date">{formatLogDate(log.created_at)}</td>
+                                                    <td>
+                                                        {/* => Same System actor badge treatment as StudentDetail/StaffDetail */}
+                                                        {log.actor_type === 'System' ? (
+                                                            <span className="adm-account-logs-badge-system">System</span>
+                                                        ) : (
+                                                            log.actor_name
+                                                        )}
+                                                    </td>
+                                                    <td className="adm-account-logs-action">{log.action}</td>
+                                                    <td className="adm-account-logs-detail" title={log.action_detail || ''}>
+                                                        {log.entity_type && (
+                                                            <span className="adm-account-logs-entity">{log.entity_type}</span>
+                                                        )}
+                                                        {log.action_detail}
+                                                    </td>
+                                                    <td>
+                                                        <img
+                                                            src={chevronDown}
+                                                            alt="Expand row"
+                                                            className={`adm-account-logs-chevron ${isExpanded ? 'adm-account-logs-chevron-open' : ''}`}
+                                                        />
+                                                    </td>
+                                                </tr>
+                                                {isExpanded && (
+                                                    <tr className="adm-account-logs-detail-row">
+                                                        <td colSpan={5}>
+                                                            <div className="adm-account-logs-detail-full">
+                                                                {log.entity_type && (
+                                                                    <span className="adm-account-logs-entity">{log.entity_type}</span>
+                                                                )}
+                                                                <p>{log.action_detail || '-'}</p>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
                                                 )}
-                                                {log.action_detail}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                            </React.Fragment>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
@@ -403,7 +439,7 @@ function Account() {
                         {logsTotalPages > 1 && (
                             <div className="adm-account-logs-pagination">
                                 <button
-                                    className="adm-account-btn-secondary"
+                                    className="adm-account-logs-page-btn"
                                     disabled={logsPage <= 1}
                                     onClick={() => setLogsPage((p) => Math.max(1, p - 1))}
                                 >
@@ -413,7 +449,7 @@ function Account() {
                                     Page {logsPage} of {logsTotalPages}
                                 </span>
                                 <button
-                                    className="adm-account-btn-secondary"
+                                    className="adm-account-logs-page-btn"
                                     disabled={logsPage >= logsTotalPages}
                                     onClick={() => setLogsPage((p) => Math.min(logsTotalPages, p + 1))}
                                 >

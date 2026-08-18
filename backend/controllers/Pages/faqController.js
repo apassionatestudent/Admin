@@ -27,7 +27,12 @@ export async function createFaq(req, res) {
 export async function updateFaq(req, res) {
   try {
     const { section_id, question, answer } = req.body;
-    const faq = await faqService.updateFaq(req.params.publicId, { section_id, question, answer });
+    const faq = await faqService.updateFaq(req.params.publicId, {
+      section_id,
+      question,
+      answer,
+      updated_by: req.admin.admin_id, // => set by protectAdmin
+    });
     res.json({ faq });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ error: err.message });

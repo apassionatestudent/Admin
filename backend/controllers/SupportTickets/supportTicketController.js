@@ -5,6 +5,7 @@ import {
   fetchSupportTicketsPage,
   fetchSupportTicketByPublicId,
   changeSupportTicketFields,
+  fetchSupportTicketLogs,
   ValidationError,
 } from '../../services/SupportTickets/supportTicketService.js';
 
@@ -53,8 +54,14 @@ export const updateSupportTicketStatusController = async (req, res) => {
     const { status, internal_remarks, external_remarks } = req.body;
 
     // => req.admin is attached by protectAdmin - admin_id identifies who
-    // => resolved the ticket when status is set to 'Resolved'
-    const updatedTicket = await changeSupportTicketFields(pool, publicId, { status, internal_remarks, external_remarks }, req.admin.admin_id);
+    // => resolved the ticket when status is set to 'Resolved', and both
+    // => admin_id/full_name are passed through as the activity log actor
+    const updatedTicket = await changeSupportTicketFields(
+      pool,
+      publicId,
+      { status, internal_remarks, external_remarks },
+      { admin_id: req.admin.admin_id, full_name: req.admin.full_name }
+    );
 
     if (!updatedTicket) {
       return res.status(404).json({ message: 'Support ticket not found.' });
@@ -67,5 +74,25 @@ export const updateSupportTicketStatusController = async (req, res) => {
     }
     console.error('Error updating student support ticket status:', error);
     res.status(500).json({ message: 'Failed to update support ticket status.' });
+  }
+};
+
+
+// => GET /api/admin/support-tickets/:publicId/logs
+// => Returns every log row for this ticket, newest first - no pagination,
+// => matches Facilities/Trainers/Batches' /logs endpoints
+export const getSupportTicketLogsController = async (req, res) => {
+  try {
+    const { publicId } = req.params;
+    const logs = await fetchSupportTicketLogs(pool, publicId);
+
+    if (logs === null) {
+      return res.status(404).json({ message: 'Support ticket not found.' });
+    }
+
+    res.json({ logs });
+  } catch (error) {
+    console.error('Error fetching student support ticket logs:', error);
+    res.status(500).json({ message: 'Failed to fetch support ticket activity logs.' });
   }
 };

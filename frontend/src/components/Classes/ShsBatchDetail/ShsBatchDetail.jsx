@@ -19,6 +19,7 @@ import ConfirmModal from '../../ConfirmModal/ConfirmModal.jsx';
 import LoadingState from '../../LoadingState/loadingState.jsx';
 import pencilIcon from '../../../assets/icons/pencil.png';
 import trashIcon from '../../../assets/icons/trash.png';
+import chevronDown from '../../../assets/icons/chevron-down.png';
 
 import './ShsBatchDetail.css';
 
@@ -173,6 +174,8 @@ export default function ShsBatchDetail() {
   //    automatic System-driven Ongoing promotion all show up here
   const [logs,        setLogs]        = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  // => Which log row is currently expanded to show its full action_detail
+  const [expandedLogId, setExpandedLogId] = useState(null);
 
   const fetchLogs = async () => {
     setLogsLoading(true);
@@ -261,6 +264,11 @@ export default function ShsBatchDetail() {
       setNewFeeAmount('');
       toast.success('Fee added.');
       await fetchMiscFees();
+      // => Fee creation writes an activity log row on the backend, but this
+      //    page never re-fetched logs after a fee save, so the new row
+      //    silently never appeared until some other action happened to
+      //    trigger fetchLogs()
+      await fetchLogs();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to add fee.');
     } finally {
@@ -277,6 +285,7 @@ export default function ShsBatchDetail() {
       await axiosAdmin.delete(`/api/admin/batches/misc-fees/${feePublicId}`);
       toast.success('Fee removed.');
       await fetchMiscFees();
+      await fetchLogs();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to remove fee.');
     } finally {
@@ -624,7 +633,7 @@ export default function ShsBatchDetail() {
                 ) : (
                   <ul className="adm-modal-course-list">
                     {grade11CourseTrainers.map(c => (
-                      <li key={c.course_id}>{c.course_title} — {c.trainer_full_name ?? 'Unassigned'}</li>
+                      <li key={c.course_id}>{c.course_title} - {c.trainer_full_name ?? 'Unassigned'}</li>
                     ))}
                   </ul>
                 )}
@@ -656,7 +665,7 @@ export default function ShsBatchDetail() {
                 ) : (
                   <ul className="adm-modal-course-list">
                     {grade12CourseTrainers.map(c => (
-                      <li key={c.course_id}>{c.course_title} — {c.trainer_full_name ?? 'Unassigned'}</li>
+                      <li key={c.course_id}>{c.course_title} - {c.trainer_full_name ?? 'Unassigned'}</li>
                     ))}
                   </ul>
                 )}
@@ -737,7 +746,7 @@ export default function ShsBatchDetail() {
                      doubles as the read-only course list too, so the
                      separate cards from before are no longer needed.
                      cluster itself stays locked/uneditable, same as before. */}
-              <div className="adm-form-group">
+              <div className="adm-form-group adm-course-trainers-group">
                 <label className="adm-form-label">Course Trainers</label>
                 {loadingTrainers ? (
                   <p className="adm-empty-note">Loading trainers…</p>
@@ -1071,30 +1080,57 @@ export default function ShsBatchDetail() {
                     <th>Actor</th>
                     <th>Action</th>
                     <th>Details</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {logs.map(log => (
-                    <tr key={log.log_id}>
-                      <td className="adm-td-date">
-                        {new Date(log.created_at).toLocaleString('en-PH', {
-                          year: 'numeric', month: 'short', day: 'numeric',
-                          hour: 'numeric', minute: '2-digit',
-                        })}
-                      </td>
-                      <td>
-                        {log.actor_type === 'System' ? (
-                          <span className="adm-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>
-                            System
-                          </span>
-                        ) : (
-                          log.actor_name
+                  {logs.map(log => {
+                    const isExpanded = expandedLogId === log.log_id;
+                    return (
+                      <React.Fragment key={log.log_id}>
+                        <tr
+                          className="adm-log-row"
+                          onClick={() => setExpandedLogId(isExpanded ? null : log.log_id)}
+                        >
+                          <td className="adm-td-date">
+                            {new Date(log.created_at).toLocaleString('en-PH', {
+                              year: 'numeric', month: 'short', day: 'numeric',
+                              hour: 'numeric', minute: '2-digit',
+                            })}
+                          </td>
+                          <td>
+                            {log.actor_type === 'System' ? (
+                              <span className="adm-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>
+                                System
+                              </span>
+                            ) : (
+                              log.actor_name
+                            )}
+                          </td>
+                          <td>{log.action}</td>
+                          <td className="adm-log-detail-cell" title={log.action_detail || ''}>
+                            {log.action_detail || '-'}
+                          </td>
+                          <td>
+                            <img
+                              src={chevronDown}
+                              alt="Expand row"
+                              className={`adm-log-chevron ${isExpanded ? 'adm-log-chevron-open' : ''}`}
+                            />
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr className="adm-log-detail-row">
+                            <td colSpan={5}>
+                              <div className="adm-log-detail-full">
+                                <p>{log.action_detail || '-'}</p>
+                              </div>
+                            </td>
+                          </tr>
                         )}
-                      </td>
-                      <td>{log.action}</td>
-                      <td className="adm-td-email">{log.action_detail || '-'}</td>
-                    </tr>
-                  ))}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

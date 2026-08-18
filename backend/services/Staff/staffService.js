@@ -3,7 +3,11 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import * as staffModel from '../../models/Staff/staffModel.js';
-import { logActivity, getActivityLogsByActorPaginated } from '../../models/adminActivityLogModel.js';
+import { logActivity, getActivityLogsForStaffPaginated } from '../../models/adminActivityLogModel.js';
+// => Canonical uppercase action types, must match the activity_logs_action_check
+// => constraint in Neon - previous lowercase strings here (create_staff, suspend_staff,
+// => etc.) were silently failing every INSERT since they don't exist in that constraint
+import { ACTIVITY_ACTIONS } from '../../constants/activityActions.js';
 import { sendStaffInviteEmail } from '../../utils/sendStaffInviteEmail.js';
 import { sendStaffResetPasswordEmail } from '../../utils/sendStaffResetPasswordEmail.js';
 import { pool } from '../../config/db.js';
@@ -87,10 +91,10 @@ export async function createAdmin({ fullName, email, sections = [] }, requesting
     await logActivity(pool, {
         entity_type: 'admin',
         entity_id: created.admin_id,
-        actor_type: 'Admin',
+        actor_type: 'Staff',
         actor_id: requestingAdmin.admin_id,
         actor_name: requestingAdmin.full_name,
-        action: 'create_staff',
+        action: ACTIVITY_ACTIONS.CREATE,
         action_detail: `Created staff account for ${fullName} (${email})`,
     });
 
@@ -133,10 +137,10 @@ export async function updateAdminStatus(publicId, status, requestingAdmin) {
     await logActivity(pool, {
         entity_type: 'admin',
         entity_id: updated.admin_id,
-        actor_type: 'Admin',
+        actor_type: 'Staff',
         actor_id: requestingAdmin.admin_id,
         actor_name: requestingAdmin.full_name,
-        action: status === 'suspended' ? 'suspend_staff' : 'reactivate_staff',
+        action: status === 'suspended' ? ACTIVITY_ACTIONS.SUSPEND : ACTIVITY_ACTIONS.REACTIVATE,
         action_detail: `${status === 'suspended' ? 'Suspended' : 'Reactivated'} staff account for ${target.full_name}`,
     });
 
@@ -164,10 +168,10 @@ export async function updateAdminPermissions(publicId, sections, requestingAdmin
     await logActivity(pool, {
         entity_type: 'admin',
         entity_id: target.admin_id,
-        actor_type: 'Admin',
+        actor_type: 'Staff',
         actor_id: requestingAdmin.admin_id,
         actor_name: requestingAdmin.full_name,
-        action: 'update_staff_permissions',
+        action: ACTIVITY_ACTIONS.PERMISSION_CHANGE,
         action_detail: `Updated section access for ${target.full_name}: ${sections.join(', ') || 'none'}`,
     });
 
@@ -202,10 +206,10 @@ export async function resendInvite(publicId, requestingAdmin) {
     await logActivity(pool, {
         entity_type: 'admin',
         entity_id: target.admin_id,
-        actor_type: 'Admin',
+        actor_type: 'Staff',
         actor_id: requestingAdmin.admin_id,
         actor_name: requestingAdmin.full_name,
-        action: 'resend_staff_invite',
+        action: ACTIVITY_ACTIONS.INVITE,
         action_detail: `Resent invite email to ${target.full_name} (${target.email})`,
     });
 
@@ -240,19 +244,19 @@ export async function resetAdminPassword(publicId, requestingAdmin) {
     await logActivity(pool, {
         entity_type: 'admin',
         entity_id: target.admin_id,
-        actor_type: 'Admin',
+        actor_type: 'Staff',
         actor_id: requestingAdmin.admin_id,
         actor_name: requestingAdmin.full_name,
-        action: 'reset_staff_password',
+        action: ACTIVITY_ACTIONS.RESET_PASSWORD,
         action_detail: `Triggered a password reset for ${target.full_name} (${target.email})`,
     });
 
     return { message: 'Password reset email sent' };
 }
 
-// => Paginated activity log for the target staff member as an actor - what
-// => THEY'VE done, not what's been done to their account. Mirrors the
-// => pattern Account.jsx already uses for the logged-in admin's own history.
+// => Combined activity log for the target staff member: changes made TO
+// => their record (create, status, permissions) plus their own LOGIN
+// => events. See getActivityLogsForStaffPaginated for the exact match rule.
 export async function getAdminLogs(publicId, page = 1) {
     const target = await staffModel.findAdminByPublicId(publicId);
     if (!target || target.role === 'super_admin') {
@@ -262,7 +266,7 @@ export async function getAdminLogs(publicId, page = 1) {
     }
 
     const safePage = Math.max(1, parseInt(page, 10) || 1);
-    const { logs, total } = await getActivityLogsByActorPaginated(pool, 'Admin', target.admin_id, safePage, PAGE_SIZE);
+    const { logs, total } = await getActivityLogsForStaffPaginated(pool, target.admin_id, safePage, PAGE_SIZE);
 
     return {
         logs,

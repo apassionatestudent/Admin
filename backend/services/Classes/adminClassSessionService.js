@@ -18,7 +18,10 @@ import {
   findConflictingTrainerSession,
   insertClassSession,
 } from '../../models/Classes/adminClassSessionModel.js';
-import { logActivity } from '../../models/adminActivityLogModel.js';
+import { logActivity, getActivityLogsForFacilityPaginated } from '../../models/adminActivityLogModel.js';
+// => Canonical action taxonomy - keeps this file's logActivity calls from
+//    drifting off the activity_logs_action_check constraint in Neon
+import { ACTIVITY_ACTIONS } from '../../constants/activityActions.js';
 
 // => Booking window - weekdays only, 8AM to 5PM. Applies ONLY to Local
 //    (facility-based) sessions, per your scope doc's own wording that
@@ -248,17 +251,31 @@ export const addClassSession = async (data, actor) => {
     remarks: remarks?.trim() || null,
   });
 
+  // => FIX: actor_type was 'Admin' (invalid - constraint only allows
+  //    Staff/Student/System) and action was a dynamic string (invalid -
+  //    action must be one of the fixed ACTIVITY_ACTIONS values). Both
+  //    silently failed the INSERT before this fix.
   await logActivity(pool, {
     entity_type: 'class_session',
     entity_id: created.session_id,
-    actor_type: 'Admin',
+    actor_type: 'Staff',
     actor_id: actor?.admin_id,
     actor_name: actor?.full_name,
-    action: 'Class Session Created',
+    action: ACTIVITY_ACTIONS.CREATE,
     action_detail: `${session_type} session for batch #${batch_id} on ${session_date} from ${start_time} to ${end_time}.` +
       (facility ? ` At "${facility.name}".` : '') +
       (shsCourseInfo ? ` (${shsCourseInfo.grade_level})` : ''),
   });
 
   return created;
+};
+
+// GET PAGINATED ACTIVITY LOGS FOR ONE FACILITY (below the calendar on FacilitySessionCalendar)
+// => Always newest-first, independent of whatever date range the calendar
+//    grid currently has visible - a log history and a booking grid answer
+//    different questions, so they're deliberately not tied together.
+export const fetchFacilityActivityLogs = async (facilityPublicId, page = 1) => {
+  const facility = await getFacilityForSessionPage(pool, facilityPublicId);
+  if (!facility) return null;
+  return await getActivityLogsForFacilityPaginated(pool, facility.facility_id, page, 10);
 };

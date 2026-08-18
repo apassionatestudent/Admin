@@ -13,6 +13,7 @@ import {
   patchStudentActive,
   updateStudentController,
   getStudentPaymentHistoryController,
+  getStudentLogsController,
 } from '../../controllers/Students/adminStudentController.js';
 
 const router = express.Router();
@@ -27,5 +28,6 @@ router.get('/:publicId', adminApiRateLimit, protectAdmin, requireSection('studen
 router.patch('/:publicId/active', adminApiRateLimit, protectAdmin, requireSection('students'), patchStudentActive);
 router.put('/:publicId', adminApiRateLimit, protectAdmin, requireSection('students'), updateStudentController);
 router.get('/:publicId/payment-history', adminApiRateLimit, protectAdmin, requireSection('students'), getStudentPaymentHistoryController);
+router.get('/:publicId/logs', adminApiRateLimit, protectAdmin, requireSection('students'), getStudentLogsController);
 
 export default router;

@@ -9,6 +9,7 @@ import {
   editFacility,
   deleteFacility,
   restoreFacilityService,
+  fetchFacilityLogs,
 } from '../../services/Classes/adminFacilityService.js';
 
 // 
@@ -71,6 +72,23 @@ export const getFacilityDetailController = async (req, res) => {
   } catch (err) {
     console.error('getFacilityDetailController error:', err);
     return res.status(500).json({ error: 'Failed to fetch facility.' });
+  }
+};
+
+// 
+// GET /api/admin/facilities/:publicId/logs
+// => Returns every log row for this facility, newest first - no pagination,
+//    matches TesdaBatchDetail/ShsBatchDetail's /logs endpoints
+// 
+export const getFacilityLogsController = async (req, res) => {
+  const { publicId } = req.params;
+  try {
+    const logs = await fetchFacilityLogs(publicId);
+    if (logs === null) return res.status(404).json({ error: 'Facility not found.' });
+    return res.status(200).json({ logs });
+  } catch (err) {
+    console.error('getFacilityLogsController error:', err);
+    return res.status(500).json({ error: 'Failed to fetch facility activity logs.' });
   }
 };
 

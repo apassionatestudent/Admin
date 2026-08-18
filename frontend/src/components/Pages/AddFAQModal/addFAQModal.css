@@ -13,3 +13,11 @@
   vertical-align: -2px;
   margin-right: 4px;
 }
+
+.afm-meta-row {
+  padding: 10px 24px;
+  font-size: 0.8125rem;
+  color: var(--text-muted, var(--text));
+  background: var(--code-bg, #faf7f5);
+  border-bottom: 1px solid var(--border, #e0d8d0);
+}

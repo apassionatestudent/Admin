@@ -24,7 +24,14 @@ export async function getAccount(adminId) {
 // => full record. Email uniqueness is checked here rather than relying on
 // => a DB-level UNIQUE violation, so the person gets a clean 409 message
 // => instead of a raw constraint error.
-export async function updateProfile(adminId, fullName, email) {
+export async function updateProfile(adminId, role, fullName, email) {
+    // => Only super_admin may edit their own name/email through this endpoint.
+    //    Regular staff profile changes require super_admin intervention via
+    //    the Staff management page instead.
+    if (role !== 'super_admin') {
+        throw { status: 403, message: 'Only the super admin can edit profile information. Contact your system owner for changes.' };
+    }
+
     if (!fullName || !fullName.trim()) {
         throw { status: 400, message: 'Full name is required' };
     }
@@ -59,13 +66,15 @@ export async function updateProfile(adminId, fullName, email) {
     await updateProfileFields(adminId, trimmedName, trimmedEmail);
     const account = await findAdminById(adminId);
 
+    // => entity_type is 'admin' (singular), matching the table name convention
+    //    used everywhere else in the Logs table (tesda_enrollment, tesda_batch, etc.)
     await logActivity(pool, {
-        entity_type: 'staff',
+        entity_type: 'admin',
         entity_id: adminId,
         actor_type: 'Staff',
         actor_id: adminId,
         actor_name: trimmedName,
-        action: 'profile_updated',
+        action: 'UPDATE',
         action_detail: `Updated profile - name: "${trimmedName}", email: "${trimmedEmail}"`,
     });
 
@@ -78,18 +87,10 @@ export async function updateTheme(adminId, isNightMode) {
         throw { status: 400, message: 'is_night_mode must be true or false' };
     }
 
+    // => Theme preference is a personal display setting, not an auditable
+    //    account change, so this intentionally does not call logActivity
     await updateNightMode(adminId, isNightMode);
     const account = await findAdminById(adminId);
-
-    await logActivity(pool, {
-        entity_type: 'admin',
-        entity_id: adminId,
-        actor_type: 'Admin',
-        actor_id: adminId,
-        actor_name: account.full_name,
-        action: 'theme_updated',
-        action_detail: `Switched to ${isNightMode ? 'night' : 'day'} mode`,
-    });
 
     return account;
 }
@@ -122,10 +123,10 @@ export async function changePassword(adminId, currentPassword, newPassword) {
     await logActivity(pool, {
         entity_type: 'admin',
         entity_id: adminId,
-        actor_type: 'Admin',
+        actor_type: 'Staff',
         actor_id: adminId,
         actor_name: account.full_name,
-        action: 'password_changed',
+        action: 'PASSWORD_CHANGE',
         action_detail: 'Changed account password',
     });
 }
@@ -134,7 +135,7 @@ export async function changePassword(adminId, currentPassword, newPassword) {
 //    not just actions taken on their own account record
 export async function getAccountLogs(adminId, page = 1) {
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const { logs, total } = await getActivityLogsByActorPaginated(pool, 'Admin', adminId, pageNum, 10);
+    const { logs, total } = await getActivityLogsByActorPaginated(pool, 'Staff', adminId, pageNum, 10);
     return {
         logs,
         total,

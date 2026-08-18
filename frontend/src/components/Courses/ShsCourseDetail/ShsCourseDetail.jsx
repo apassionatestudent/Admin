@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useParams, useNavigate } from 'react-router-dom'; 
 import axiosAdmin from '../../../utils/axiosAdmin.js'; 
 import pencilIcon from '../../../assets/icons/pencil.png'; 
@@ -7,15 +8,9 @@ import BackButton from '../../BackButton/BackButton.jsx';
 import ConfirmModal from '../../ConfirmModal/ConfirmModal.jsx';
 // => Shared spinner/error block, replaces the local detail-loading-state markup below
 import LoadingState from '../../LoadingState/loadingState.jsx';
+// => Chevron icon for the Activity Logs section, same asset as TesdaCourseDetail.jsx
+import chevronDown from '../../../assets/icons/chevron-down.png';
 import './ShsCourseDetail.css';
-
-// => Formats an ISO timestamp for the audit log.
-const formatLogDate = (dateStr) => {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleString('en-PH', {
-    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
-  });
-};
 
 // => Auto Title Cases Title and Job Title fields as the admin edits them -
 // => same helper duplicated across the other course files per your policy.
@@ -63,6 +58,11 @@ export default function ShsCourseDetail() {
   const [form, setForm] = useState({});
   const [fieldErrors, setFieldErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+  // => Synchronous guard against double-submit. React state (isSaving) only
+  // => blocks the button AFTER a re-render, so a fast double-click can still
+  // => slip a second request through in that gap. A ref updates instantly.
+  const isSavingRef = useRef(false);
+  const [formErrorMsg, setFormErrorMsg] = useState('');
 
   // => One shared ConfirmModal instance for every delete action on this page
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, message: '', onConfirm: null });
@@ -74,8 +74,28 @@ export default function ShsCourseDetail() {
     if (action) action();
   };
 
+  // => Activity Logs - fetch-all-at-once, no pagination, matches the
+  // => Facilities/Trainers/Support Tickets/Batches pattern
+  const [logs, setLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  // => Which log row is currently expanded to show its full action_detail
+  const [expandedLogId, setExpandedLogId] = useState(null);
+
+  const fetchLogs = async () => {
+    setLogsLoading(true);
+    try {
+      const res = await axiosAdmin.get(`/api/admin/shs-courses/${adminUuid}/logs`);
+      setLogs(res.data.data || []);
+    } catch (error) {
+      console.error('Failed to fetch course logs:', error);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchCourse();
+    fetchLogs();
     axiosAdmin
       .get('/api/admin/clusters')
       .then((res) => setClusters(res.data.data))
@@ -133,9 +153,12 @@ export default function ShsCourseDetail() {
     setIsEditing(true);
   };
 
-  const [formErrorMsg, setFormErrorMsg] = useState('');
-
   const handleSave = async () => {
+    // => Bail immediately if a save is already in flight - blocks double
+    // => clicks synchronously, before React even gets a chance to re-render
+    // => the disabled button
+    if (isSavingRef.current) return;
+
     setFormErrorMsg('');
 
     // => Final safety net on Save - re-runs every field's live validator in
@@ -154,6 +177,7 @@ export default function ShsCourseDetail() {
       return;
     }
 
+    isSavingRef.current = true;
     setIsSaving(true);
     try {
       const res = await axiosAdmin.patch(`/api/admin/shs-courses/${adminUuid}`, form);
@@ -172,11 +196,14 @@ export default function ShsCourseDetail() {
         cluster_name: matchedCluster ? matchedCluster.name : prev.cluster_name,
       }));
       setIsEditing(false);
+      // => Refresh the Activity Log so the new UPDATE entry appears without a page reload
+      await fetchLogs();
     } catch (error) {
       console.error('Failed to update course:', error);
       setFormErrorMsg(error.response?.data?.message || 'Failed to update course.');
     } finally {
       setIsSaving(false);
+      isSavingRef.current = false;
     }
   };
 
@@ -186,8 +213,13 @@ export default function ShsCourseDetail() {
       try {
         const res = await axiosAdmin.patch(`/api/admin/shs-courses/${adminUuid}`, { status: newStatus });
         setCourse((prev) => ({ ...prev, status: res.data.data.status }));
+        // => Refresh the Activity Log so the new STATUS_CHANGE entry appears without a page reload
+        await fetchLogs();
       } catch (error) {
         console.error('Failed to toggle status:', error);
+        // => Surfaces the backend's reactivation-guard message (e.g.
+        // => cluster deleted) instead of failing silently
+        toast.error(error.response?.data?.message || 'Failed to change status.');
       }
     });
     
@@ -240,6 +272,7 @@ export default function ShsCourseDetail() {
         jobOpportunities: [...(prev.jobOpportunities ?? []), newJob],
       }));
       cancelAddJobRow();
+      await fetchLogs();
     } catch (error) {
       console.error('Failed to add job opportunity:', error);
     }
@@ -275,6 +308,7 @@ export default function ShsCourseDetail() {
         jobOpportunities: (prev.jobOpportunities ?? []).map((j) => (j.id === updatedJob.id ? updatedJob : j)),
       }));
       setEditingJobId(null);
+      await fetchLogs();
     } catch (error) {
       console.error('Failed to update job opportunity:', error);
     }
@@ -288,64 +322,16 @@ export default function ShsCourseDetail() {
           ...prev,
           jobOpportunities: (prev.jobOpportunities ?? []).filter((j) => j.id !== id),
         }));
+        await fetchLogs();
       } catch (error) {
         console.error('Failed to delete job opportunity:', error);
       }
     });
   };
 
-  // => Publish section - course.publicLink is null until "Enable Public Page" is clicked
-  const [isEditingSlug, setIsEditingSlug] = useState(false);
-  const [slugForm, setSlugForm] = useState('');
-  const [publishError, setPublishError] = useState('');
-  const [isPublishSaving, setIsPublishSaving] = useState(false);
-
-  const handleEnablePublicPage = async () => {
-    setIsPublishSaving(true);
-    try {
-      const res = await axiosAdmin.post(`/api/admin/shs-courses/${adminUuid}/public-link`);
-      setCourse((prev) => ({ ...prev, publicLink: res.data.data }));
-    } catch (error) {
-      console.error('Failed to enable public page:', error);
-    } finally {
-      setIsPublishSaving(false);
-    }
-  };
-
-  const startEditSlug = () => {
-    setSlugForm(course.publicLink.public_slug);
-    setPublishError('');
-    setIsEditingSlug(true);
-  };
-
-  const handleSaveSlug = async () => {
-    setIsPublishSaving(true);
-    setPublishError('');
-    try {
-      const res = await axiosAdmin.patch(`/api/admin/shs-courses/${adminUuid}/public-link`, { public_slug: slugForm });
-      setCourse((prev) => ({ ...prev, publicLink: res.data.data }));
-      setIsEditingSlug(false);
-    } catch (error) {
-      console.error('Failed to update slug:', error);
-      setPublishError(error.response?.data?.message || 'Failed to update slug.');
-    } finally {
-      setIsPublishSaving(false);
-    }
-  };
-
-  const handleTogglePublish = async () => {
-    setIsPublishSaving(true);
-    try {
-      const res = await axiosAdmin.patch(`/api/admin/shs-courses/${adminUuid}/public-link`, {
-        is_published: !course.publicLink.is_published,
-      });
-      setCourse((prev) => ({ ...prev, publicLink: res.data.data }));
-    } catch (error) {
-      console.error('Failed to toggle publish state:', error);
-    } finally {
-      setIsPublishSaving(false);
-    }
-  };
+  // => Publish/public-link feature removed - status alone now governs
+  // => course visibility, the separate publish gate was redundant with what
+  // => the public site actually checks
 
   // => Swapped local detail-loading-state spinner markup, and the bare
   //    "Course not found." <p>, for the shared LoadingState component
@@ -535,99 +521,85 @@ export default function ShsCourseDetail() {
         </div>
       </section>
 
-      <section className="publish-section">
-        <div className="section-header">
-          <h3>Public Page</h3>
-        </div>
+      {/* ACTIVITY LOGS - chevron-expandable rows, matches the standardized
+          pattern from TesdaBatchDetail/Facilities/Trainers/Support Tickets */}
+      <div className="adm-batch-section">
+        <p className="adm-section-title">
+          Activity Logs
+          <span className="adm-section-count-inline">{logs.length}</span>
+        </p>
 
-        {!course.publicLink ? (
-          <div className="publish-empty">
-            <p>This course isn't published to the public site yet.</p>
-            <button className="btn-primary" onClick={handleEnablePublicPage} disabled={isPublishSaving}>
-              {isPublishSaving ? 'Enabling...' : 'Enable Public Page'}
-            </button>
-          </div>
-        ) : (
-          <div className="publish-details">
-            <div className="publish-row">
-              <span className="field-label">Public Slug</span>
-              {isEditingSlug ? (
-                <div className="slug-edit-row">
-                  <input value={slugForm} onChange={(e) => setSlugForm(e.target.value)} />
-                  <button className="btn-secondary" onClick={() => setIsEditingSlug(false)} disabled={isPublishSaving}>
-                    Cancel
-                  </button>
-                  <button className="btn-primary" onClick={handleSaveSlug} disabled={isPublishSaving}>
-                    Save
-                  </button>
-                </div>
-              ) : (
-                <div className="slug-view-row">
-                  <code>/courses/{course.publicLink.public_slug}</code>
-                  <button className="section-edit-btn" onClick={startEditSlug} title="Edit slug">
-                    <img src={pencilIcon} alt="Edit" className="pencil-icon" />
-                  </button>
-                </div>
-              )}
-              {publishError && <p className="form-error">{publishError}</p>}
-            </div>
+        {logsLoading && <p className="adm-empty-note">Loading logs…</p>}
 
-            <div className="publish-row">
-              <span className="field-label">Status</span>
-              <div className="publish-status-row">
-                <span className={`status-badge status-${course.publicLink.is_published ? 'active' : 'inactive'}`}>
-                  {course.publicLink.is_published ? 'Published' : 'Unpublished'}
-                </span>
-                <button className="btn-secondary" onClick={handleTogglePublish} disabled={isPublishSaving}>
-                  {course.publicLink.is_published ? 'Unpublish' : 'Publish'}
-                </button>
-              </div>
-            </div>
+        {!logsLoading && logs.length === 0 && (
+          <p className="adm-empty-note">No activity recorded for this course yet.</p>
+        )}
 
-            {course.publicLink.published_at && (
-              <div className="publish-row">
-                <span className="field-label">First Published</span>
-                <p>{course.publicLink.published_at.slice(0, 10)}</p>
-              </div>
-            )}
+        {!logsLoading && logs.length > 0 && (
+          <div className="adm-sub-table-wrap">
+            <table className="adm-sub-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Actor</th>
+                  <th>Action</th>
+                  <th>Details</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((log) => {
+                  const isExpanded = expandedLogId === log.log_id;
+                  return (
+                    <React.Fragment key={log.log_id}>
+                      <tr
+                        className="adm-log-row"
+                        onClick={() => setExpandedLogId(isExpanded ? null : log.log_id)}
+                      >
+                        <td className="adm-td-date">
+                          {new Date(log.created_at).toLocaleString('en-PH', {
+                            year: 'numeric', month: 'short', day: 'numeric',
+                            hour: 'numeric', minute: '2-digit',
+                          })}
+                        </td>
+                        <td>
+                          {log.actor_type === 'System' ? (
+                            <span className="adm-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>
+                              System
+                            </span>
+                          ) : (
+                            log.actor_name
+                          )}
+                        </td>
+                        <td>{log.action}</td>
+                        <td className="adm-log-detail-cell" title={log.action_detail || ''}>
+                          {log.action_detail || '-'}
+                        </td>
+                        <td>
+                          <img
+                            src={chevronDown}
+                            alt="Expand row"
+                            className={`adm-log-chevron ${isExpanded ? 'adm-log-chevron-open' : ''}`}
+                          />
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="adm-log-detail-row">
+                          <td colSpan={5}>
+                            <div className="adm-log-detail-full">
+                              <p>{log.action_detail || '-'}</p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
-      </section>
-
-      <section className="audit-log-section">
-        <div className="section-header">
-          <h3>
-            Audit Log
-            <span className="section-count">{(course.logs ?? []).length}</span>
-          </h3>
-        </div>
-
-        {(course.logs ?? []).length === 0 ? (
-          <p className="log-empty">No activity recorded yet.</p>
-        ) : (
-          <div className="log-timeline">
-            {(course.logs ?? []).map((log, i) => (
-              <div className="log-item" key={log.log_id ?? i}>
-                <div className="log-dot" />
-                <div className="log-content">
-                  <p className="log-action">
-                    {log.action}
-                    {log.previous_status && log.new_status && (
-                      <span className="log-status-change">
-                        {' '}- {log.previous_status} → {log.new_status}
-                      </span>
-                    )}
-                  </p>
-                  <p className="log-meta">
-                    {log.performed_by_name ?? 'System'} · {formatLogDate(log.created_at)}
-                  </p>
-                  {log.remarks && <p className="log-remarks">{log.remarks}</p>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      </div>
       </main>
 
       <ConfirmModal

@@ -6,6 +6,9 @@ import { Admin } from '../models/adminAuthModel.js';
 // => generateCsrfToken and invalidateCsrfToken live in middleware
 // => but are called here since issuing/revoking tokens is a controller responsibility
 import { generateCsrfToken, invalidateCsrfToken } from '../middleware/adminCsrf.js';
+// => pool is needed here since logActivity takes pool as its first argument
+import { pool } from '../config/db.js';
+import { logActivity } from '../models/adminActivityLogModel.js';
 
 // => Cookie options for security (mirrors studentAuthController pattern)
 const cookieOptions = {
@@ -67,6 +70,18 @@ export const loginAdmin = async (req, res) => {
         }
         // => Update last_login_at on successful login
         await Admin.updateLastLogin(admin.admin_id);
+
+        // => LOGIN is a pure system event with no specific entity attached,
+        //    so entity_type/entity_id are left null (see adminActivityLogModel.js)
+        await logActivity(pool, {
+            entity_type: null,
+            entity_id: null,
+            actor_type: 'Staff',
+            actor_id: admin.admin_id,
+            actor_name: admin.full_name,
+            action: 'LOGIN',
+            action_detail: `${admin.full_name} (${admin.role}) logged in.`,
+        });
 
         const token = generateAdminToken(admin);
         res.cookie('admin_token', token, cookieOptions); // => separate cookie name from student token

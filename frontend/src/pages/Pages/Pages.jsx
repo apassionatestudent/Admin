@@ -11,6 +11,7 @@ import './pages.css';
 
 import StudentDashboardAnnouncementsWYSIWYG from '../../components/Pages/StudentDashboardAnnouncementsWYSIWYG/studentDashboardAnnouncementsWYSIWYG.jsx';
 import PrivacyPolicyWYSIWYG from '../../components/Pages/PrivacyPolicyWYSIWYG/privacyPolicyWYSIWYG.jsx';
+import TermsAndConditionsWYSIWYG from '../../components/Pages/TermsAndConditionsWYSIWYG/termsAndConditionsWYSIWYG.jsx';
 import FAQsWYSIWYG from '../../components/Pages/FAQsWYSIWYG/faqsWYSIWYG.jsx';
 
 // => Tab metadata - label feeds the "Pages | <Tab>" title (mirrors
@@ -24,6 +25,10 @@ const tabMeta = {
   privacyPolicy: {
     label: 'Privacy Policy',
     subtitle: 'This content shows on the public Privacy Policy page.',
+  },
+  termsAndConditions: {
+    label: 'Terms and Conditions',
+    subtitle: 'This content shows on the public Terms and Conditions page.',
   },
   faqs: {
     label: 'FAQs',
@@ -57,9 +62,11 @@ export default function Pages() {
   //    entire data/modal state up into this file
   const announcementsRef = useRef(null);
   const privacyRef = useRef(null);
+  const termsRef = useRef(null);
   const faqsRef = useRef(null);
 
   const [savingPrivacy, setSavingPrivacy] = useState(false);
+  const [savingTerms, setSavingTerms] = useState(false);
 
   const handleSavePrivacyPolicy = async () => {
     if (!privacyRef.current) return;
@@ -70,6 +77,16 @@ export default function Pages() {
         setSavingPrivacy(false);
     }
     };
+
+  const handleSaveTermsAndConditions = async () => {
+    if (!termsRef.current) return;
+    setSavingTerms(true);
+    try {
+      await termsRef.current.save();
+    } finally {
+      setSavingTerms(false);
+    }
+  };
 
   return (
     <div className="adm-pages-page">
@@ -101,6 +118,15 @@ export default function Pages() {
               disabled={savingPrivacy}
             >
               {savingPrivacy ? 'Saving…' : 'Save Changes'}
+            </button>
+          )}
+          {mainTab === 'termsAndConditions' && (
+            <button
+              className="adm-pages-btn-solid"
+              onClick={handleSaveTermsAndConditions}
+              disabled={savingTerms}
+            >
+              {savingTerms ? 'Saving…' : 'Save Changes'}
             </button>
           )}
           {mainTab === 'faqs' && (
@@ -157,6 +183,9 @@ export default function Pages() {
         )}
         {mainTab === 'privacyPolicy' && (
           <PrivacyPolicyWYSIWYG ref={privacyRef} />
+        )}
+        {mainTab === 'termsAndConditions' && (
+          <TermsAndConditionsWYSIWYG ref={termsRef} />
         )}
         {mainTab === 'faqs' && (
           <FAQsWYSIWYG ref={faqsRef} />

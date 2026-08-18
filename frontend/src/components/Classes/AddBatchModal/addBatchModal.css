@@ -1,0 +1,9 @@
+/* => components/Classes/AddBatchModal/addBatchModal.css
+   => Shell classes (adm-modal-*, adm-form-*, adm-filter-btn, adm-course-
+      trainer-*, adm-cluster-courses-grade) are assumed global - same
+      reasoning as addSessionModal.css. They're defined in Classes.css,
+      which stays loaded because Classes.jsx (the only place this modal
+      is ever rendered from) still imports it. Nothing modal-specific
+      enough to need its own rule here yet - this file exists so the
+      import in addBatchModal.jsx has somewhere to point, and so future
+      AddBatchModal-only styling has an obvious home. */

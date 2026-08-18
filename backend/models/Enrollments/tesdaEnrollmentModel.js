@@ -230,9 +230,11 @@ export const addTesdaDocument = async (pool, enrollmentId, { documentType, docum
 
 export const replaceTesdaDocument = async (pool, docPublicId, documentKey) => {
   const result = await pool.query(
+    // => enrollment_id added so the service layer can log against the
+    //    right entity without a second query
     `UPDATE tesda_documents SET document_key = $1, uploaded_at = NOW()
        WHERE public_id = $2
-       RETURNING public_id, document_type, document_key, uploaded_at`,
+       RETURNING public_id, document_type, document_key, uploaded_at, enrollment_id`,
     [documentKey, docPublicId]
   );
   return result.rows[0] ?? null;
@@ -252,7 +254,9 @@ export const deleteTesdaDocument = async (pool, docPublicId) => {
   if (doc.is_original) return { blocked: true };
 
   const result = await pool.query(
-    `DELETE FROM tesda_documents WHERE public_id = $1 RETURNING public_id`,
+    // => enrollment_id and document_type added so the deleted document is
+    //    identifiable in the activity log, not just its public_id
+    `DELETE FROM tesda_documents WHERE public_id = $1 RETURNING public_id, enrollment_id, document_type`,
     [docPublicId]
   );
   return { deleted: result.rows[0] };

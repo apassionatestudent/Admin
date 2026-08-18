@@ -18,6 +18,8 @@ import {
 // => Same activity-log helper Batches already uses - see
 //    adminBatchServices.js's changeTesdaBatchStatus for the pattern
 import { logActivity, getActivityLogsForEntity } from '../../models/adminActivityLogModel.js';
+import { buildFieldDiff, formatDiffDetail } from '../../utils/buildFieldDiff.js';
+import { buildAddressDiff } from '../../utils/resolveAddressNames.js';
 
 import {
   getTesdaEnrollmentDetailByPublicId,
@@ -256,20 +258,19 @@ export const changeTesdaEnrollmentStatus = async (publicId, newStatus, externalR
     updated = await updateTesdaEnrollmentStatus(pool, publicId, newStatus, externalRemarks);
   }
 
-  // => Activity log entry - mirrors adminBatchServices.js's
-  //    changeTesdaBatchStatus pattern exactly
+  // => Activity log entry - action is the fixed taxonomy value; the
+  //    actual new status now lives in action_detail alongside the
+  //    previous status, since "action" itself is CHECK-constrained
+  //    to the 17-value taxonomy and can't hold a dynamic string
   const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
   await logActivity(pool, {
     entity_type:   'tesda_enrollment',
     entity_id:     enrollment.enrollment_id,
-    actor_type:    'Admin',
+    actor_type:    'Staff',
     actor_id:      adminId,
     actor_name:    actorName,
-    action:        `Status changed to ${newStatus}`,
-    // => "action" already states the new status, so this only adds the
-    //    previous status plus remarks - avoids restating "changed to X"
-    //    twice once this renders in the Audit Log section
-    action_detail: `Previous status: ${enrollment.status}.${externalRemarks?.trim() ? ` Remarks: ${externalRemarks.trim()}` : ''}`,
+    action:        'STATUS_CHANGE',
+    action_detail: `Status changed to ${newStatus}. Previous status: ${enrollment.status}.${externalRemarks?.trim() ? ` Remarks: ${externalRemarks.trim()}` : ''}`,
   });
 
   // => Each swept enrollment gets its own audit trail entry explaining
@@ -284,8 +285,8 @@ export const changeTesdaEnrollmentStatus = async (publicId, newStatus, externalR
       actor_type:    'System',
       actor_id:      null,
       actor_name:    'System',
-      action:        'Status changed to Reserved',
-      action_detail: `Batch #${enrollment.batch_id} reached full capacity after another enrollment was approved - moved back to Reserved and unassigned from the batch to await placement in a future batch.`,
+      action:        'STATUS_CHANGE',
+      action_detail: `Status changed to Reserved. Batch #${enrollment.batch_id} reached full capacity after another enrollment was approved - moved back to Reserved and unassigned from the batch to await placement in a future batch.`,
     });
   }
 
@@ -322,33 +323,136 @@ export const changeTesdaEnrollmentStatus = async (publicId, newStatus, externalR
 //   delegate to the shared model functions
 //
 
-export const updateTesdaProfileSection = async (publicId, fields) => {
+export const updateTesdaProfileSection = async (publicId, fields, adminId) => {
   const enrollment = await getTesdaEnrollmentDetailByPublicId(pool, publicId);
   if (!enrollment) return null;
-  return await updateProfile(pool, enrollment.student_id, fields);
+
+  // => Fetched BEFORE the write so the diff has something to compare against
+  const oldProfile = await getProfileByStudentId(pool, enrollment.student_id);
+  const updated = await updateProfile(pool, enrollment.student_id, fields);
+
+  const changes = buildFieldDiff(oldProfile, fields);
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   'tesda_enrollment',
+    entity_id:     enrollment.enrollment_id,
+    actor_type:    'Staff',
+    actor_id:      adminId,
+    actor_name:    actorName,
+    action:        'UPDATE',
+    action_detail: formatDiffDetail('Student Profile', changes),
+  });
+
+  return updated;
 };
 
-export const updateTesdaAddressSection = async (publicId, fields) => {
+export const updateTesdaAddressSection = async (publicId, fields, adminId) => {
   const enrollment = await getTesdaEnrollmentDetailByPublicId(pool, publicId);
   if (!enrollment) return null;
-  return await updateAddress(pool, enrollment.student_id, fields);
+
+  const oldAddress = await getAddressByStudentId(pool, enrollment.student_id);
+  const updated = await updateAddress(pool, enrollment.student_id, fields);
+
+  // => Address diff resolves PSGC codes to readable names (Region/Province/
+  //    City/Barangay) instead of showing raw numeric codes in the log
+  const changes = await buildAddressDiff(oldAddress, fields);
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   'tesda_enrollment',
+    entity_id:     enrollment.enrollment_id,
+    actor_type:    'Staff',
+    actor_id:      adminId,
+    actor_name:    actorName,
+    action:        'UPDATE',
+    action_detail: formatDiffDetail('Address', changes),
+  });
+
+  return updated;
 };
 
-export const updateTesdaGuardianSection = async (publicId, fields) => {
+export const updateTesdaGuardianSection = async (publicId, fields, adminId) => {
   const enrollment = await getTesdaEnrollmentDetailByPublicId(pool, publicId);
   if (!enrollment) return null;
-  return await upsertGuardian(pool, enrollment.student_id, fields);
+
+  const oldGuardian = await getGuardianByStudentId(pool, enrollment.student_id);
+  const updated = await upsertGuardian(pool, enrollment.student_id, fields);
+
+  // => No prior row means this is a first-time add, not an edit - the
+  //    diff phrasing ("blank" -> value for every field) reads oddly for
+  //    a fresh record, so a plain "Added" message is used instead
+  const changes = buildFieldDiff(oldGuardian, fields);
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   'tesda_enrollment',
+    entity_id:     enrollment.enrollment_id,
+    actor_type:    'Staff',
+    actor_id:      adminId,
+    actor_name:    actorName,
+    action:        'UPDATE',
+    action_detail: oldGuardian
+      ? formatDiffDetail('Guardian', changes)
+      : `Added Guardian: ${fields.guardian_name || 'Unnamed'}`,
+  });
+
+  return updated;
 };
 
-export const updateTesdaEnrollmentSection = async (publicId, fields) => {
-  return await updateTesdaEnrollmentFields(pool, publicId, fields);
+// => Covers Enrollment Info (ULI), Class/Batch, NCAE, and Scholarship -
+//    all funnel through this one endpoint, so the diff is what actually
+//    tells these apart in the log, not just a field-name list
+export const updateTesdaEnrollmentSection = async (publicId, fields, adminId) => {
+  const oldEnrollment = await getTesdaEnrollmentDetailByPublicId(pool, publicId);
+  if (!oldEnrollment) return null;
+
+  const updated = await updateTesdaEnrollmentFields(pool, publicId, fields);
+  if (!updated) return null;
+
+  const changes = buildFieldDiff(oldEnrollment, fields);
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   'tesda_enrollment',
+    entity_id:     updated.enrollment_id,
+    actor_type:    'Staff',
+    actor_id:      adminId,
+    actor_name:    actorName,
+    action:        'UPDATE',
+    action_detail: formatDiffDetail('Enrollment', changes),
+  });
+
+  return updated;
 };
 
-export const updateTesdaClassificationsSection = async (publicId, classifications, othersText) => {
+export const updateTesdaClassificationsSection = async (publicId, classifications, othersText, adminId) => {
   const enrollment = await getTesdaEnrollmentDetailByPublicId(pool, publicId);
   if (!enrollment) return null;
+
+  // => Fetched before the replace-all - classifications is a single-select
+  //    now, so the "old" side is just whatever the one existing row held
+  const oldRows = await getClassificationsByEnrollmentId(pool, enrollment.enrollment_id);
+  const oldValue = oldRows[0]?.classification_value || 'None';
+  const oldOthers = oldRows[0]?.others_text || '';
+
   await replaceClassifications(pool, enrollment.enrollment_id, classifications, othersText);
-  return await getClassificationsByEnrollmentId(pool, enrollment.enrollment_id);
+  const updated = await getClassificationsByEnrollmentId(pool, enrollment.enrollment_id);
+
+  const newValue = classifications[0] || 'None';
+  const newOthers = othersText || '';
+  const noChange = oldValue === newValue && oldOthers === newOthers;
+
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   'tesda_enrollment',
+    entity_id:     enrollment.enrollment_id,
+    actor_type:    'Staff',
+    actor_id:      adminId,
+    actor_name:    actorName,
+    action:        'UPDATE',
+    action_detail: noChange
+      ? 'Client Classifications section saved with no changes.'
+      : `Updated Client Classifications section - Classification: "${oldValue}" -> "${newValue}"${newValue === 'others' ? `; Others: "${oldOthers}" -> "${newOthers}"` : ''}`,
+  });
+
+  return updated;
 };
 
 //
@@ -356,18 +460,62 @@ export const updateTesdaClassificationsSection = async (publicId, classification
 // => R2 upload happens in the controller (needs req.file from multer);
 //    these just persist the resulting key against the right enrollment
 //
-export const addTesdaDocumentSection = async (publicId, docData) => {
+export const addTesdaDocumentSection = async (publicId, docData, adminId) => {
   const enrollment = await getTesdaEnrollmentDetailByPublicId(pool, publicId);
   if (!enrollment) return null;
-  return await addTesdaDocument(pool, enrollment.enrollment_id, docData);
+  const doc = await addTesdaDocument(pool, enrollment.enrollment_id, docData);
+
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   'tesda_enrollment',
+    entity_id:     enrollment.enrollment_id,
+    actor_type:    'Staff',
+    actor_id:      adminId,
+    actor_name:    actorName,
+    action:        'DOCUMENT_ADD',
+    action_detail: `Added document: "${docData.documentType}"`,
+  });
+
+  return doc;
 };
 
-export const replaceTesdaDocumentSection = async (docPublicId, documentKey) => {
-  return await replaceTesdaDocument(pool, docPublicId, documentKey);
+export const replaceTesdaDocumentSection = async (docPublicId, documentKey, adminId) => {
+  const doc = await replaceTesdaDocument(pool, docPublicId, documentKey);
+  if (!doc) return null;
+
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   'tesda_enrollment',
+    entity_id:     doc.enrollment_id,
+    actor_type:    'Staff',
+    actor_id:      adminId,
+    actor_name:    actorName,
+    action:        'DOCUMENT_REPLACE',
+    action_detail: `Replaced document: "${doc.document_type}"`,
+  });
+
+  return doc;
 };
 
-export const deleteTesdaDocumentSection = async (docPublicId) => {
-  return await deleteTesdaDocument(pool, docPublicId);
+export const deleteTesdaDocumentSection = async (docPublicId, adminId) => {
+  const result = await deleteTesdaDocument(pool, docPublicId);
+
+  // => Only log an actual deletion - notFound and blocked outcomes never
+  //    reach here, so nothing to log for those
+  if (result.deleted) {
+    const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+    await logActivity(pool, {
+      entity_type:   'tesda_enrollment',
+      entity_id:     result.deleted.enrollment_id,
+      actor_type:    'Staff',
+      actor_id:      adminId,
+      actor_name:    actorName,
+      action:        'DELETE',
+      action_detail: `Deleted document: "${result.deleted.document_type}"`,
+    });
+  }
+
+  return result;
 };
 
 //

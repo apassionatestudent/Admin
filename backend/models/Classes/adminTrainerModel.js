@@ -10,6 +10,40 @@
 //    join table(s) apply, and each enabled program type always requires at
 //    least one selected course (enforced in the service layer).
 
+// => Lightweight lookup: resolves a trainer's internal trainer_id from its
+//    public_id. Used only by the Activity Logs endpoint, mirrors
+//    getFacilityIdByPublicId in adminFacilityModel.js.
+export const getTrainerIdByPublicId = async (pool, publicId) => {
+  const result = await pool.query(
+    `SELECT trainer_id FROM trainers WHERE public_id = $1`,
+    [publicId]
+  );
+  return result.rows[0]?.trainer_id ?? null;
+};
+
+// => Resolves an array of TESDA course IDs into their titles - used only
+//    for building a readable "Assigned TESDA Courses" diff line in the
+//    activity log. Duplicated from adminFacilityModel.js rather than
+//    imported across features, per project convention.
+export const getTesdaCourseTitlesByIds = async (pool, courseIds) => {
+  if (!courseIds || courseIds.length === 0) return [];
+  const result = await pool.query(
+    `SELECT title FROM tesda_courses WHERE course_id = ANY($1::int[])`,
+    [courseIds]
+  );
+  return result.rows.map(r => r.title);
+};
+
+// => Same as above, for SHS courses
+export const getShsCourseTitlesByIds = async (pool, courseIds) => {
+  if (!courseIds || courseIds.length === 0) return [];
+  const result = await pool.query(
+    `SELECT title FROM shs_courses WHERE course_id = ANY($1::int[])`,
+    [courseIds]
+  );
+  return result.rows.map(r => r.title);
+};
+
 // => Active, non-deleted trainers only
 export const getActiveTrainers = async (pool) => {
   const result = await pool.query(

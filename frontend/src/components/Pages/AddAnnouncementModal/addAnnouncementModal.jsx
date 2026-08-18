@@ -9,6 +9,12 @@ import warningIcon from '../../../assets/icons/warning.png';
 import RichTextEditor from '../RichTextEditor/richTextEditor.jsx';
 import './addAnnouncementModal.css';
 
+// => Shared date formatter for the meta row - kept local to this file
+//    since addFAQModal.jsx has its own identical copy, not shared, same
+//    reasoning as Option B for the Terms and Conditions files
+const formatMetaDate = (isoString) =>
+  new Date(isoString).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' });
+
 export default function AddAnnouncementModal({ announcement, onClose, onSaved }) {
   const isEditMode = Boolean(announcement);
 
@@ -58,6 +64,16 @@ export default function AddAnnouncementModal({ announcement, onClose, onSaved })
             <img src={closeIcon} alt="Close" />
           </button>
         </div>
+
+        {/* => Edit mode only - a brand new announcement has no history to show yet */}
+        {isEditMode && (
+          <div className="aam-meta-row">
+            Created by <strong>{announcement.created_by_name}</strong> on {formatMetaDate(announcement.created_at)}
+            {announcement.updated_by_name && (
+              <> · Last updated by <strong>{announcement.updated_by_name}</strong> on {formatMetaDate(announcement.updated_at)}</>
+            )}
+          </div>
+        )}
 
         <div className="adm-modal-body">
           <div className="adm-form-group">

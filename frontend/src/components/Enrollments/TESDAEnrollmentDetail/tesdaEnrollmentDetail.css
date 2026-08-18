@@ -1019,6 +1019,49 @@
   margin-top: 4px;
 }
 
+/* => Activity Logs expandable row - same chevron/expand pattern as
+      Logs.jsx's main table, scoped to this page's adm-sub-table */
+.adm-log-row {
+  cursor: pointer;
+}
+
+.adm-log-row:hover {
+  background: rgba(102, 9, 17, 0.05);
+}
+
+.adm-log-detail-cell {
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adm-log-detail-row td {
+  background: var(--code-bg, #f4f3ec);
+  padding: 14px 20px;
+}
+
+.adm-log-detail-full p {
+  margin: 0 0 4px;
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+.adm-log-detail-full p:last-child {
+  margin-bottom: 0;
+}
+
+.adm-log-chevron {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.15s ease;
+  opacity: 0.6;
+}
+
+.adm-log-chevron-open {
+  transform: rotate(180deg);
+}
+
 /*  Responsive  */
 @media (max-width: 640px) {
   .adm-detail-page {

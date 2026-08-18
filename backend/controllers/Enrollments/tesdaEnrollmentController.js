@@ -108,7 +108,7 @@ export const patchTesdaEnrollmentStatus = async (req, res) => {
 //
 export const patchTesdaProfile = async (req, res) => {
   try {
-    const updated = await updateTesdaProfileSection(req.params.publicId, req.body);
+    const updated = await updateTesdaProfileSection(req.params.publicId, req.body, req.admin?.admin_id ?? null);
     if (!updated) return res.status(404).json({ error: 'Enrollment not found.' });
     return res.status(200).json({ success: true, profile: updated });
   } catch (err) {
@@ -119,7 +119,7 @@ export const patchTesdaProfile = async (req, res) => {
 
 export const patchTesdaAddress = async (req, res) => {
   try {
-    const updated = await updateTesdaAddressSection(req.params.publicId, req.body);
+    const updated = await updateTesdaAddressSection(req.params.publicId, req.body, req.admin?.admin_id ?? null);
     if (!updated) return res.status(404).json({ error: 'Enrollment not found.' });
     return res.status(200).json({ success: true, address: updated });
   } catch (err) {
@@ -130,7 +130,7 @@ export const patchTesdaAddress = async (req, res) => {
 
 export const patchTesdaGuardian = async (req, res) => {
   try {
-    const updated = await updateTesdaGuardianSection(req.params.publicId, req.body);
+    const updated = await updateTesdaGuardianSection(req.params.publicId, req.body, req.admin?.admin_id ?? null);
     if (!updated) return res.status(404).json({ error: 'Enrollment not found.' });
     return res.status(200).json({ success: true, guardian: updated });
   } catch (err) {
@@ -144,7 +144,7 @@ export const patchTesdaGuardian = async (req, res) => {
 //    handles whichever subset the frontend sends for that section's Save
 export const patchTesdaEnrollmentFields = async (req, res) => {
   try {
-    const updated = await updateTesdaEnrollmentSection(req.params.publicId, req.body);
+    const updated = await updateTesdaEnrollmentSection(req.params.publicId, req.body, req.admin?.admin_id ?? null);
     if (!updated) return res.status(404).json({ error: 'Enrollment not found.' });
     return res.status(200).json({ success: true, enrollment: updated });
   } catch (err) {
@@ -160,7 +160,7 @@ export const patchTesdaClassifications = async (req, res) => {
     return res.status(400).json({ error: 'classifications must be an array.' });
   }
   try {
-    const updated = await updateTesdaClassificationsSection(req.params.publicId, classifications, othersText);
+    const updated = await updateTesdaClassificationsSection(req.params.publicId, classifications, othersText, req.admin?.admin_id ?? null);
     if (!updated) return res.status(404).json({ error: 'Enrollment not found.' });
     return res.status(200).json({ success: true, classifications: updated });
   } catch (err) {
@@ -186,7 +186,7 @@ export const postTesdaDocument = async (req, res) => {
     const key = `primeenroll/admin-uploads/${documentType.replace(/\s+/g, '_')}_${Date.now()}.${ext}`;
     await uploadToR2(req.file.buffer, key, req.file.mimetype);
 
-    const doc = await addTesdaDocumentSection(publicId, { documentType, documentKey: key });
+    const doc = await addTesdaDocumentSection(publicId, { documentType, documentKey: key }, req.admin?.admin_id ?? null);
     if (!doc) return res.status(404).json({ error: 'Enrollment not found.' });
     return res.status(201).json({ success: true, document: doc });
   } catch (err) {
@@ -204,7 +204,7 @@ export const patchTesdaDocument = async (req, res) => {
     const key = `primeenroll/admin-uploads/replace_${Date.now()}.${ext}`;
     await uploadToR2(req.file.buffer, key, req.file.mimetype);
 
-    const doc = await replaceTesdaDocumentSection(docPublicId, key);
+    const doc = await replaceTesdaDocumentSection(docPublicId, key, req.admin?.admin_id ?? null);
     if (!doc) return res.status(404).json({ error: 'Document not found.' });
     return res.status(200).json({ success: true, document: doc });
   } catch (err) {
@@ -219,7 +219,7 @@ export const patchTesdaDocument = async (req, res) => {
 export const deleteTesdaDocumentController = async (req, res) => {
   const { docPublicId } = req.params;
   try {
-    const result = await deleteTesdaDocumentSection(docPublicId);
+    const result = await deleteTesdaDocumentSection(docPublicId, req.admin?.admin_id ?? null);
     if (result.notFound) return res.status(404).json({ error: 'Document not found.' });
     if (result.blocked) {
       return res.status(403).json({ error: 'This document was submitted by the student and cannot be deleted. Use Replace instead.' });

@@ -14,6 +14,7 @@ import {
   updateFacilityController,
   deleteFacilityController,
   restoreFacilityController,
+  getFacilityLogsController,
 } from '../../controllers/Classes/adminFacilityController.js';
 
 const router = express.Router();
@@ -26,6 +27,7 @@ router.get('/', adminApiRateLimit, protectAdmin, requireSection('classes'), list
 router.get('/deleted', adminApiRateLimit, protectAdmin, requireSection('classes'), listDeletedFacilities);
 router.post('/', adminApiRateLimit, protectAdmin, requireSection('classes'), createFacilityController);
 router.get('/:publicId', adminApiRateLimit, protectAdmin, requireSection('classes'), getFacilityDetailController);
+router.get('/:publicId/logs', adminApiRateLimit, protectAdmin, requireSection('classes'), getFacilityLogsController);
 router.patch('/:publicId', adminApiRateLimit, protectAdmin, requireSection('classes'), updateFacilityController);
 router.delete('/:publicId', adminApiRateLimit, protectAdmin, requireSection('classes'), deleteFacilityController);
 router.post('/:publicId/restore', adminApiRateLimit, protectAdmin, requireSection('classes'), restoreFacilityController);

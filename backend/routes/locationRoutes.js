@@ -113,6 +113,20 @@ export const loadLocationCache = async () => {
   }
 };
 
+// => Sync lookup, no fetch needed - regions are already cached on startup.
+//    Same prefix-matching logic the frontend detail pages use to handle
+//    the short-code (psgc.cloud) vs 10-digit (DB) mismatch.
+// => Exported so activity-log diffing can resolve a region_code to a
+//    readable name without going through HTTP.
+export const getRegionName = (regionCode) => {
+  const match = cache.regions.find(r =>
+    regionCode === r.code ||
+    regionCode.startsWith(r.code) ||
+    r.code.startsWith(regionCode)
+  );
+  return match?.name ?? regionCode;
+};
+
 // GET /regions
 router.get('/regions', (req, res) => {
   res.json(cache.regions.map(r => ({ code: r.code, name: r.name })));
@@ -122,21 +136,15 @@ router.get('/regions', (req, res) => {
 // => Uses hierarchy endpoint: /api/regions/{code}/provinces
 // GET /provinces/:regionCode
 // => Uses hierarchy endpoint: /api/regions/{code}/provinces
-router.get('/provinces/:regionCode', async (req, res) => {
-  const regionCode = req.params.regionCode;
+// => Extracted so other backend modules (activity-log diffing) can reuse
+//    this without an HTTP round trip to this router's own route.
+export const getProvinces = async (regionCode) => {
+  if (!isValidPSGCCode(regionCode)) return [];
 
-  // => Reject anything that isn't a valid PSGC code - blocks SSRF before the fetch() call below
-  if (!isValidPSGCCode(regionCode)) {
-    return res.status(400).json({ error: 'Invalid region code' });
-  }
-
-  // => Return from cache if already fetched
   if (cache.provincesByRegion[regionCode]) {
-    return res.json(cache.provincesByRegion[regionCode]);
+    return cache.provincesByRegion[regionCode];
   }
 
-  // => psgc.cloud expects short region codes (e.g. "09") but DB stores 10-digit codes (e.g. "0900000000")
-  // => Derive short code by matching against cached regions - more reliable than string slicing
   const regionEntry = cache.regions.find(r =>
     regionCode === r.code ||
     regionCode.startsWith(r.code) ||
@@ -152,27 +160,29 @@ router.get('/provinces/:regionCode', async (req, res) => {
       .map(p => ({ code: p.code, name: p.name }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    // => Cache for next time
     cache.provincesByRegion[regionCode] = mapped;
-    res.json(mapped);
+    return mapped;
   } catch (err) {
     console.error('Failed to fetch provinces:', err);
-    res.json([]);
+    return [];
   }
+};
+
+router.get('/provinces/:regionCode', async (req, res) => {
+  const regionCode = req.params.regionCode;
+  if (!isValidPSGCCode(regionCode)) {
+    return res.status(400).json({ error: 'Invalid region code' });
+  }
+  res.json(await getProvinces(regionCode));
 });
 
 // GET /cities/:provinceCode
 // => Uses hierarchy endpoint: /api/provinces/{code}/cities-municipalities
-router.get('/cities/:provinceCode', async (req, res) => {
-  const provinceCode = req.params.provinceCode;
-
-  // => Reject anything that isn't a valid PSGC code - blocks SSRF before the fetch() call below
-  if (!isValidPSGCCode(provinceCode)) {
-    return res.status(400).json({ error: 'Invalid province code' });
-  }
+export const getCitiesByProvince = async (provinceCode) => {
+  if (!isValidPSGCCode(provinceCode)) return [];
 
   if (cache.citiesByProvince[provinceCode]) {
-    return res.json(cache.citiesByProvince[provinceCode]);
+    return cache.citiesByProvince[provinceCode];
   }
 
   try {
@@ -189,29 +199,31 @@ router.get('/cities/:provinceCode', async (req, res) => {
       .sort((a, b) => a.name.localeCompare(b.name));
 
     cache.citiesByProvince[provinceCode] = mapped;
-    res.json(mapped);
+    return mapped;
   } catch (err) {
     console.error('Failed to fetch cities:', err);
-    res.json([]);
+    return [];
   }
+};
+
+router.get('/cities/:provinceCode', async (req, res) => {
+  const provinceCode = req.params.provinceCode;
+  if (!isValidPSGCCode(provinceCode)) {
+    return res.status(400).json({ error: 'Invalid province code' });
+  }
+  res.json(await getCitiesByProvince(provinceCode));
 });
 
 // GET /cities-by-region/:regionCode
 // => Uses hierarchy endpoint: /api/regions/{code}/cities-municipalities (for NCR)
 // GET /cities-by-region/:regionCode
-router.get('/cities-by-region/:regionCode', async (req, res) => {
-  const regionCode = req.params.regionCode;
-
-  // => Reject anything that isn't a valid PSGC code - blocks SSRF before the fetch() call below
-  if (!isValidPSGCCode(regionCode)) {
-    return res.status(400).json({ error: 'Invalid region code' });
-  }
+export const getCitiesByRegion = async (regionCode) => {
+  if (!isValidPSGCCode(regionCode)) return [];
 
   if (cache.citiesByRegion[regionCode]) {
-    return res.json(cache.citiesByRegion[regionCode]);
+    return cache.citiesByRegion[regionCode];
   }
 
-  // => Same short-code resolution as provinces - psgc.cloud needs the short form
   const regionEntry = cache.regions.find(r =>
     regionCode === r.code ||
     regionCode.startsWith(r.code) ||
@@ -233,11 +245,19 @@ router.get('/cities-by-region/:regionCode', async (req, res) => {
       .sort((a, b) => a.name.localeCompare(b.name));
 
     cache.citiesByRegion[regionCode] = mapped;
-    res.json(mapped);
+    return mapped;
   } catch (err) {
     console.error('Failed to fetch region cities:', err);
-    res.json([]);
+    return [];
   }
+};
+
+router.get('/cities-by-region/:regionCode', async (req, res) => {
+  const regionCode = req.params.regionCode;
+  if (!isValidPSGCCode(regionCode)) {
+    return res.status(400).json({ error: 'Invalid region code' });
+  }
+  res.json(await getCitiesByRegion(regionCode));
 });
 
 // GET /barangays/:cityCode
@@ -280,31 +300,23 @@ router.get('/cities-by-region/:regionCode', async (req, res) => {
 // GET /barangays/:cityCode
 // => Uses psgc.cloud hierarchy: /api/cities/{code}/barangays or /api/municipalities/{code}/barangays
 // => psgc.cloud codes are 10 digits - no conversion needed, use them directly
-router.get('/barangays/:cityCode', async (req, res) => {
-  const code = req.params.cityCode;
+export const getBarangays = async (code) => {
+  if (!isValidPSGCCode(code)) return [];
 
-  // => Reject anything that isn't a valid PSGC code - blocks SSRF before the two fetch() calls below
-  if (!isValidPSGCCode(code)) {
-    return res.status(400).json({ error: 'Invalid city code' });
-  }
-
-  // => Return from cache if already fetched
   if (cache.barangaysByParent[code]) {
-    return res.json(cache.barangaysByParent[code]);
+    return cache.barangaysByParent[code];
   }
 
   try {
-    // => Try city endpoint first
     let response = await fetch(`${BASE}/cities/${code}/barangays`);
 
-    // => Fallback to municipality endpoint if city returns 404 or empty
     if (!response.ok) {
       response = await fetch(`${BASE}/municipalities/${code}/barangays`);
     }
 
     if (!response.ok) {
       console.warn(`Barangays not found on psgc.cloud for code ${code}`);
-      return res.json([]);
+      return [];
     }
 
     const data = await response.json();
@@ -312,14 +324,21 @@ router.get('/barangays/:cityCode', async (req, res) => {
       .map(b => ({ code: b.code, name: b.name }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    // => Cache to avoid re-fetching same city
     cache.barangaysByParent[code] = mapped;
-    res.json(mapped);
+    return mapped;
 
   } catch (err) {
     console.error(`Failed to fetch barangays for ${code}:`, err);
-    res.json([]);
+    return [];
   }
+};
+
+router.get('/barangays/:cityCode', async (req, res) => {
+  const code = req.params.cityCode;
+  if (!isValidPSGCCode(code)) {
+    return res.status(400).json({ error: 'Invalid city code' });
+  }
+  res.json(await getBarangays(code));
 });
 
 // GET /barangays/:cityCode

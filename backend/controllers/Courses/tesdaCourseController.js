@@ -40,9 +40,9 @@ export async function createTesdaCourse(req, res) {
   try {
     const { course, competencies, jobOpportunities } = req.body;
     // => req.admin is attached by the protectAdmin middleware (decoded JWT payload)
-    const adminId = req.admin?.admin_id;
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
 
-    const newCourse = await TesdaCourseService.createTesdaCourse({ course, competencies, jobOpportunities, adminId });
+    const newCourse = await TesdaCourseService.createTesdaCourse({ course, competencies, jobOpportunities, actor });
     res.status(201).json({ success: true, data: newCourse });
   } catch (error) {
     console.error('createTesdaCourse error:', error);
@@ -53,7 +53,8 @@ export async function createTesdaCourse(req, res) {
 export async function updateTesdaCourse(req, res) {
   try {
     const { adminUuid } = req.params;
-    const updated = await TesdaCourseService.updateTesdaCourse(adminUuid, req.body);
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
+    const updated = await TesdaCourseService.updateTesdaCourse(adminUuid, req.body, actor);
     res.status(200).json({ success: true, data: updated });
   } catch (error) {
     console.error('updateTesdaCourse error:', error);
@@ -64,7 +65,8 @@ export async function updateTesdaCourse(req, res) {
 export async function deleteTesdaCourse(req, res) {
   try {
     const { adminUuid } = req.params;
-    await TesdaCourseService.deleteTesdaCourse(adminUuid);
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
+    await TesdaCourseService.deleteTesdaCourse(adminUuid, actor);
     res.status(200).json({ success: true, message: 'Course deleted' });
   } catch (error) {
     console.error('deleteTesdaCourse error:', error);
@@ -85,7 +87,8 @@ export async function getDeletedTesdaCourses(req, res) {
 export async function restoreTesdaCourse(req, res) {
   try {
     const { adminUuid } = req.params;
-    const restored = await TesdaCourseService.restoreTesdaCourse(adminUuid);
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
+    const restored = await TesdaCourseService.restoreTesdaCourse(adminUuid, actor);
     res.status(200).json({ success: true, data: restored });
   } catch (error) {
     console.error('restoreTesdaCourse error:', error);
@@ -93,11 +96,24 @@ export async function restoreTesdaCourse(req, res) {
   }
 }
 
+// => Powers the detail page's Activity Log section - fetch-all-at-once, no pagination
+export async function getTesdaCourseLogsController(req, res) {
+  try {
+    const { adminUuid } = req.params;
+    const logs = await TesdaCourseService.getTesdaCourseLogs(adminUuid);
+    res.status(200).json({ success: true, data: logs });
+  } catch (error) {
+    console.error('getTesdaCourseLogsController error:', error);
+    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Failed to fetch course logs' });
+  }
+}
+
 export async function addCompetency(req, res) {
   try {
     const { adminUuid } = req.params;
     const { type, code, competency } = req.body;
-    const newRow = await TesdaCourseService.addCompetency(adminUuid, type, { code, competency });
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
+    const newRow = await TesdaCourseService.addCompetency(adminUuid, type, { code, competency }, actor);
     res.status(201).json({ success: true, data: newRow });
   } catch (error) {
     console.error('addCompetency error:', error);
@@ -109,7 +125,8 @@ export async function updateCompetency(req, res) {
   try {
     const { type, competencyId } = req.params;
     const { code, competency } = req.body;
-    const updated = await TesdaCourseService.editCompetency(type, competencyId, { code, competency });
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
+    const updated = await TesdaCourseService.editCompetency(type, competencyId, { code, competency }, actor);
     res.status(200).json({ success: true, data: updated });
   } catch (error) {
     console.error('updateCompetency error:', error);
@@ -120,34 +137,12 @@ export async function updateCompetency(req, res) {
 export async function deleteCompetency(req, res) {
   try {
     const { type, competencyId } = req.params;
-    await TesdaCourseService.removeCompetency(type, competencyId);
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
+    await TesdaCourseService.removeCompetency(type, competencyId, actor);
     res.status(200).json({ success: true, message: 'Competency deleted' });
   } catch (error) {
     console.error('deleteCompetency error:', error);
     res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Failed to delete competency' });
-  }
-}
-
-export async function enablePublicLink(req, res) {
-  try {
-    const { adminUuid } = req.params;
-    const link = await TesdaCourseService.enablePublicLink(adminUuid);
-    res.status(200).json({ success: true, data: link });
-  } catch (error) {
-    console.error('enablePublicLink error:', error);
-    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Failed to enable public link' });
-  }
-}
-
-export async function updatePublicLink(req, res) {
-  try {
-    const { adminUuid } = req.params;
-    const { public_slug, is_published } = req.body;
-    const link = await TesdaCourseService.updatePublicLink(adminUuid, { public_slug, is_published });
-    res.status(200).json({ success: true, data: link });
-  } catch (error) {
-    console.error('updatePublicLink error:', error);
-    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Failed to update public link' });
   }
 }
 

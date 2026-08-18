@@ -15,6 +15,8 @@ import {
 
 // => Same activity-log helper Batches already uses
 import { logActivity, getActivityLogsForEntity } from '../../models/adminActivityLogModel.js';
+import { buildFieldDiff, formatDiffDetail } from '../../utils/buildFieldDiff.js';
+import { buildAddressDiff } from '../../utils/resolveAddressNames.js';
 
 import {
   getShsEnrollmentDetailByPublicId,
@@ -193,18 +195,19 @@ export const changeShsEnrollmentStatus = async (publicId, newStatus, externalRem
     updated = await updateShsEnrollmentStatus(pool, publicId, newStatus, externalRemarks);
   }
 
-  // => Activity log entry - same pattern as TESDA / adminBatchServices.js
+  // => Activity log entry - action is the fixed taxonomy value; the
+  //    actual new status now lives in action_detail alongside the
+  //    previous status, since "action" itself is CHECK-constrained
+  //    to the 17-value taxonomy and can't hold a dynamic string
   const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
   await logActivity(pool, {
     entity_type:   'shs_enrollment',
     entity_id:     enrollment.enrollment_id,
-    actor_type:    'Admin',
+    actor_type:    'Staff',
     actor_id:      adminId,
     actor_name:    actorName,
-    action:        `Status changed to ${newStatus}`,
-    // => Same reasoning as TESDA - "action" already states the new
-    //    status, this only adds previous status + remarks
-    action_detail: `Previous status: ${enrollment.status}.${externalRemarks?.trim() ? ` Remarks: ${externalRemarks.trim()}` : ''}`,
+    action:        'STATUS_CHANGE',
+    action_detail: `Status changed to ${newStatus}. Previous status: ${enrollment.status}.${externalRemarks?.trim() ? ` Remarks: ${externalRemarks.trim()}` : ''}`,
   });
 
   // => Same per-enrollment audit entry for swept students as the TESDA
@@ -216,8 +219,8 @@ export const changeShsEnrollmentStatus = async (publicId, newStatus, externalRem
       actor_type:    'System',
       actor_id:      null,
       actor_name:    'System',
-      action:        'Status changed to Reserved',
-      action_detail: `Batch #${enrollment.batch_id} reached full capacity after another enrollment was approved - moved back to Reserved and unassigned from the batch to await placement in a future batch.`,
+      action:        'STATUS_CHANGE',
+      action_detail: `Status changed to Reserved. Batch #${enrollment.batch_id} reached full capacity after another enrollment was approved - moved back to Reserved and unassigned from the batch to await placement in a future batch.`,
     });
   }
 
@@ -253,27 +256,112 @@ export const changeShsEnrollmentStatus = async (publicId, newStatus, externalRem
 //   the shared model functions
 //
 
-export const updateShsProfileSection = async (publicId, fields) => {
+export const updateShsProfileSection = async (publicId, fields, adminId) => {
   const enrollment = await getShsEnrollmentDetailByPublicId(pool, publicId);
   if (!enrollment) return null;
-  return await updateProfile(pool, enrollment.student_id, fields);
+
+  const oldProfile = await getProfileByStudentId(pool, enrollment.student_id);
+  const updated = await updateProfile(pool, enrollment.student_id, fields);
+
+  const changes = buildFieldDiff(oldProfile, fields);
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   'shs_enrollment',
+    entity_id:     enrollment.enrollment_id,
+    actor_type:    'Staff',
+    actor_id:      adminId,
+    actor_name:    actorName,
+    action:        'UPDATE',
+    action_detail: formatDiffDetail('Student Profile', changes),
+  });
+
+  return updated;
 };
 
-export const updateShsAddressSection = async (publicId, fields) => {
+export const updateShsAddressSection = async (publicId, fields, adminId) => {
   const enrollment = await getShsEnrollmentDetailByPublicId(pool, publicId);
   if (!enrollment) return null;
-  return await updateAddress(pool, enrollment.student_id, fields);
+
+  const oldAddress = await getAddressByStudentId(pool, enrollment.student_id);
+  const updated = await updateAddress(pool, enrollment.student_id, fields);
+
+  const changes = await buildAddressDiff(oldAddress, fields);
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   'shs_enrollment',
+    entity_id:     enrollment.enrollment_id,
+    actor_type:    'Staff',
+    actor_id:      adminId,
+    actor_name:    actorName,
+    action:        'UPDATE',
+    action_detail: formatDiffDetail('Address', changes),
+  });
+
+  return updated;
 };
 
-export const updateShsEnrollmentSection = async (publicId, fields) => {
-  return await updateShsEnrollmentFields(pool, publicId, fields);
+// => Covers Enrollment Info, Academic Info, Class/Batch, Emergency
+//    Contact, and Health Info sections - all funnel through this one
+//    endpoint, so the diff is what tells them apart in the log
+export const updateShsEnrollmentSection = async (publicId, fields, adminId) => {
+  const oldEnrollment = await getShsEnrollmentDetailByPublicId(pool, publicId);
+  if (!oldEnrollment) return null;
+
+  const updated = await updateShsEnrollmentFields(pool, publicId, fields);
+  if (!updated) return null;
+
+  const changes = buildFieldDiff(oldEnrollment, fields);
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   'shs_enrollment',
+    entity_id:     updated.enrollment_id,
+    actor_type:    'Staff',
+    actor_id:      adminId,
+    actor_name:    actorName,
+    action:        'UPDATE',
+    action_detail: formatDiffDetail('Enrollment', changes),
+  });
+
+  return updated;
 };
 
-export const updateShsFamilySection = async (publicId, members) => {
+export const updateShsFamilySection = async (publicId, members, adminId) => {
   const enrollment = await getShsEnrollmentDetailByPublicId(pool, publicId);
   if (!enrollment) return null;
+
+  const oldMembers = await getFamilyMembersByStudentId(pool, enrollment.student_id);
   await replaceFamilyMembers(pool, enrollment.student_id, members);
-  return await getFamilyMembersByStudentId(pool, enrollment.student_id);
+  const updated = await getFamilyMembersByStudentId(pool, enrollment.student_id);
+
+  // => Family is a set of rows, not flat fields - diff each role
+  //    separately against its own prior row, then merge into one string
+  const roleLabels = {
+    full_name: 'Name', occupation: 'Occupation',
+    contact_no: 'Contact No.', relationship_to_student: 'Relationship',
+  };
+  const allChanges = [];
+  for (const newMember of members) {
+    const oldMember = oldMembers.find(m => m.role === newMember.role) || {};
+    const roleChanges = buildFieldDiff(oldMember, newMember, roleLabels);
+    if (roleChanges.length > 0) {
+      allChanges.push(`${newMember.role} - ${roleChanges.join('; ')}`);
+    }
+  }
+
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   'shs_enrollment',
+    entity_id:     enrollment.enrollment_id,
+    actor_type:    'Staff',
+    actor_id:      adminId,
+    actor_name:    actorName,
+    action:        'UPDATE',
+    action_detail: allChanges.length > 0
+      ? `Updated Family Members section - ${allChanges.join(' | ')}`
+      : 'Family Members section saved with no field changes.',
+  });
+
+  return updated;
 };
 
 //
@@ -281,18 +369,60 @@ export const updateShsFamilySection = async (publicId, members) => {
 // => R2 upload happens in the controller (needs req.file from multer);
 //    these just persist the resulting key against the right enrollment
 //
-export const addShsDocumentSection = async (publicId, docData) => {
+export const addShsDocumentSection = async (publicId, docData, adminId) => {
   const enrollment = await getShsEnrollmentDetailByPublicId(pool, publicId);
   if (!enrollment) return null;
-  return await addShsDocument(pool, enrollment.enrollment_id, docData);
+  const doc = await addShsDocument(pool, enrollment.enrollment_id, docData);
+
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   'shs_enrollment',
+    entity_id:     enrollment.enrollment_id,
+    actor_type:    'Staff',
+    actor_id:      adminId,
+    actor_name:    actorName,
+    action:        'DOCUMENT_ADD',
+    action_detail: `Added document: "${docData.documentType}"`,
+  });
+
+  return doc;
 };
 
-export const replaceShsDocumentSection = async (docPublicId, documentKey) => {
-  return await replaceShsDocument(pool, docPublicId, documentKey);
+export const replaceShsDocumentSection = async (docPublicId, documentKey, adminId) => {
+  const doc = await replaceShsDocument(pool, docPublicId, documentKey);
+  if (!doc) return null;
+
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   'shs_enrollment',
+    entity_id:     doc.enrollment_id,
+    actor_type:    'Staff',
+    actor_id:      adminId,
+    actor_name:    actorName,
+    action:        'DOCUMENT_REPLACE',
+    action_detail: `Replaced document: "${doc.document_type}"`,
+  });
+
+  return doc;
 };
 
-export const deleteShsDocumentSection = async (docPublicId) => {
-  return await deleteShsDocument(pool, docPublicId);
+export const deleteShsDocumentSection = async (docPublicId, adminId) => {
+  const result = await deleteShsDocument(pool, docPublicId);
+
+  if (result.deleted) {
+    const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+    await logActivity(pool, {
+      entity_type:   'shs_enrollment',
+      entity_id:     result.deleted.enrollment_id,
+      actor_type:    'Staff',
+      actor_id:      adminId,
+      actor_name:    actorName,
+      action:        'DELETE',
+      action_detail: `Deleted document: "${result.deleted.document_type}"`,
+    });
+  }
+
+  return result;
 };
 
 //

@@ -10,6 +10,7 @@ import {
   fetchEligibleBatchesForFacility,
   fetchAllActiveBatchesForRemote,
   addClassSession,
+  fetchFacilityActivityLogs,
 } from '../../services/Classes/adminClassSessionService.js';
 
 //
@@ -137,5 +138,26 @@ export const createClassSessionController = async (req, res) => {
     }
     console.error('createClassSessionController error:', err);
     return res.status(500).json({ error: 'Failed to create class session.' });
+  }
+};
+
+
+//
+// GET /api/admin/class-sessions/facilities/:facilityPublicId/logs?page=1
+// => Powers the Activity Logs section below the calendar on
+//    FacilitySessionCalendar - always most-recent-first, 10 per page
+//
+export const getFacilityActivityLogsController = async (req, res) => {
+  const { facilityPublicId } = req.params;
+  const page = parseInt(req.query.page, 10) || 1;
+
+  res.set('Cache-Control', 'no-store');
+  try {
+    const result = await fetchFacilityActivityLogs(facilityPublicId, page);
+    if (!result) return res.status(404).json({ error: 'Facility not found.' });
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error('getFacilityActivityLogsController error:', err);
+    return res.status(500).json({ error: 'Failed to fetch activity logs.' });
   }
 };
