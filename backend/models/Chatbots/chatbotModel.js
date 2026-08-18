@@ -35,36 +35,63 @@ export async function findAllChatbots() {
 }
 
 export async function findChatbotByPublicId(publicId) {
+    // => Left-joined twice against admins, once per attribution column,
+    //    since created_by and updated_by can point at two different
+    //    admins (or updated_by can be NULL if never edited).
     const result = await pool.query(
-        `SELECT chatbot_id, public_id, name, widget_header_title, welcome_message,
-                instructions, context, scope_type, course_id, status, created_by, created_at, updated_at
-         FROM chatbots
-         WHERE public_id = $1`,
+        `SELECT c.chatbot_id, c.public_id, c.name, c.widget_header_title, c.welcome_message,
+                c.instructions, c.context, c.scope_type, c.course_id, c.status,
+                c.created_by, c.created_at, c.updated_by, c.updated_at,
+                ca.full_name AS created_by_name,
+                ua.full_name AS updated_by_name
+         FROM chatbots c
+         LEFT JOIN admins ca ON ca.admin_id = c.created_by
+         LEFT JOIN admins ua ON ua.admin_id = c.updated_by
+         WHERE c.public_id = $1`,
         [publicId]
     );
     return result.rows[0] || null;
 }
 
 export async function insertChatbot({ name, widgetHeaderTitle, welcomeMessage, instructions, context, scopeType, courseId, createdBy }) {
+    // => CTE wrap so created_by_name comes back in the same round trip,
+    //    same fix applied to announcementModel.js and faqModel.js
     const result = await pool.query(
-        `INSERT INTO chatbots
-            (name, widget_header_title, welcome_message, instructions, context, scope_type, course_id, status, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'inactive', $8)
-         RETURNING chatbot_id, public_id, name, widget_header_title, welcome_message,
-                   instructions, context, scope_type, course_id, status, created_at, updated_at`,
+        `WITH inserted AS (
+            INSERT INTO chatbots
+                (name, widget_header_title, welcome_message, instructions, context, scope_type, course_id, status, created_by)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 'inactive', $8)
+             RETURNING chatbot_id, public_id, name, widget_header_title, welcome_message,
+                       instructions, context, scope_type, course_id, status,
+                       created_by, updated_by, created_at, updated_at
+        )
+        SELECT i.*, ca.full_name AS created_by_name, ua.full_name AS updated_by_name
+        FROM inserted i
+        LEFT JOIN admins ca ON ca.admin_id = i.created_by
+        LEFT JOIN admins ua ON ua.admin_id = i.updated_by`,
         [name, widgetHeaderTitle, welcomeMessage, instructions, context || null, scopeType, courseId || null, createdBy]
     );
     return result.rows[0];
 }
 
-export async function updateChatbotByPublicId(publicId, setClause, values) {
+export async function updateChatbotByPublicId(publicId, setClause, values, adminId) {
+    // => updated_by is stamped here directly, not through PATCHABLE_COLUMNS -
+    //    it comes from the authenticated admin (req.admin.admin_id), never
+    //    from the request body, so it can't be spoofed by a client.
     const result = await pool.query(
-        `UPDATE chatbots
-         SET ${setClause}, updated_at = NOW()
-         WHERE public_id = $${values.length + 1}
-         RETURNING chatbot_id, public_id, name, widget_header_title, welcome_message,
-                   instructions, context, scope_type, course_id, status, created_at, updated_at`,
-        [...values, publicId]
+        `WITH updated AS (
+            UPDATE chatbots
+            SET ${setClause}, updated_by = $${values.length + 1}, updated_at = NOW()
+            WHERE public_id = $${values.length + 2}
+            RETURNING chatbot_id, public_id, name, widget_header_title, welcome_message,
+                      instructions, context, scope_type, course_id, status,
+                      created_by, updated_by, created_at, updated_at
+        )
+        SELECT u.*, ca.full_name AS created_by_name, ua.full_name AS updated_by_name
+        FROM updated u
+        LEFT JOIN admins ca ON ca.admin_id = u.created_by
+        LEFT JOIN admins ua ON ua.admin_id = u.updated_by`,
+        [...values, adminId, publicId]
     );
     return result.rows[0] || null;
 }

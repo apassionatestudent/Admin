@@ -4,6 +4,10 @@
 
 import { pool } from '../../config/db.js';
 import { logActivity, getActivityLogsForEntity } from '../../models/adminActivityLogModel.js';
+// => Canonical action taxonomy - keeps every logActivity call in this file
+//    aligned with the activity_logs_action_check constraint in Neon
+import { ACTIVITY_ACTIONS } from '../../constants/activityActions.js';
+import { buildFieldDiff, formatDiffDetail } from '../../utils/buildFieldDiff.js';
 
 import {
   getActiveBatches,
@@ -28,6 +32,7 @@ import {
   bulkReleaseTesdaEnrollmentsFromBatch,
   bulkReleaseShsEnrollmentsFromBatch,
   getAdminNameById,
+  getTrainerNameById,
   getMiscFeesByBatch,
   addBatchMiscFee,
   deleteBatchMiscFee,
@@ -190,10 +195,10 @@ export const changeTesdaBatchStatus = async (publicId, newStatus, remarks, admin
   await logActivity(pool, {
     entity_type:   'tesda_batch',
     entity_id:     existing.batch_id,
-    actor_type:    'Admin',
+    actor_type:    'Staff',
     actor_id:      adminId,
     actor_name:    actorName,
-    action:        `Status changed to ${newStatus}`,
+    action:        ACTIVITY_ACTIONS.STATUS_CHANGE,
     action_detail: `Changed from ${existing.status} to ${newStatus}. Remarks: ${remarksTrimmed}`,
   });
 
@@ -228,10 +233,10 @@ export const changeShsBatchStatus = async (publicId, newStatus, remarks, adminId
   await logActivity(pool, {
     entity_type:   'shs_batch',
     entity_id:     existing.batch_id,
-    actor_type:    'Admin',
+    actor_type:    'Staff',
     actor_id:      adminId,
     actor_name:    actorName,
-    action:        `Status changed to ${newStatus}`,
+    action:        ACTIVITY_ACTIONS.STATUS_CHANGE,
     action_detail: `Changed from ${existing.status} to ${newStatus}. Remarks: ${remarksTrimmed}`,
   });
 
@@ -269,7 +274,22 @@ export const addTesdaBatch = async (batchData) => {
     }
   }
 
-  return await createTesdaBatch(pool, batchData);
+  const created = await createTesdaBatch(pool, batchData);
+
+  // => created_by is threaded through batchData by the controller, no
+  //    separate adminId param needed for a create action
+  const actorName = (await getAdminNameById(pool, batchData.created_by)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   'tesda_batch',
+    entity_id:     created.batch_id,
+    actor_type:    'Staff',
+    actor_id:      batchData.created_by,
+    actor_name:    actorName,
+    action:        ACTIVITY_ACTIONS.CREATE,
+    action_detail: `Created batch "${created.batch_name}" (Batch #${created.batch_sequence}).`,
+  });
+
+  return created;
 };
 
 // CREATE SHS BATCH
@@ -317,7 +337,20 @@ export const addShsBatch = async (batchData) => {
     }
   }
 
-  return await createShsBatch(pool, batchData);
+  const created = await createShsBatch(pool, batchData);
+
+  const actorName = (await getAdminNameById(pool, batchData.created_by)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   'shs_batch',
+    entity_id:     created.batch_id,
+    actor_type:    'Staff',
+    actor_id:      batchData.created_by,
+    actor_name:    actorName,
+    action:        ACTIVITY_ACTIONS.CREATE,
+    action_detail: `Created batch "${created.batch_name}" (Batch #${created.batch_sequence}).`,
+  });
+
+  return created;
 };
 
 // ════════════════════════════════════════════
@@ -327,7 +360,7 @@ export const addShsBatch = async (batchData) => {
 
 // => TESDA trainer qualification stays a HARD block on edit too, same as
 //    creation - no override path
-export const editTesdaBatchDetails = async (publicId, batchData, existingCourseId, adminId, batchId) => {
+export const editTesdaBatchDetails = async (publicId, batchData, existingBatch, adminId, batchId) => {
   const { trainer_id, start_date, end_date, required_number_of_students, max_students, max_applicants } = batchData;
 
   if (!required_number_of_students) throw new Error('required_number_of_students is required.');
@@ -344,13 +377,46 @@ export const editTesdaBatchDetails = async (publicId, batchData, existingCourseI
   }
 
   if (trainer_id) {
-    const qualified = await isTrainerQualifiedForTesdaCourse(pool, trainer_id, existingCourseId);
+    const qualified = await isTrainerQualifiedForTesdaCourse(pool, trainer_id, existingBatch.course_id);
     if (!qualified) {
       throw new Error('This trainer is not accredited for this course. Assign a qualified trainer, or leave the trainer field blank for now.');
     }
   }
 
   const updated = await updateTesdaBatchDetails(pool, publicId, batchData);
+
+  // => Trainer needs special handling here - batchData only carries the
+  //    new trainer_id (a number), not a name, so it's resolved separately
+  //    so the log reads "Trainer: none -> Master Chef" instead of the
+  //    meaningless "trainer_id: null -> 5"
+  const newTrainerName = trainer_id ? await getTrainerNameById(pool, trainer_id) : null;
+
+  const changes = buildFieldDiff(
+    {
+      start_date:                  existingBatch.start_date,
+      end_date:                    existingBatch.end_date,
+      required_number_of_students: existingBatch.required_number_of_students,
+      max_students:                existingBatch.max_students,
+      max_applicants:              existingBatch.max_applicants,
+      trainer_name:                existingBatch.trainer_name,
+    },
+    {
+      start_date,
+      end_date,
+      required_number_of_students,
+      max_students,
+      max_applicants,
+      trainer_name: newTrainerName,
+    },
+    {
+      start_date:                  'Start Date',
+      end_date:                    'End Date',
+      required_number_of_students: 'Required Students',
+      max_students:                'Max Students',
+      max_applicants:              'Max Applicant Pool',
+      trainer_name:                'Trainer',
+    }
+  );
 
   // => batchId is passed in from the controller (already had it from the
   //    existence check) rather than read off `updated`, so this doesn't
@@ -359,14 +425,11 @@ export const editTesdaBatchDetails = async (publicId, batchData, existingCourseI
   await logActivity(pool, {
     entity_type:   'tesda_batch',
     entity_id:     batchId,
-    actor_type:    'Admin',
+    actor_type:    'Staff',
     actor_id:      adminId,
     actor_name:    actorName,
-    action:        'Batch information updated',
-    // => action_detail is NOT NULL on the live table - a plain string
-    //    instead of null, since this edit touches several fields at once
-    //    and there's no single "before -> after" value to summarize
-    action_detail: 'Updated batch information.',
+    action:        ACTIVITY_ACTIONS.UPDATE,
+    action_detail: formatDiffDetail('Batch Information', changes),
   });
 
   return updated;
@@ -375,9 +438,9 @@ export const editTesdaBatchDetails = async (publicId, batchData, existingCourseI
 // => SHS trainer qualification keeps the same soft-confirm flow as creation
 // => SHS trainer qualification is now a HARD block on edit too, matching
 //    creation and TESDA - no more substitute confirm path
-export const editShsBatchDetails = async (publicId, batchData, existingClusterId, adminId, batchId) => {
+export const editShsBatchDetails = async (publicId, batchData, existingBatch, adminId, batchId) => {
   const {
-    school_year, start_date, end_date, required_number_of_students, max_students, max_applicants,
+    start_date, end_date, required_number_of_students, max_students, max_applicants,
     course_trainers,
   } = batchData;
 
@@ -394,9 +457,9 @@ export const editShsBatchDetails = async (publicId, batchData, existingClusterId
     throw new Error('max_students cannot exceed max_applicants.');
   }
 
-  // => Same per-course qualification check as addShsBatch - existingClusterId
-  //    isn't even needed anymore here since course_id itself already
-  //    identifies which cluster/grade it belongs to
+  // => Per-course qualification check - existingBatch.cluster_id isn't
+  //    needed here since course_id itself already identifies which
+  //    cluster/grade it belongs to
   for (const { course_id, trainer_id } of (course_trainers || [])) {
     if (!trainer_id) continue; // => "Assign later" for this course - nothing to check
     const qualified = await isTrainerQualifiedForShsCourse(pool, trainer_id, course_id);
@@ -405,20 +468,68 @@ export const editShsBatchDetails = async (publicId, batchData, existingClusterId
     }
   }
 
+  // => Fetched BEFORE the update below runs, so this reflects the
+  //    per-course trainer assignments as they stood prior to this save -
+  //    updateShsBatchDetails overwrites shs_batch_course_trainers, so
+  //    this has to be captured first or the "old" side of the diff would
+  //    already be gone.
+  const oldCourseTrainers = await getShsBatchCourseTrainers(pool, existingBatch.batch_id);
+
   const updated = await updateShsBatchDetails(pool, publicId, batchData);
+
+  // => NOTE: school_year is deliberately excluded - the edit form has no
+  //    input for it, so batchData.school_year is always undefined here.
+  //    The model's COALESCE($1, school_year) correctly leaves the DB value
+  //    untouched, but a raw diff would falsely show it "changing" to blank
+  //    on every save since undefined normalizes to "" for comparison.
+  const changes = buildFieldDiff(
+    {
+      start_date:                   existingBatch.start_date,
+      end_date:                     existingBatch.end_date,
+      required_number_of_students:  existingBatch.required_number_of_students,
+      max_students:                 existingBatch.max_students,
+      max_applicants:               existingBatch.max_applicants,
+    },
+    {
+      start_date,
+      end_date,
+      required_number_of_students,
+      max_students,
+      max_applicants,
+    },
+    {
+      start_date:                   'Start Date',
+      end_date:                     'End Date',
+      required_number_of_students:  'Required Students',
+      max_students:                 'Max Students',
+      max_applicants:               'Max Applicant Pool',
+    }
+  );
+
+  // => Per-course trainer diff - course_trainers only carries numeric
+  //    trainer_id values, so each new assignment is resolved to a name
+  //    individually before comparing against the old assignment for that
+  //    same course_id. Courses with no change (same trainer, or both
+  //    still unassigned) are skipped, same as buildFieldDiff's own logic.
+  const oldTrainerMap = new Map(oldCourseTrainers.map(c => [c.course_id, c.trainer_full_name]));
+  for (const { course_id, trainer_id } of (course_trainers || [])) {
+    const oldName = oldTrainerMap.get(course_id) ?? null;
+    const newName = trainer_id ? await getTrainerNameById(pool, trainer_id) : null;
+    if ((oldName || '') === (newName || '')) continue;
+
+    const courseTitle = oldCourseTrainers.find(c => c.course_id === course_id)?.course_title || `Course #${course_id}`;
+    changes.push(`Trainer (${courseTitle}): "${oldName || '-'}" => "${newName || '-'}"`);
+  }
 
   const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
   await logActivity(pool, {
     entity_type:   'shs_batch',
     entity_id:     batchId,
-    actor_type:    'Admin',
+    actor_type:    'Staff',
     actor_id:      adminId,
     actor_name:    actorName,
-    action:        'Batch information updated',
-    // => action_detail is NOT NULL on the live table - a plain string
-    //    instead of null, since this edit touches several fields at once
-    //    and there's no single "before -> after" value to summarize
-    action_detail: 'Updated batch information.',
+    action:        ACTIVITY_ACTIONS.UPDATE,
+    action_detail: formatDiffDetail('Batch Information', changes),
   });
 
   return updated;
@@ -434,10 +545,10 @@ export const setShsBatchGrade11Completed = async (publicId, adminId, batchId) =>
   await logActivity(pool, {
     entity_type: 'shs_batch',
     entity_id: batchId,
-    actor_type: 'Admin',
+    actor_type: 'Staff',
     actor_id: adminId,
     actor_name: actorName,
-    action: 'Grade 11 marked completed',
+    action: ACTIVITY_ACTIONS.STATUS_CHANGE,
     action_detail: 'Grade 11 courses marked as completed for this batch. Only Grade 12 courses remain selectable for new class sessions.',
   });
 
@@ -471,12 +582,38 @@ export const fetchBatchFormOptions = async () => {
 //    function is now just a thin pass-through.
 // ════════════════════════════════════════════
 
-export const assignTesdaEnrollment = async (enrollmentPublicId, batchPublicId) => {
-  return await assignTesdaEnrollmentWithLock(pool, enrollmentPublicId, batchPublicId);
+export const assignTesdaEnrollment = async (enrollmentPublicId, batchPublicId, adminId) => {
+  const updated = await assignTesdaEnrollmentWithLock(pool, enrollmentPublicId, batchPublicId);
+
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   'tesda_enrollment',
+    entity_id:     updated.enrollment_id,
+    actor_type:    'Staff',
+    actor_id:      adminId,
+    actor_name:    actorName,
+    action:        ACTIVITY_ACTIONS.UPDATE,
+    action_detail: `Assigned to Batch #${updated.batch_id}.`,
+  });
+
+  return updated;
 };
 
-export const assignShsEnrollment = async (enrollmentPublicId, batchPublicId) => {
-  return await assignShsEnrollmentWithLock(pool, enrollmentPublicId, batchPublicId);
+export const assignShsEnrollment = async (enrollmentPublicId, batchPublicId, adminId) => {
+  const updated = await assignShsEnrollmentWithLock(pool, enrollmentPublicId, batchPublicId);
+
+  const actorName = (await getAdminNameById(pool, adminId)) || 'Unknown';
+  await logActivity(pool, {
+    entity_type:   'shs_enrollment',
+    entity_id:     updated.enrollment_id,
+    actor_type:    'Staff',
+    actor_id:      adminId,
+    actor_name:    actorName,
+    action:        ACTIVITY_ACTIONS.UPDATE,
+    action_detail: `Assigned to Batch #${updated.batch_id}.`,
+  });
+
+  return updated;
 };
 
 // ════════════════════════════════════════════
@@ -498,10 +635,10 @@ export const bulkReleaseTesdaEnrollments = async (batchPublicId, adminId) => {
     await logActivity(pool, {
       entity_type:   'tesda_enrollment',
       entity_id:     r.enrollment_id,
-      actor_type:    'Admin',
+      actor_type:    'Staff',
       actor_id:      adminId,
       actor_name:    actorName,
-      action:        'Status changed to Reserved',
+      action:        ACTIVITY_ACTIONS.RELEASE,
       action_detail: `Bulk-released from Batch #${batchRow.batch_id} by staff after the batch reached full capacity - moved back to Reserved to await placement in a future batch.`,
     });
   }
@@ -520,10 +657,10 @@ export const bulkReleaseShsEnrollments = async (batchPublicId, adminId) => {
     await logActivity(pool, {
       entity_type:   'shs_enrollment',
       entity_id:     r.enrollment_id,
-      actor_type:    'Admin',
+      actor_type:    'Staff',
       actor_id:      adminId,
       actor_name:    actorName,
-      action:        'Status changed to Reserved',
+      action:        ACTIVITY_ACTIONS.RELEASE,
       action_detail: `Bulk-released from Batch #${batchRow.batch_id} by staff after the batch reached full capacity - moved back to Reserved to await placement in a future batch.`,
     });
   }
@@ -576,10 +713,10 @@ export const createBatchMiscFee = async (batchType, publicId, { feeLabel, feeAmo
   await logActivity(pool, {
     entity_type:   batchType === 'SHS' ? 'shs_batch' : 'tesda_batch',
     entity_id:     batchRow.batch_id,
-    actor_type:    'Admin',
+    actor_type:    'Staff',
     actor_id:      adminId,
     actor_name:    actorName,
-    action:        'Miscellaneous fee added',
+    action:        ACTIVITY_ACTIONS.CREATE,
     action_detail: `Added "${created.fee_label}" - PHP ${numericAmount.toFixed(2)}`,
   });
 
@@ -598,10 +735,10 @@ export const removeBatchMiscFee = async (feePublicId, adminId) => {
   await logActivity(pool, {
     entity_type:   deleted.batch_type === 'SHS' ? 'shs_batch' : 'tesda_batch',
     entity_id:     deleted.batch_id,
-    actor_type:    'Admin',
+    actor_type:    'Staff',
     actor_id:      adminId,
     actor_name:    actorName,
-    action:        'Miscellaneous fee removed',
+    action:        ACTIVITY_ACTIONS.DELETE,
     action_detail: `Removed "${deleted.fee_label}" - PHP ${Number(deleted.fee_amount).toFixed(2)}`,
   });
 

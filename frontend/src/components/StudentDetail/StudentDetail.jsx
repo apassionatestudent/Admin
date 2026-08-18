@@ -21,6 +21,8 @@ import './StudentDetail.css';
 import clipboardIcon from '../../assets/icons/clipboard.png';
 import checkMarkIcon from '../../assets/icons/checkmark.png';
 import pencilIcon from '../../assets/icons/pencil.png';
+// => Same chevron used by FacilityDetail/TrainerDetail/Support Tickets' Activity Log section
+import chevronDown from '../../assets/icons/chevron-down.png';
 
 
 // HELPERS
@@ -445,6 +447,17 @@ export default function StudentDetail() {
   //    real fetch in Step 3 once the backend endpoint exists.
   const [paymentHistory, setPaymentHistory] = useState([]);
 
+  // => Activity Logs state - matches FacilityDetail/TrainerDetail/Support
+  //    Tickets exactly: fetch everything at once, no pagination,
+  //    chevron-expandable rows.
+  const [logs, setLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  // => Which log row is currently expanded to show its full action_detail
+  const [expandedLogId, setExpandedLogId] = useState(null);
+  // => Pagination, 10 per page, fetched fresh from the DB on every page change
+  const [logsPage, setLogsPage] = useState(1);
+  const [logsTotalPages, setLogsTotalPages] = useState(1);
+
   const startEdit = (sectionKey, initialValues) => {
     setEditingSection(sectionKey);
     setDraft(initialValues);
@@ -510,6 +523,33 @@ export default function StudentDetail() {
     };
 
     fetchPaymentHistory();
+  }, [publicId]);
+
+  // => Activity Logs - separate fetch, own endpoint, same fetch-all-at-once
+  //    pattern as Support Tickets/Facilities/Trainers. Called on mount and
+  //    again after every successful save/toggle so a new log row shows up
+  //    immediately.
+  // => page defaults to 1 so calling fetchLogs() with no args (after a
+  //    save/toggle) naturally lands back on the newest page
+  const fetchLogs = async (page = 1) => {
+    setLogsLoading(true);
+    try {
+      const res = await axiosAdmin.get(`/api/admin/students/${publicId}/logs`, {
+        params: { page },
+      });
+      setLogs(res.data.logs || []);
+      setLogsPage(res.data.page || page);
+      setLogsTotalPages(res.data.totalPages || 1);
+    } catch (err) {
+      console.error('Failed to fetch student activity logs:', err);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!publicId) return;
+    fetchLogs(1);
   }, [publicId]);
 
   
@@ -593,6 +633,8 @@ export default function StudentDetail() {
         studentRow: { ...prev.studentRow, is_active: res.data.updated.is_active },
       }));
       setToggleMsg({ type: 'success', text: `Account ${newValue ? 'activated' : 'deactivated'} successfully.` });
+      // => Refetch so the newly written log shows up immediately
+      fetchLogs();
     } catch (err) {
       setToggleMsg({ type: 'error', text: err.response?.data?.error || 'Failed to update status.' });
     } finally {
@@ -636,6 +678,8 @@ export default function StudentDetail() {
         },
       }));
       cancelEdit();
+      // => Refetch so the newly written log shows up immediately
+      fetchLogs();
     } catch (err) {
       setSectionError(err.response?.data?.error || 'Failed to save changes.');
     } finally {
@@ -978,7 +1022,7 @@ export default function StudentDetail() {
                       <td className="adm-td-course">{e.course_name ?? '-'}</td>
                       <td className="adm-td-dates">
                         {e.start_date
-                          ? `${String(e.start_date).slice(0,10)} – ${String(e.end_date).slice(0,10)}`
+                          ? `${String(e.start_date).slice(0,10)} - ${String(e.end_date).slice(0,10)}`
                           : '-'
                         }
                       </td>
@@ -1007,7 +1051,8 @@ export default function StudentDetail() {
               </table>
             </div>
           )}
-        </div>
+
+          </div>
 
         {/* ════════════════════════════════════
             PAYMENT & REFUND HISTORY (read-only)
@@ -1071,107 +1116,113 @@ export default function StudentDetail() {
               </table>
             </div>
           )}
-        </div>
 
-        {/* => Activity Log - DESIGN ONLY. Rows are hardcoded JSX, not real
-             data - no fetching/state wiring yet. */}
+          </div>
+
+        {/* ════════════════════════════════════
+            ACTIVITY LOG
+            => Real data, fetch-all-at-once, chevron-expandable rows,
+               matches FacilityDetail/TrainerDetail/Support Tickets
+               pattern. entity_type = 'student', entity_id = internal
+               student_id (not the public_id).
+            ════════════════════════════════════ */}
         <div className="adm-student-section">
-          <div className="adm-log-header">
-            <p className="adm-section-title">
-              Activity Log
-              <span className="adm-section-count-inline">4</span>
-            </p>
-            <a
-              className="adm-log-view-all"
-              onClick={() => navigate(`/dashboard/logs?student=${studentRow.public_id}`)}
-            >
-              View in Logs <i className="ti ti-external-link" />
-            </a>
-          </div>
+          <p className="adm-section-title">
+            Activity Log
+            <span className="adm-section-count-inline">{logs.length}</span>
+          </p>
 
-          <div className="adm-log-filters">
-            <span className="adm-log-filter-chip adm-log-filter-chip--active">All</span>
-            <span className="adm-log-filter-chip">Profile</span>
-            <span className="adm-log-filter-chip">Status</span>
-            <span className="adm-log-filter-chip">Documents</span>
-            <span className="adm-log-filter-chip">Login</span>
-          </div>
+          {logsLoading && <p className="adm-empty-note">Loading logs…</p>}
 
-          <div className="adm-log-list">
-            <div className="adm-log-entry">
-              <div className="adm-log-entry-row">
-                <div className="adm-log-icon adm-log-icon--profile">
-                  <i className="ti ti-edit" />
-                </div>
-                <div className="adm-log-entry-text">
-                  <p className="adm-log-entry-action">
-                    <strong>Jane Cruz</strong> edited Civil Status on TESDA enrollment
-                  </p>
-                  <p className="adm-log-entry-time">Today, 2:14 PM</p>
-                </div>
-                <i className="ti ti-chevron-down adm-log-chevron" />
-              </div>
-              <div className="adm-log-detail">
-                <table className="adm-log-diff-table">
-                  <thead>
-                    <tr><th>Field</th><th>Before</th><th></th><th>After</th></tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>Civil Status</td>
-                      <td className="adm-log-diff-before">Single</td>
-                      <td className="adm-log-diff-arrow"><i className="ti ti-arrow-right" /></td>
-                      <td className="adm-log-diff-after">Married</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+          {!logsLoading && logs.length === 0 && (
+            <p className="adm-empty-note">No activity recorded for this student yet.</p>
+          )}
+
+          {!logsLoading && logs.length > 0 && (
+            <div className="adm-sub-table-wrap">
+              <table className="adm-sub-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Actor</th>
+                    <th>Action</th>
+                    <th>Details</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map(log => {
+                    const isExpanded = expandedLogId === log.log_id;
+                    return (
+                      <React.Fragment key={log.log_id}>
+                        <tr
+                          className="adm-log-row"
+                          onClick={() => setExpandedLogId(isExpanded ? null : log.log_id)}
+                        >
+                          <td className="adm-td-date">{formatDateTime(log.created_at)}</td>
+                          <td>
+                            {log.actor_type === 'System' ? (
+                              <span className="adm-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>
+                                System
+                              </span>
+                            ) : (
+                              log.actor_name
+                            )}
+                          </td>
+                          <td>{log.action}</td>
+                          <td className="adm-log-detail-cell" title={log.action_detail || ''}>
+                            {log.action_detail || '-'}
+                          </td>
+                          <td>
+                            <img
+                              src={chevronDown}
+                              alt="Expand row"
+                              className={`adm-log-chevron ${isExpanded ? 'adm-log-chevron-open' : ''}`}
+                            />
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr className="adm-log-detail-row">
+                            <td colSpan={5}>
+                              <div className="adm-log-detail-full">
+                                <p>{log.action_detail || '-'}</p>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
+          )}
 
-            <div className="adm-log-entry">
-              <div className="adm-log-entry-row">
-                <div className="adm-log-icon adm-log-icon--status">
-                  <i className="ti ti-check" />
-                </div>
-                <div className="adm-log-entry-text">
-                  <p className="adm-log-entry-action">
-                    <strong>Mark Reyes</strong> changed enrollment status from Pending to Approved (Cookery NC II)
-                  </p>
-                  <p className="adm-log-entry-time">Yesterday, 4:02 PM</p>
-                </div>
-              </div>
+          {!logsLoading && logs.length > 0 && (
+            <div className="adm-log-pagination">
+              <button
+                className="adm-log-page-btn"
+                onClick={() => fetchLogs(logsPage - 1)}
+                disabled={logsPage <= 1}
+              >
+                {/* => Prev button, disabled on page 1 */}
+                Prev
+              </button>
+
+              <span className="adm-log-page-indicator">
+                Page {logsPage} of {logsTotalPages}
+              </span>
+
+              <button
+                className="adm-log-page-btn"
+                onClick={() => fetchLogs(logsPage + 1)}
+                disabled={logsPage >= logsTotalPages}
+              >
+                {/* => Next button, disabled on the last page */}
+                Next
+              </button>
             </div>
-
-            <div className="adm-log-entry">
-              <div className="adm-log-entry-row">
-                <div className="adm-log-icon adm-log-icon--documents">
-                  <i className="ti ti-file" />
-                </div>
-                <div className="adm-log-entry-text">
-                  <p className="adm-log-entry-action">
-                    <strong>Jane Cruz</strong> replaced document Valid ID
-                  </p>
-                  <p className="adm-log-entry-time">Jul 15, 11:20 AM</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="adm-log-entry">
-              <div className="adm-log-entry-row">
-                <div className="adm-log-icon adm-log-icon--login">
-                  <i className="ti ti-login-2" />
-                </div>
-                <div className="adm-log-entry-text">
-                  <p className="adm-log-entry-action">Student logged in</p>
-                  <p className="adm-log-entry-time">Jul 14, 9:47 AM</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="adm-log-load-more-row">
-            <button className="adm-action-btn adm-action-btn--secondary">Load more</button>
-          </div>
+          )}
         </div>
 
       </div>

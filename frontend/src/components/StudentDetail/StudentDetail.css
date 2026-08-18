@@ -419,154 +419,130 @@
 
 /* ════════════════════════════════════
    ACTIVITY LOG
+   => Real data now. Reuses adm-sub-table/adm-sub-table-wrap/adm-td-date/
+      adm-badge already defined above (Payment History section) - only
+      the log-row-specific bits are new here.
    ════════════════════════════════════ */
-.adm-log-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.adm-log-view-all {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #1a56db;
-  text-decoration: none;
+.adm-log-row {
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  transition: background 0.12s ease;
 }
 
-.adm-log-filters {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
+.adm-log-row:hover {
+  background: #f0f4ff;
 }
 
-.adm-log-filter-chip {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: #f3f4f6;
-  color: #6b7280;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.adm-log-filter-chip--active {
-  background: var(--sidebar-bg);
-  color: #fff;
-}
-
-.adm-log-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.adm-log-entry {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+.adm-log-detail-cell {
+  max-width: 260px;
   overflow: hidden;
-}
-
-.adm-log-entry-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 14px;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-
-.adm-log-entry-row:hover {
-  background: #f9fafb;
-}
-
-.adm-log-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 15px;
-}
-
-.adm-log-icon--profile   { background: #dbeafe; color: #1e40af; }
-.adm-log-icon--status    { background: #d1fae5; color: #065f46; }
-.adm-log-icon--documents { background: #eef2ff; color: #3730a3; }
-.adm-log-icon--login     { background: #f3f4f6; color: #4b5563; }
-
-.adm-log-entry-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.adm-log-entry-action {
-  margin: 0;
-  font-size: 0.875rem;
-  color: #111827;
-}
-
-.adm-log-entry-time {
-  margin: 2px 0 0;
-  font-size: 0.75rem;
-  color: #9ca3af;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .adm-log-chevron {
-  font-size: 16px;
-  color: #6b7280;
-  margin-top: 4px;
+  width: 14px;
+  height: 14px;
+  transition: transform 0.15s ease;
 }
 
-.adm-log-detail {
-  padding: 12px 14px 14px 56px;
-  border-top: 1px solid #e5e7eb;
+.adm-log-chevron-open {
+  transform: rotate(180deg);
+}
+
+.adm-log-detail-row td {
   background: #f9fafb;
+  padding: 14px 16px;
 }
 
-.adm-log-diff-table {
-  width: 100%;
+.adm-log-detail-full p {
+  margin: 0;
+  font-size: 0.8375rem;
+  color: #374151;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.adm-log-pagination {
+  display: flex;
+  align-items: center;
+  /* => flex-end pushes Prev/Page/Next to the bottom-right, per the layout requested */
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.adm-log-page-btn {
+  padding: 8px 18px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
   font-size: 0.8125rem;
-  border-collapse: collapse;
-}
-
-.adm-log-diff-table th {
-  text-align: left;
-  color: #9ca3af;
   font-weight: 600;
-  padding: 3px 8px 3px 0;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 
-.adm-log-diff-table td {
-  padding: 3px 8px 3px 0;
+.adm-log-page-btn:hover:not(:disabled) {
+  background: #f0f4ff;
+  border-color: #1a56db;
+  color: #1a56db;
+}
+
+/* => Ghost look for a disabled Prev/Next - no border, faded text, matches the reference screenshot */
+.adm-log-page-btn:disabled {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: #b0b7c3;
+  cursor: not-allowed;
+}
+
+.adm-log-page-indicator {
+  font-size: 0.875rem;
+  font-weight: 700;
   color: #374151;
 }
 
-.adm-log-diff-before {
-  color: #991b1b;
-  text-decoration: line-through;
-}
-
-.adm-log-diff-arrow {
-  color: #d1d5db;
-}
-
-.adm-log-diff-after {
-  color: #065f46;
-  font-weight: 500;
-}
-
-.adm-log-load-more-row {
+.adm-log-pagination {
   display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 12px;
   margin-top: 16px;
+}
+
+.adm-log-page-btn {
+  padding: 6px 16px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.adm-log-page-btn:hover:not(:disabled) {
+  background: #f0f4ff;
+  border-color: #1a56db;
+  color: #1a56db;
+}
+
+.adm-log-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.adm-log-page-indicator {
+  font-size: 0.8125rem;
+  color: #6b7280;
 }
 
 /* ════════════════════════════════════

@@ -5,6 +5,7 @@ import {
   fetchPublicSupportTicketsPage,
   fetchPublicSupportTicketByPublicId,
   changePublicSupportTicketFields,
+  fetchPublicSupportTicketLogs,
   ValidationError,
 } from '../../services/SupportTickets/publicSupportTicketService.js';
 
@@ -52,7 +53,13 @@ export const updatePublicSupportTicketStatusController = async (req, res) => {
     const { publicId } = req.params;
     const { status, internal_remarks } = req.body;
 
-    const updatedTicket = await changePublicSupportTicketFields(pool, publicId, { status, internal_remarks });
+    // => admin_id/full_name passed through as the activity log actor
+    const updatedTicket = await changePublicSupportTicketFields(
+      pool,
+      publicId,
+      { status, internal_remarks },
+      { admin_id: req.admin.admin_id, full_name: req.admin.full_name }
+    );
 
     // => null means the service confirmed the ticket doesn't exist,
     // => distinct from a ValidationError thrown for bad input
@@ -67,5 +74,25 @@ export const updatePublicSupportTicketStatusController = async (req, res) => {
     }
     console.error('Error updating public support ticket status:', error);
     res.status(500).json({ message: 'Failed to update support ticket status.' });
+  }
+};
+
+
+// => GET /api/admin/public-support-tickets/:publicId/logs
+// => Returns every log row for this ticket, newest first - no pagination,
+// => matches Facilities/Trainers/Batches' /logs endpoints
+export const getPublicSupportTicketLogsController = async (req, res) => {
+  try {
+    const { publicId } = req.params;
+    const logs = await fetchPublicSupportTicketLogs(pool, publicId);
+
+    if (logs === null) {
+      return res.status(404).json({ message: 'Support ticket not found.' });
+    }
+
+    res.json({ logs });
+  } catch (error) {
+    console.error('Error fetching public support ticket logs:', error);
+    res.status(500).json({ message: 'Failed to fetch support ticket activity logs.' });
   }
 };

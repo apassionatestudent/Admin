@@ -11,6 +11,11 @@ import {
   updatePublicSupportTicketFields,
 } from '../../models/SupportTickets/publicSupportTicketModel.js';
 
+// => Activity logging - shared top-level model, not SupportTickets-specific
+import { logActivity, getActivityLogsForEntity } from '../../models/adminActivityLogModel.js';
+// => Diff builder for turning old-vs-new field values into a readable log line
+import { buildFieldDiff, formatDiffDetail } from '../../utils/buildFieldDiff.js';
+
 // => Custom error class so the controller can distinguish a validation
 // => failure (400) from an unexpected server error (500), same pattern
 // => used on the public site's ticket service
@@ -75,7 +80,7 @@ const MAX_INTERNAL_REMARKS_LENGTH = 2000;
 // => Validates whichever of status / internal_remarks were sent, confirms
 // => the ticket exists, then updates it. Both fields are optional - the
 // => admin can update just the status, just the remarks, or both together.
-export const changePublicSupportTicketFields = async (pool, publicId, { status, internal_remarks } = {}) => {
+export const changePublicSupportTicketFields = async (pool, publicId, { status, internal_remarks } = {}, actor = {}) => {
   if (!publicId) {
     throw new ValidationError('Ticket public_id is required.');
   }
@@ -113,5 +118,64 @@ export const changePublicSupportTicketFields = async (pool, publicId, { status, 
     return null;
   }
 
-  return await updatePublicSupportTicketFields(pool, publicId, fields);
+  const updatedTicket = await updatePublicSupportTicketFields(pool, publicId, fields);
+
+  // => Logs the change after the write succeeds. Same folding rule as
+  // => supportTicketService.js: a status change made together with a
+  // => remarks change in one Save becomes a single STATUS_CHANGE entry,
+  // => a remarks-only save logs as a plain UPDATE.
+  const { action, action_detail } = buildPublicTicketLogEntry(existingTicket, fields);
+  await logActivity(pool, {
+    entity_type: 'public_support_ticket',
+    entity_id: existingTicket.ticket_id,
+    actor_type: 'Staff',
+    actor_id: actor.admin_id,
+    actor_name: actor.full_name,
+    action,
+    action_detail,
+  });
+
+  return updatedTicket;
+};
+
+// => Builds the action + action_detail for a public support ticket update
+// => log. Own copy, no shared code with supportTicketService.js's version,
+// => per the project's no-shared-abstraction convention. Only
+// => internal_remarks exists on this table, unlike support_tickets which
+// => also has external_remarks.
+const buildPublicTicketLogEntry = (existingTicket, fields) => {
+  const remarksFields = {};
+  if (fields.internal_remarks !== undefined) remarksFields.internal_remarks = fields.internal_remarks;
+
+  const remarksDiff = buildFieldDiff(existingTicket, remarksFields, {
+    internal_remarks: 'Internal Remarks',
+  });
+
+  // => Only counts as a status change if the value actually differs from
+  // => what's already saved - the frontend always sends selectedStatus on
+  // => every save, so fields.status being present is not enough on its own
+  const statusActuallyChanged = fields.status !== undefined && fields.status !== existingTicket.status;
+
+  if (statusActuallyChanged) {
+    const statusLine = `Status: "${existingTicket.status}" => "${fields.status}"`;
+    return {
+      action: 'STATUS_CHANGE',
+      action_detail: `Updated ticket - ${[statusLine, ...remarksDiff].join('; ')}`,
+    };
+  }
+
+  return {
+    action: 'UPDATE',
+    action_detail: formatDiffDetail('ticket', remarksDiff),
+  };
+};
+
+// => Fetches every activity log for this ticket, newest first - no
+// => pagination, matches the pattern used by Facilities/Trainers/Batches.
+// => Returns null (not an empty array) when the ticket itself doesn't
+// => exist, so the controller can map that to a 404 same as the detail fetch.
+export const fetchPublicSupportTicketLogs = async (pool, publicId) => {
+  const ticket = await getPublicSupportTicketByPublicId(pool, publicId);
+  if (!ticket) return null;
+  return await getActivityLogsForEntity(pool, 'public_support_ticket', ticket.ticket_id);
 };

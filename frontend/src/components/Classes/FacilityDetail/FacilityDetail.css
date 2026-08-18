@@ -202,3 +202,143 @@
 .fd-delete-btn:hover {
   background: #fee2e2;
 }
+
+/* ════════════════════════════════════
+   ACTIVITY LOGS - ported from TesdaBatchDetail.css / ShsBatchDetail.css
+   for visual consistency across all entity detail pages. adm- prefix used
+   here deliberately (not fd-) to match those pages exactly, since these
+   classes get copy-pasted per detail page rather than centralized.
+   ════════════════════════════════════ */
+.adm-batch-section {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 24px 28px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  margin-top: 24px;
+}
+
+.adm-section-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+  margin: 0 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.adm-section-count-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.adm-empty-note {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.adm-sub-table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.adm-sub-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8375rem;
+  color: #374151;
+  min-width: 560px;
+}
+
+.adm-sub-table thead tr {
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.adm-sub-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.adm-sub-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+
+.adm-sub-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.adm-td-date {
+  white-space: nowrap;
+  color: #6b7280;
+}
+
+.adm-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.adm-log-row {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.adm-log-row:hover {
+  background: rgba(102, 9, 17, 0.05);
+}
+
+.adm-log-detail-cell {
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adm-log-detail-row td {
+  background: #f4f3ec;
+  padding: 14px 20px;
+}
+
+.adm-log-detail-full p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+.adm-log-chevron {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.15s ease;
+  opacity: 0.6;
+}
+
+.adm-log-chevron-open {
+  transform: rotate(180deg);
+}

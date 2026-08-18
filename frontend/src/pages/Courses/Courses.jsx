@@ -159,12 +159,12 @@ export default function Courses() {
         <div className="courses-header-actions">
           {!isDeletedView && activeTab === 'tesda' && (
             <button className="btn-outline-action" onClick={() => setIsAddSectorModalOpen(true)}>
-              + Add Sector
+              + Manage Sectors
             </button>
           )}
           {!isDeletedView && activeTab === 'shs' && (
             <button className="btn-outline-action" onClick={() => setIsAddClusterModalOpen(true)}>
-              + Add Cluster
+              + Manage Clusters
             </button>
           )}
           {!isDeletedView && (
@@ -334,7 +334,7 @@ export default function Courses() {
             <>
               <p>
                 <strong>Adding a TESDA course:</strong> first make sure the course's Sector already exists using
-                "+ Add Sector" above. Once the Sector is in place, click "+ Add Course" to create the TESDA course itself.
+                "+ Manage Sectors" above. Once the Sector is in place, click "+ Add Course" to create the TESDA course itself.
               </p>
               <div className="guideline-links">
                 <a className="guideline-link" href="https://www.tesda.gov.ph/Download/Training_Regulations" target="_blank" rel="noopener noreferrer">
@@ -349,7 +349,7 @@ export default function Courses() {
             <>
               <p>
                 <strong>Adding an SHS course:</strong> first make sure the course's Cluster already exists using
-                "+ Add Cluster" above. Once the Cluster is in place, click "+ Add Course" to create the SHS course itself.
+                "+ Manage Clusters" above. Once the Cluster is in place, click "+ Add Course" to create the SHS course itself.
               </p>
               <div className="guideline-links">
                 <a className="guideline-link" href="https://www.deped.gov.ph/strengthened-shs-program/?_gl=1*y3agw0*_ga*MTYyNDk2MDgxLjE3ODMwODE1MTA.*_ga_W56M66QXKT*czE3ODQxMDEwMDAkbzIkZzAkdDE3ODQxMDEwMDAkajYwJGwwJGgw#techProElectives" target="_blank" rel="noopener noreferrer">

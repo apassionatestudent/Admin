@@ -319,3 +319,30 @@
   border-color: var(--sidebar-bg, #660911);
   color: #fff;
 }
+
+
+/* => Lightweight attribution block, replaces the old mock Activity Logs
+   => table. Plain text, no table/pagination needed for this tier.
+   => Row layout: Created by sits left, Last updated by sits right via
+      margin-left: auto on that line. Wraps to stacked on narrow screens. */
+.chatbot-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 24px;
+}
+
+.chatbot-detail-meta-line {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text);
+}
+
+.chatbot-detail-meta-line--right {
+  margin-left: auto;
+}
+
+.chatbot-detail-meta-line strong {
+  font-weight: 700;
+  color: var(--text-h);
+}

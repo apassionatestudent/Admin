@@ -264,7 +264,7 @@ export const replaceShsDocument = async (pool, docPublicId, documentKey) => {
   const result = await pool.query(
     `UPDATE shs_documents SET document_key = $1, uploaded_at = NOW()
        WHERE public_id = $2
-       RETURNING public_id, document_type, document_key, uploaded_at`,
+       RETURNING public_id, document_type, document_key, uploaded_at, enrollment_id`,
     [documentKey, docPublicId]
   );
   return result.rows[0] ?? null;
@@ -284,7 +284,7 @@ export const deleteShsDocument = async (pool, docPublicId) => {
   if (doc.is_original) return { blocked: true };
 
   const result = await pool.query(
-    `DELETE FROM shs_documents WHERE public_id = $1 RETURNING public_id`,
+    `DELETE FROM shs_documents WHERE public_id = $1 RETURNING public_id, enrollment_id, document_type`,
     [docPublicId]
   );
   return { deleted: result.rows[0] };

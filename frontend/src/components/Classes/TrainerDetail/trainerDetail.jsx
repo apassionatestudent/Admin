@@ -20,6 +20,8 @@ import warningIcon from '../../../assets/icons/warning.png'; // => still used by
 // => Shared spinner/error block, replaces the local trainer-state markup below
 import LoadingState from '../../LoadingState/loadingState.jsx';
 import pencilIcon from '../../../assets/icons/pencil.png'; //
+// => Confirmed filename from TesdaBatchDetail.jsx / FacilityDetail.jsx
+import chevronDown from '../../../assets/icons/chevron-down.png';
 import './trainerDetail.css';
 
 // => Philippine mobile format: must start with 09, exactly 11 digits total
@@ -80,6 +82,15 @@ export default function TrainerDetail() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
 
+  // => Activity Logs state - built from scratch, this page had no logs
+  //    section before. Matches TesdaBatchDetail/ShsBatchDetail/
+  //    FacilityDetail exactly: fetch everything at once, no pagination,
+  //    chevron-expandable rows.
+  const [logs, setLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  // => Which log row is currently expanded to show its full action_detail
+  const [expandedLogId, setExpandedLogId] = useState(null);
+
   // => Loads the trainer itself. This is the ONLY fetch that can put the
   //    page into the hard "Failed to load trainer" error state.
   useEffect(() => {
@@ -134,6 +145,26 @@ export default function TrainerDetail() {
     loadOptions();
   }, []);
 
+  // => Fetches every activity log for this trainer. Called on mount and
+  //    again after every successful save, so a newly written log (e.g.
+  //    from a status change or edit) shows up immediately instead of
+  //    waiting for an unrelated page action to trigger a refetch.
+  const fetchLogs = async () => {
+    setLogsLoading(true);
+    try {
+      const res = await axiosAdmin.get(`/api/admin/trainers/${publicId}/logs`);
+      setLogs(res.data.logs || []);
+    } catch (err) {
+      console.error('Failed to fetch trainer logs:', err);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+  }, [publicId]);
+
   const toggleTesdaCourse = (courseId) => {
     setForm(f => ({
       ...f,
@@ -184,6 +215,7 @@ export default function TrainerDetail() {
       toast.success('Changes saved.');
       setIsEditing(false); // => Save exits back to read-only view, same as Cancel
       setStatusChangeRemarks(null); // => Clear the staged remarks now that they're saved
+      fetchLogs(); // => Refresh so the new log entry (edit or status change) shows immediately
     } catch (err) {
       setSaveError(err.response?.data?.error || 'Failed to save changes.');
     } finally {
@@ -544,6 +576,83 @@ export default function TrainerDetail() {
               />
             </div>
           </>
+        )}
+      </div>
+
+      {/* => Activity Logs - built from scratch, no prior section existed
+             on this page. Design/classes match TesdaBatchDetail/
+             ShsBatchDetail/FacilityDetail's Activity Logs section exactly
+             for visual consistency. */}
+      <div className="adm-batch-section">
+        <p className="adm-section-title">
+          Activity Logs
+          <span className="adm-section-count-inline">{logs.length}</span>
+        </p>
+
+        {logsLoading && <p className="adm-empty-note">Loading logs…</p>}
+
+        {!logsLoading && logs.length === 0 && (
+          <p className="adm-empty-note">No activity recorded for this trainer yet.</p>
+        )}
+
+        {!logsLoading && logs.length > 0 && (
+          <div className="adm-sub-table-wrap">
+            <table className="adm-sub-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Actor</th>
+                  <th>Action</th>
+                  <th>Details</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map(log => {
+                  const isExpanded = expandedLogId === log.log_id;
+                  return (
+                    <React.Fragment key={log.log_id}>
+                      <tr
+                        className="adm-log-row"
+                        onClick={() => setExpandedLogId(isExpanded ? null : log.log_id)}
+                      >
+                        <td className="adm-td-date">{formatDateTime(log.created_at)}</td>
+                        <td>
+                          {log.actor_type === 'System' ? (
+                            <span className="adm-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>
+                              System
+                            </span>
+                          ) : (
+                            log.actor_name
+                          )}
+                        </td>
+                        <td>{log.action}</td>
+                        <td className="adm-log-detail-cell" title={log.action_detail || ''}>
+                          {log.action_detail || '-'}
+                        </td>
+                        <td>
+                          <img
+                            src={chevronDown}
+                            alt="Expand row"
+                            className={`adm-log-chevron ${isExpanded ? 'adm-log-chevron-open' : ''}`}
+                          />
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="adm-log-detail-row">
+                          <td colSpan={5}>
+                            <div className="adm-log-detail-full">
+                              <p>{log.action_detail || '-'}</p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

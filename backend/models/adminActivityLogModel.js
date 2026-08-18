@@ -211,3 +211,115 @@ export const getActivityLogsByActorPaginated = async (pool, actorType, actorId, 
     total: countResult.rows[0].total,
   };
 };
+
+
+// => Paginated log history scoped to ONE facility's Local (facility-based)
+//    class sessions. activity_logs has no facility_id of its own, so this
+//    joins against class_sessions on entity_id = session_id to filter by
+//    facility - Mobile/Online sessions have facility_id NULL and never
+//    match, which is correct since this only powers the facility calendar page.
+export const getActivityLogsForFacilityPaginated = async (pool, facilityId, page = 1, pageSize = 10) => {
+  const offset = (page - 1) * pageSize;
+
+  const rowsResult = await pool.query(
+    `SELECT al.log_id, al.actor_type, al.actor_name, al.action, al.action_detail, al.created_at
+       FROM activity_logs al
+       JOIN class_sessions cs ON cs.session_id = al.entity_id
+      WHERE al.entity_type = 'class_session' AND cs.facility_id = $1
+      ORDER BY al.created_at DESC
+      LIMIT $2 OFFSET $3`,
+    [facilityId, pageSize, offset]
+  );
+
+  const countResult = await pool.query(
+    `SELECT COUNT(*)::int AS total
+       FROM activity_logs al
+       JOIN class_sessions cs ON cs.session_id = al.entity_id
+      WHERE al.entity_type = 'class_session' AND cs.facility_id = $1`,
+    [facilityId]
+  );
+
+  return {
+    logs: rowsResult.rows,
+    total: countResult.rows[0].total,
+  };
+};
+
+// => Combined log history for ONE student: admin-initiated changes scoped
+//    to this student (entity_type = 'student', entity_id = student_id)
+//    PLUS the student's own self-initiated actions (actor_type = 'Student',
+//    actor_id = student_id - logins, ticket submissions, password changes,
+//    which are logged from the student portal with entity_type left NULL).
+//    Merged into one timeline, newest first. Fetch-all-at-once, no
+//    pagination - matches the Facilities/Trainers/Support Tickets pattern.
+export const getActivityLogsForStudentPaginated = async (pool, studentId, page = 1, pageSize = 10) => {
+  const offset = (page - 1) * pageSize;
+
+  const rowsResult = await pool.query(
+    `SELECT log_id, entity_type, entity_id, actor_type, actor_name, action, action_detail, created_at
+       FROM activity_logs
+      WHERE (entity_type = 'student' AND entity_id = $1)
+         OR (actor_type = 'Student' AND actor_id = $1)
+      ORDER BY created_at DESC
+      LIMIT $2 OFFSET $3`,
+    [studentId, pageSize, offset]
+  );
+
+  const countResult = await pool.query(
+    `SELECT COUNT(*)::int AS total
+       FROM activity_logs
+      WHERE (entity_type = 'student' AND entity_id = $1)
+         OR (actor_type = 'Student' AND actor_id = $1)`,
+    [studentId]
+  );
+
+  const total = countResult.rows[0].total;
+
+  return {
+    logs: rowsResult.rows,
+    total,
+    page,
+    limit: pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+};
+
+// => Combined log history for ONE staff/admin record: changes made TO
+//    that record (create, status, permissions - entity_type = 'admin',
+//    entity_id = admin_id) PLUS that staff member's own LOGIN events
+//    (actor_type = 'Staff', actor_id = admin_id, action = 'LOGIN' only -
+//    broader self-initiated activity is intentionally excluded here,
+//    that's what getActivityLogsByActorPaginated is for on the Account page).
+//    Merged into one timeline, newest first. Same pattern as
+//    getActivityLogsForStudentPaginated above.
+export const getActivityLogsForStaffPaginated = async (pool, adminId, page = 1, pageSize = 10) => {
+  const offset = (page - 1) * pageSize;
+
+  const rowsResult = await pool.query(
+    `SELECT log_id, entity_type, entity_id, actor_type, actor_name, action, action_detail, created_at
+       FROM activity_logs
+      WHERE (entity_type = 'admin' AND entity_id = $1)
+         OR (actor_type = 'Staff' AND actor_id = $1 AND action = 'LOGIN')
+      ORDER BY created_at DESC
+      LIMIT $2 OFFSET $3`,
+    [adminId, pageSize, offset]
+  );
+
+  const countResult = await pool.query(
+    `SELECT COUNT(*)::int AS total
+       FROM activity_logs
+      WHERE (entity_type = 'admin' AND entity_id = $1)
+         OR (actor_type = 'Staff' AND actor_id = $1 AND action = 'LOGIN')`,
+    [adminId]
+  );
+
+  const total = countResult.rows[0].total;
+
+  return {
+    logs: rowsResult.rows,
+    total,
+    page,
+    limit: pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+};

@@ -219,7 +219,7 @@ export default function Logs() {
                     <td>
                       <span className={actionBadgeClass(log.action)}>{formatActionLabel(log.action)}</span>
                     </td>
-                    <td>{log.entity_type || '—'}</td>
+                    <td>{log.entity_type || '-'}</td>
                     <td className="logs-detail-cell" title={log.action_detail}>
                       {log.action_detail}
                     </td>

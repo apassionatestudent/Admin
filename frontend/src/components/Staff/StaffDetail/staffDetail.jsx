@@ -7,6 +7,8 @@ import axiosAdmin from '../../../utils/axiosAdmin.js';
 import './staffDetail.css';
 
 import ResendIcon from '../../../assets/icons/resend.png';
+// => Same chevron used by StudentDetail's Activity Log section
+import chevronDown from '../../../assets/icons/chevron-down.png';
 
 const SECTION_OPTIONS = [
     { key: 'enrollments', label: 'Enrollments' },
@@ -43,6 +45,8 @@ export default function StaffDetail() {
     const [logsPage, setLogsPage] = useState(1);
     const [logsTotalPages, setLogsTotalPages] = useState(1);
     const [logsLoading, setLogsLoading] = useState(true);
+    // => Which log row is currently expanded to show its full action_detail
+    const [expandedLogId, setExpandedLogId] = useState(null);
 
     useEffect(() => {
         if (currentAdmin && currentAdmin.role !== 'super_admin') {
@@ -222,48 +226,98 @@ export default function StaffDetail() {
             </div>
 
             <div className="adm-admin-detail-card">
-                <div className="adm-admin-detail-sections-header">
-                    <h3>Activity Logs</h3>
-                    <span className="adm-admin-detail-sections-count">
-                        {logs.length > 0 ? `Page ${logsPage} of ${logsTotalPages}` : '0 entries'}
-                    </span>
-                </div>
+                <p className="adm-admin-detail-section-title">
+                    Activity Logs
+                    <span className="adm-admin-detail-section-count">{logs.length}</span>
+                </p>
 
-                {logsLoading ? (
-                    <LoadingState message="Loading activity logs..." />
-                ) : logs.length === 0 ? (
-                    <p className="adm-admin-detail-logs-empty">No activity yet.</p>
-                ) : (
-                    <>
-                        <div className="adm-admin-detail-logs-table-wrap">
-                            <table className="adm-admin-detail-logs-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Action</th>
-                                        <th>Details</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {logs.map((log) => (
-                                        <tr key={log.log_id}>
-                                            <td className="adm-admin-detail-logs-date">{formatLogDate(log.created_at)}</td>
-                                            <td className="adm-admin-detail-logs-action">{log.action}</td>
-                                            <td className="adm-admin-detail-logs-detail">{log.action_detail}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                {logsLoading && <p className="adm-admin-detail-logs-empty">Loading logs…</p>}
 
-                        {logsTotalPages > 1 && (
-                            <div className="adm-admin-detail-logs-pagination">
-                                <button disabled={logsPage <= 1} onClick={() => setLogsPage(p => p - 1)}>Previous</button>
-                                <span>Page {logsPage} of {logsTotalPages}</span>
-                                <button disabled={logsPage >= logsTotalPages} onClick={() => setLogsPage(p => p + 1)}>Next</button>
-                            </div>
-                        )}
-                    </>
+                {!logsLoading && logs.length === 0 && (
+                    <p className="adm-admin-detail-logs-empty">No activity recorded for this staff member yet.</p>
+                )}
+
+                {!logsLoading && logs.length > 0 && (
+                    <div className="adm-admin-detail-logs-table-wrap">
+                        <table className="adm-admin-detail-logs-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Actor</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {logs.map((log) => {
+                                    // => Toggles this row's expanded detail view on click,
+                                    // => same chevron-expand pattern as StudentDetail
+                                    const isExpanded = expandedLogId === log.log_id;
+                                    return (
+                                        <React.Fragment key={log.log_id}>
+                                            <tr
+                                                className="adm-admin-detail-logs-row"
+                                                onClick={() => setExpandedLogId(isExpanded ? null : log.log_id)}
+                                            >
+                                                <td className="adm-admin-detail-logs-date">{formatLogDate(log.created_at)}</td>
+                                                <td>
+                                                    {/* => Same System actor badge treatment as StudentDetail */}
+                                                    {log.actor_type === 'System' ? (
+                                                        <span className="adm-admin-detail-logs-badge-system">System</span>
+                                                    ) : (
+                                                        log.actor_name
+                                                    )}
+                                                </td>
+                                                <td className="adm-admin-detail-logs-action">{log.action}</td>
+                                                <td className="adm-admin-detail-logs-detail" title={log.action_detail || ''}>
+                                                    {log.action_detail || '-'}
+                                                </td>
+                                                <td>
+                                                    <img
+                                                        src={chevronDown}
+                                                        alt="Expand row"
+                                                        className={`adm-admin-detail-logs-chevron ${isExpanded ? 'adm-admin-detail-logs-chevron-open' : ''}`}
+                                                    />
+                                                </td>
+                                            </tr>
+                                            {isExpanded && (
+                                                <tr className="adm-admin-detail-logs-detail-row">
+                                                    <td colSpan={5}>
+                                                        <div className="adm-admin-detail-logs-detail-full">
+                                                            <p>{log.action_detail || '-'}</p>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {!logsLoading && logs.length > 0 && logsTotalPages > 1 && (
+                    <div className="adm-admin-detail-logs-pagination">
+                        <button
+                            className="adm-admin-detail-logs-page-btn"
+                            disabled={logsPage <= 1}
+                            onClick={() => setLogsPage(p => p - 1)}
+                        >
+                            Prev
+                        </button>
+                        <span className="adm-admin-detail-logs-page-indicator">
+                            Page {logsPage} of {logsTotalPages}
+                        </span>
+                        <button
+                            className="adm-admin-detail-logs-page-btn"
+                            disabled={logsPage >= logsTotalPages}
+                            onClick={() => setLogsPage(p => p + 1)}
+                        >
+                            Next
+                        </button>
+                    </div>
                 )}
             </div>
         </main>

@@ -134,53 +134,10 @@ export async function restoreShsCourse(adminUuid) {
   return result.rows[0] || null;
 }
 
-// => Public link sub-resource - 1-to-1 with a course, entirely decoupled
-// => from admin_uuid. Keyed by the INTERNAL course_id.
-
-export async function findPublicLinkByCourseId(courseId) {
-  const result = await pool.query(
-    `SELECT link_id, course_id, public_slug, is_published, published_at, created_at, updated_at
-     FROM shs_course_public_links WHERE course_id = $1`,
-    [courseId]
-  );
-  return result.rows[0] || null;
-}
-
-export async function isSlugTaken(slug, excludeCourseId = null) {
-  const result = await pool.query(
-    `SELECT 1 FROM shs_course_public_links
-     WHERE public_slug = $1 AND ($2::int IS NULL OR course_id != $2)`,
-    [slug, excludeCourseId]
-  );
-  return result.rowCount > 0;
-}
-
-export async function createPublicLink(courseId, slug) {
-  const result = await pool.query(
-    `INSERT INTO shs_course_public_links (course_id, public_slug, is_published)
-     VALUES ($1, $2, FALSE)
-     RETURNING *`,
-    [courseId, slug]
-  );
-  return result.rows[0];
-}
-
-export const PUBLIC_LINK_ALLOWED_COLUMNS = new Set(['public_slug', 'is_published', 'published_at']);
-
-export async function updatePublicLink(courseId, fields) {
-  const query = buildPartialUpdate({
-    table: 'shs_course_public_links',
-    idColumn: 'course_id',
-    idValue: courseId,
-    fields,
-    allowedColumns: PUBLIC_LINK_ALLOWED_COLUMNS,
-  });
-
-  if (!query) return null;
-
-  const result = await pool.query(query.text, query.values);
-  return result.rows[0] || null;
-}
+// => Public link sub-resource removed (findPublicLinkByCourseId, isSlugTaken,
+// => createPublicLink, updatePublicLink, PUBLIC_LINK_ALLOWED_COLUMNS) - the
+// => publish gate was redundant with shs_courses.status, which is what the
+// => public site actually filters on. shs_course_public_links table dropped in Neon.
 
 // => Job opportunities sub-resource - same pattern as tesdaCourseModel.js
 
@@ -195,11 +152,13 @@ export async function findJobOpportunitiesByCourseId(courseId) {
 
 export async function insertSingleJobOpportunity(adminUuid, jobTitle) {
   const result = await pool.query(
+    // => course_id added to RETURNING so the service layer can log the
+    // => correct entity_id without a separate lookup query
     `INSERT INTO shs_job_opportunities (course_id, job_title)
      SELECT course_id, $2
      FROM shs_courses
      WHERE admin_uuid = $1 AND deleted_at IS NULL
-     RETURNING job_id AS id, job_title`,
+     RETURNING course_id, job_id AS id, job_title`,
     [adminUuid, jobTitle]
   );
   return result.rows[0] || null;
@@ -207,7 +166,7 @@ export async function insertSingleJobOpportunity(adminUuid, jobTitle) {
 
 export async function updateJobOpportunity(jobId, jobTitle) {
   const result = await pool.query(
-    `UPDATE shs_job_opportunities SET job_title = $1 WHERE job_id = $2 RETURNING job_id AS id, job_title`,
+    `UPDATE shs_job_opportunities SET job_title = $1 WHERE job_id = $2 RETURNING course_id, job_id AS id, job_title`,
     [jobTitle, jobId]
   );
   return result.rows[0] || null;
@@ -215,7 +174,7 @@ export async function updateJobOpportunity(jobId, jobTitle) {
 
 export async function deleteJobOpportunity(jobId) {
   const result = await pool.query(
-    `DELETE FROM shs_job_opportunities WHERE job_id = $1 RETURNING job_id AS id`,
+    `DELETE FROM shs_job_opportunities WHERE job_id = $1 RETURNING course_id, job_id AS id`,
     [jobId]
   );
   return result.rows[0] || null;

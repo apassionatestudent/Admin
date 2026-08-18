@@ -16,7 +16,9 @@ export async function getAccount(req, res) {
 export async function updateProfile(req, res) {
     try {
         const { full_name, email } = req.body;
-        const account = await adminAccountService.updateProfile(req.admin.admin_id, full_name, email);
+        // => role comes from the verified JWT payload, never from the request body,
+        //    so a regular staff account can't spoof super_admin to edit their own name/email
+        const account = await adminAccountService.updateProfile(req.admin.admin_id, req.admin.role, full_name, email);
         res.status(200).json({ message: 'Profile updated', account });
     } catch (err) {
         res.status(err.status || 500).json({ message: err.message || 'Failed to update profile' });

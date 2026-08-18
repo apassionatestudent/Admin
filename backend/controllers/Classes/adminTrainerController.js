@@ -9,6 +9,7 @@ import {
   editTrainer,
   deleteTrainer,
   restoreTrainerService,
+  fetchTrainerLogs,
 } from '../../services/Classes/adminTrainerService.js';
 
 // 
@@ -71,6 +72,22 @@ export const getTrainerDetailController = async (req, res) => {
   } catch (err) {
     console.error('getTrainerDetailController error:', err);
     return res.status(500).json({ error: 'Failed to fetch trainer.' });
+  }
+};
+
+// 
+// GET /api/admin/trainers/:publicId/logs
+// => Returns every log row for this trainer, newest first - no pagination
+// 
+export const getTrainerLogsController = async (req, res) => {
+  const { publicId } = req.params;
+  try {
+    const logs = await fetchTrainerLogs(publicId);
+    if (logs === null) return res.status(404).json({ error: 'Trainer not found.' });
+    return res.status(200).json({ logs });
+  } catch (err) {
+    console.error('getTrainerLogsController error:', err);
+    return res.status(500).json({ error: 'Failed to fetch trainer activity logs.' });
   }
 };
 

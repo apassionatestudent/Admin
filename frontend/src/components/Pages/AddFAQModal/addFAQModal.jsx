@@ -10,6 +10,11 @@ import warningIcon from '../../../assets/icons/warning.png';
 import RichTextEditor from '../RichTextEditor/richTextEditor.jsx';
 import './addFAQModal.css';
 
+// => Local copy, not shared with addAnnouncementModal.jsx - same
+//    reasoning as everywhere else two modals mirror each other's shape
+const formatMetaDate = (isoString) =>
+  new Date(isoString).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' });
+
 export default function AddFAQModal({ faq, sections, defaultSectionId, onClose, onSaved }) {
   const isEditMode = Boolean(faq);
 
@@ -58,6 +63,16 @@ export default function AddFAQModal({ faq, sections, defaultSectionId, onClose, 
             <img src={closeIcon} alt="Close" />
           </button>
         </div>
+
+        {/* => Edit mode only - a brand new FAQ has no history to show yet */}
+        {isEditMode && (
+          <div className="afm-meta-row">
+            Created by <strong>{faq.created_by_name}</strong> on {formatMetaDate(faq.created_at)}
+            {faq.updated_by_name && (
+              <> · Last updated by <strong>{faq.updated_by_name}</strong> on {formatMetaDate(faq.updated_at)}</>
+            )}
+          </div>
+        )}
 
         <div className="adm-modal-body">
           <div className="adm-form-group">

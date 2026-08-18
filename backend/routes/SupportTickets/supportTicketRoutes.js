@@ -9,6 +9,7 @@ import {
   getSupportTickets,
   getSupportTicketDetail,
   updateSupportTicketStatusController,
+  getSupportTicketLogsController,
 } from '../../controllers/SupportTickets/supportTicketController.js';
 
 const router = express.Router();
@@ -20,6 +21,7 @@ router.use(csrfProtection);
 
 router.get('/', getSupportTickets);
 router.get('/:publicId', getSupportTicketDetail);
+router.get('/:publicId/logs', getSupportTicketLogsController);
 router.patch('/:publicId', updateSupportTicketStatusController);
 
 export default router;

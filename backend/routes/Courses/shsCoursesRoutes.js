@@ -9,13 +9,12 @@ import {
   createShsCourse,
   updateShsCourse,
   deleteShsCourse,
-  enablePublicLink,
-  updatePublicLink,
   addJobOpportunity,
   updateJobOpportunity,
   deleteJobOpportunity,
   getDeletedShsCourses,
   restoreShsCourse,
+  getShsCourseLogsController,
 } from '../../controllers/Courses/shsCourseController.js';
 
 const router = express.Router();
@@ -34,12 +33,10 @@ router.get('/:adminUuid', getShsCourseById);
 router.patch('/:adminUuid', updateShsCourse);
 router.delete('/:adminUuid', deleteShsCourse);
 router.post('/:adminUuid/restore', restoreShsCourse);
+router.get('/:adminUuid/logs', getShsCourseLogsController);
 
 router.post('/:adminUuid/job-opportunities', addJobOpportunity);
 router.patch('/job-opportunities/:jobId', updateJobOpportunity);
 router.delete('/job-opportunities/:jobId', deleteJobOpportunity);
-
-router.post('/:adminUuid/public-link', enablePublicLink);
-router.patch('/:adminUuid/public-link', updatePublicLink);
 
 export default router;

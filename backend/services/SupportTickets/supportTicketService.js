@@ -11,6 +11,11 @@ import {
   updateSupportTicketFields,
 } from '../../models/SupportTickets/supportTicketModel.js';
 
+// => Activity logging - shared top-level model, not SupportTickets-specific
+import { logActivity, getActivityLogsForEntity } from '../../models/adminActivityLogModel.js';
+// => Diff builder for turning old-vs-new field values into a readable log line
+import { buildFieldDiff, formatDiffDetail } from '../../utils/buildFieldDiff.js';
+
 export class ValidationError extends Error {
   constructor(message) {
     super(message);
@@ -69,7 +74,7 @@ export const fetchSupportTicketByPublicId = async (pool, publicId) => {
 // => admin can update just the status, just the remarks, or both together.
 // => adminId comes from req.admin (the logged-in admin performing the
 // => update), not from the request body.
-export const changeSupportTicketFields = async (pool, publicId, { status, internal_remarks, external_remarks } = {}, adminId) => {
+export const changeSupportTicketFields = async (pool, publicId, { status, internal_remarks, external_remarks } = {}, actor = {}) => {
   if (!publicId) {
     throw new ValidationError('Ticket public_id is required.');
   }
@@ -124,5 +129,64 @@ export const changeSupportTicketFields = async (pool, publicId, { status, intern
     return null;
   }
 
-  return await updateSupportTicketFields(pool, publicId, fields, adminId);
+  const updatedTicket = await updateSupportTicketFields(pool, publicId, fields, actor.admin_id);
+
+  // => Logs the change after the write succeeds. Per project decision, a
+  // => status change and any remarks change made in the same Save fold
+  // => into ONE STATUS_CHANGE entry instead of two separate rows - a
+  // => remarks-only save (no status included) logs as a plain UPDATE.
+  const { action, action_detail } = buildTicketLogEntry(existingTicket, fields);
+  await logActivity(pool, {
+    entity_type: 'support_ticket',
+    entity_id: existingTicket.ticket_id,
+    actor_type: 'Staff',
+    actor_id: actor.admin_id,
+    actor_name: actor.full_name,
+    action,
+    action_detail,
+  });
+
+  return updatedTicket;
+};
+
+// => Builds the action + action_detail for a support ticket update log.
+// => Own copy, no shared code with publicSupportTicketService.js's version,
+// => per the project's no-shared-abstraction convention.
+const buildTicketLogEntry = (existingTicket, fields) => {
+  const remarksFields = {};
+  if (fields.internal_remarks !== undefined) remarksFields.internal_remarks = fields.internal_remarks;
+  if (fields.external_remarks !== undefined) remarksFields.external_remarks = fields.external_remarks;
+
+  const remarksDiff = buildFieldDiff(existingTicket, remarksFields, {
+    internal_remarks: 'Internal Remarks',
+    external_remarks: 'External Remarks',
+  });
+
+  // => Only counts as a status change if the value actually differs from
+  // => what's already saved - the frontend always sends selectedStatus on
+  // => every save, so fields.status being present is not enough on its own
+  const statusActuallyChanged = fields.status !== undefined && fields.status !== existingTicket.status;
+
+  if (statusActuallyChanged) {
+    const statusLine = `Status: "${existingTicket.status}" => "${fields.status}"`;
+    return {
+      action: 'STATUS_CHANGE',
+      action_detail: `Updated ticket - ${[statusLine, ...remarksDiff].join('; ')}`,
+    };
+  }
+
+  return {
+    action: 'UPDATE',
+    action_detail: formatDiffDetail('ticket', remarksDiff),
+  };
+};
+
+// => Fetches every activity log for this ticket, newest first - no
+// => pagination, matches the pattern used by Facilities/Trainers/Batches.
+// => Returns null (not an empty array) when the ticket itself doesn't
+// => exist, so the controller can map that to a 404 same as the detail fetch.
+export const fetchSupportTicketLogs = async (pool, publicId) => {
+  const ticket = await getSupportTicketByPublicId(pool, publicId);
+  if (!ticket) return null;
+  return await getActivityLogsForEntity(pool, 'support_ticket', ticket.ticket_id);
 };

@@ -23,7 +23,7 @@ export async function createAnnouncement({ title, message, is_active, created_by
   });
 }
 
-export async function updateAnnouncement(publicId, { title, message, is_active }) {
+export async function updateAnnouncement(publicId, { title, message, is_active, updated_by }) {
   const cleanTitle = (title || '').trim();
   const cleanMessage = sanitizeEditorHtml(message);
 
@@ -34,13 +34,14 @@ export async function updateAnnouncement(publicId, { title, message, is_active }
     title: cleanTitle,
     message: cleanMessage,
     is_active: Boolean(is_active),
+    updated_by,
   });
   if (!updated) throw { status: 404, message: 'Announcement not found.' };
   return updated;
 }
 
-export async function toggleAnnouncementActive(publicId, isActive) {
-  const updated = await announcementModel.toggleAnnouncementActiveById(publicId, Boolean(isActive));
+export async function toggleAnnouncementActive(publicId, isActive, updatedBy) {
+  const updated = await announcementModel.toggleAnnouncementActiveById(publicId, Boolean(isActive), updatedBy);
   if (!updated) throw { status: 404, message: 'Announcement not found.' };
   return updated;
 }

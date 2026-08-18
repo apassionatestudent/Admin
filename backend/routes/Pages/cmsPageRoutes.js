@@ -14,5 +14,6 @@ router.use(csrfProtection);
 
 router.get('/', protectAdmin, requireSection('pages'), readRateLimit, cmsPageController.getPrivacyPolicy);
 router.put('/', protectAdmin, requireSection('pages'), adminApiRateLimit, cmsPageController.savePrivacyPolicy);
+router.get('/revisions', protectAdmin, requireSection('pages'), readRateLimit, cmsPageController.getPrivacyPolicyRevisions);
 
 export default router;

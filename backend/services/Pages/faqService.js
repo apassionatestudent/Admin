@@ -34,7 +34,7 @@ export async function createFaq({ section_id, question, answer, created_by }) {
   return { ...faq, section_id };
 }
 
-export async function updateFaq(publicId, { section_id, question, answer }) {
+export async function updateFaq(publicId, { section_id, question, answer, updated_by }) {
   const cleanQuestion = (question || '').trim();
   const cleanAnswer = sanitizeEditorHtml(answer);
 
@@ -46,6 +46,7 @@ export async function updateFaq(publicId, { section_id, question, answer }) {
     section_internal_id: sectionInternalId,
     question: cleanQuestion,
     answer: cleanAnswer,
+    updated_by,
   });
   if (!updated) throw { status: 404, message: 'FAQ not found.' };
   return { ...updated, section_id };

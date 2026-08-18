@@ -203,7 +203,7 @@ export const updateTesdaBatchController = async (req, res) => {
     const updated = await editTesdaBatchDetails(
       publicId,
       req.body,
-      existing.batchRow.course_id,
+      existing.batchRow,
       req.admin?.admin_id ?? null,
       existing.batchRow.batch_id
     );
@@ -229,7 +229,7 @@ export const updateShsBatchController = async (req, res) => {
     const updated = await editShsBatchDetails(
       publicId,
       req.body,
-      existing.batchRow.cluster_id,
+      existing.batchRow,
       req.admin?.admin_id ?? null,
       existing.batchRow.batch_id
     );
@@ -269,7 +269,7 @@ export const assignTesdaEnrollmentController = async (req, res) => {
   }
 
   try {
-    const updated = await assignTesdaEnrollment(enrollment_public_id, publicId);
+    const updated = await assignTesdaEnrollment(enrollment_public_id, publicId, req.admin?.admin_id ?? null);
     return res.status(200).json({ success: true, updated });
   } catch (err) {
     const statusCode = err.message.includes('not found') ? 404
@@ -289,7 +289,7 @@ export const assignShsEnrollmentController = async (req, res) => {
   }
 
   try {
-    const updated = await assignShsEnrollment(enrollment_public_id, publicId);
+    const updated = await assignShsEnrollment(enrollment_public_id, publicId, req.admin?.admin_id ?? null);
     return res.status(200).json({ success: true, updated });
   } catch (err) {
     const statusCode = err.message.includes('not found') ? 404

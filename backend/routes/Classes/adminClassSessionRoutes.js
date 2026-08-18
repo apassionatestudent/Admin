@@ -14,6 +14,7 @@ import {
   getEligibleBatches,
   getRemoteEligibleBatches,
   createClassSessionController,
+  getFacilityActivityLogsController,
 } from '../../controllers/Classes/adminClassSessionController.js';
 
 const router = express.Router();
@@ -24,6 +25,7 @@ router.use(csrfProtection);
 
 router.get('/facilities', adminApiRateLimit, protectAdmin, requireSection('classes'), listFacilitiesForSessionPicker);
 router.get('/facilities/:facilityPublicId', adminApiRateLimit, protectAdmin, requireSection('classes'), getFacilitySessionPage);
+router.get('/facilities/:facilityPublicId/logs', adminApiRateLimit, protectAdmin, requireSection('classes'), getFacilityActivityLogsController);
 router.get('/facilities/:facilityPublicId/eligible-batches', adminApiRateLimit, protectAdmin, requireSection('classes'), getEligibleBatches);
 router.get('/remote', adminApiRateLimit, protectAdmin, requireSection('classes'), listRemoteSessions);
 router.get('/batch/:batchType/:batchPublicId', adminApiRateLimit, protectAdmin, requireSection('classes'), listSessionsForBatch);

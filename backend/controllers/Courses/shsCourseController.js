@@ -29,9 +29,9 @@ export async function getShsCourseById(req, res) {
 export async function createShsCourse(req, res) {
   try {
     const { course, jobOpportunities } = req.body;
-    const adminId = req.admin?.admin_id;
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
 
-    const newCourse = await ShsCourseService.createShsCourse({ course, jobOpportunities, adminId });
+    const newCourse = await ShsCourseService.createShsCourse({ course, jobOpportunities, actor });
     res.status(201).json({ success: true, data: newCourse });
   } catch (error) {
     console.error('createShsCourse error:', error);
@@ -42,7 +42,8 @@ export async function createShsCourse(req, res) {
 export async function updateShsCourse(req, res) {
   try {
     const { adminUuid } = req.params;
-    const updated = await ShsCourseService.updateShsCourse(adminUuid, req.body);
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
+    const updated = await ShsCourseService.updateShsCourse(adminUuid, req.body, actor);
     res.status(200).json({ success: true, data: updated });
   } catch (error) {
     console.error('updateShsCourse error:', error);
@@ -53,7 +54,8 @@ export async function updateShsCourse(req, res) {
 export async function deleteShsCourse(req, res) {
   try {
     const { adminUuid } = req.params;
-    await ShsCourseService.deleteShsCourse(adminUuid);
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
+    await ShsCourseService.deleteShsCourse(adminUuid, actor);
     res.status(200).json({ success: true, message: 'Course deleted' });
   } catch (error) {
     console.error('deleteShsCourse error:', error);
@@ -74,7 +76,8 @@ export async function getDeletedShsCourses(req, res) {
 export async function restoreShsCourse(req, res) {
   try {
     const { adminUuid } = req.params;
-    const restored = await ShsCourseService.restoreShsCourse(adminUuid);
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
+    const restored = await ShsCourseService.restoreShsCourse(adminUuid, actor);
     res.status(200).json({ success: true, data: restored });
   } catch (error) {
     console.error('restoreShsCourse error:', error);
@@ -82,34 +85,26 @@ export async function restoreShsCourse(req, res) {
   }
 }
 
-export async function enablePublicLink(req, res) {
+// => Powers the detail page's Activity Log section - fetch-all-at-once, no pagination
+export async function getShsCourseLogsController(req, res) {
   try {
     const { adminUuid } = req.params;
-    const link = await ShsCourseService.enablePublicLink(adminUuid);
-    res.status(200).json({ success: true, data: link });
+    const logs = await ShsCourseService.getShsCourseLogs(adminUuid);
+    res.status(200).json({ success: true, data: logs });
   } catch (error) {
-    console.error('enablePublicLink error:', error);
-    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Failed to enable public link' });
+    console.error('getShsCourseLogsController error:', error);
+    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Failed to fetch course logs' });
   }
 }
 
-export async function updatePublicLink(req, res) {
-  try {
-    const { adminUuid } = req.params;
-    const { public_slug, is_published } = req.body;
-    const link = await ShsCourseService.updatePublicLink(adminUuid, { public_slug, is_published });
-    res.status(200).json({ success: true, data: link });
-  } catch (error) {
-    console.error('updatePublicLink error:', error);
-    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Failed to update public link' });
-  }
-}
+// => Publish/public-link controllers removed (enablePublicLink, updatePublicLink)
 
 export async function addJobOpportunity(req, res) {
   try {
     const { adminUuid } = req.params;
     const { job_title } = req.body;
-    const newRow = await ShsCourseService.addJobOpportunity(adminUuid, job_title);
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
+    const newRow = await ShsCourseService.addJobOpportunity(adminUuid, job_title, actor);
     res.status(201).json({ success: true, data: newRow });
   } catch (error) {
     console.error('addJobOpportunity error:', error);
@@ -121,7 +116,8 @@ export async function updateJobOpportunity(req, res) {
   try {
     const { jobId } = req.params;
     const { job_title } = req.body;
-    const updated = await ShsCourseService.editJobOpportunity(jobId, job_title);
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
+    const updated = await ShsCourseService.editJobOpportunity(jobId, job_title, actor);
     res.status(200).json({ success: true, data: updated });
   } catch (error) {
     console.error('updateJobOpportunity error:', error);
@@ -132,7 +128,8 @@ export async function updateJobOpportunity(req, res) {
 export async function deleteJobOpportunity(req, res) {
   try {
     const { jobId } = req.params;
-    await ShsCourseService.removeJobOpportunity(jobId);
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
+    await ShsCourseService.removeJobOpportunity(jobId, actor);
     res.status(200).json({ success: true, message: 'Job opportunity deleted' });
   } catch (error) {
     console.error('deleteJobOpportunity error:', error);

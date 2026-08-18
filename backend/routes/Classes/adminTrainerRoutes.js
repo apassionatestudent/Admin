@@ -14,6 +14,7 @@ import {
   updateTrainerController,
   deleteTrainerController,
   restoreTrainerController,
+  getTrainerLogsController,
 } from '../../controllers/Classes/adminTrainerController.js';
 
 const router = express.Router();
@@ -26,6 +27,7 @@ router.get('/', adminApiRateLimit, protectAdmin, requireSection('classes'), list
 router.get('/deleted', adminApiRateLimit, protectAdmin, requireSection('classes'), listDeletedTrainers);
 router.post('/', adminApiRateLimit, protectAdmin, requireSection('classes'), createTrainerController);
 router.get('/:publicId', adminApiRateLimit, protectAdmin, requireSection('classes'), getTrainerDetailController);
+router.get('/:publicId/logs', adminApiRateLimit, protectAdmin, requireSection('classes'), getTrainerLogsController);
 router.patch('/:publicId', adminApiRateLimit, protectAdmin, requireSection('classes'), updateTrainerController);
 router.delete('/:publicId', adminApiRateLimit, protectAdmin, requireSection('classes'), deleteTrainerController);
 router.post('/:publicId/restore', adminApiRateLimit, protectAdmin, requireSection('classes'), restoreTrainerController);
