@@ -40,10 +40,6 @@ export default function DashboardHome() {
 
     if (isLoading) return null;
 
-    // => summary.supportTickets is null when the logged-in admin has no
-    // => 'support-tickets' section access - see dashboardService.js
-    const showSupportTickets = summary?.supportTickets !== null && summary?.supportTickets !== undefined;
-
     return (
         <main className="dashboard-home">
             {/* => Title now uses dashboard-home__title, matching Enrollments
@@ -97,27 +93,26 @@ export default function DashboardHome() {
                     </div>
                 </div>
 
-                {/* => Support Tickets card: only rendered if the admin has section access */}
-                {showSupportTickets && (
-                    <div className="dashboard-home__card">
-                        <div className="dashboard-home__card-header">
-                            <img src={supportTicketsIcon} alt="" className="dashboard-home__icon" />
-                            <h3>Support Tickets</h3>
+                {/* => Support Tickets card: always shown, same as Enrollments and
+                   Batches - see dashboardService.js */}
+                <div className="dashboard-home__card">
+                    <div className="dashboard-home__card-header">
+                        <img src={supportTicketsIcon} alt="" className="dashboard-home__icon" />
+                        <h3>Support Tickets</h3>
+                    </div>
+                    {/* => card-body centers these rows vertically when this card sits
+                       next to a taller one in the same grid row */}
+                    <div className="dashboard-home__card-body">
+                        <div className="dashboard-home__stat-row">
+                            <span className="dashboard-home__stat-label">Open</span>
+                            <span className="dashboard-home__stat-value">{summary.supportTickets.open}</span>
                         </div>
-                        {/* => card-body centers these rows vertically when this card sits
-                           next to a taller one in the same grid row */}
-                        <div className="dashboard-home__card-body">
-                            <div className="dashboard-home__stat-row">
-                                <span className="dashboard-home__stat-label">Open</span>
-                                <span className="dashboard-home__stat-value">{summary.supportTickets.open}</span>
-                            </div>
-                            <div className="dashboard-home__stat-row">
-                                <span className="dashboard-home__stat-label">In Progress</span>
-                                <span className="dashboard-home__stat-value">{summary.supportTickets.inProgress}</span>
-                            </div>
+                        <div className="dashboard-home__stat-row">
+                            <span className="dashboard-home__stat-label">In Progress</span>
+                            <span className="dashboard-home__stat-value">{summary.supportTickets.inProgress}</span>
                         </div>
                     </div>
-                )}
+                </div>
 
                 {/* => Class Sessions Today card: single number, no TESDA/SHS split */}
                 <div className="dashboard-home__card dashboard-home__card--single">

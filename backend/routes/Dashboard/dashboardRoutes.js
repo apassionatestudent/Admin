@@ -8,8 +8,8 @@ import { getDashboardSummaryController } from '../../controllers/Dashboard/dashb
 const router = express.Router();
 
 // => No requireSection here - every admin lands on the Dashboard regardless
-// => of section permissions. Support ticket numbers are filtered out inside
-// => the service instead, based on req.admin.sections from protectAdmin.
+// => of section permissions. All summary counts, including Support Tickets,
+// => are shown to every admin - see dashboardService.js for the reasoning.
 // => readRateLimit matches the /me pattern since this is a read-only route
 router.get('/summary', protectAdmin, readRateLimit, getDashboardSummaryController);
 

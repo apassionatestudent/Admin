@@ -26,20 +26,16 @@ const shapeStatusCounts = (rows, keyMap) => {
     return result;
 };
 
-// => sections is req.admin.sections from protectAdmin - null means super_admin
-// => (implicit access to everything, see protectAdmin.js), an array means a
-// => staff admin scoped to only those section_keys
-export const getDashboardSummary = async (sections) => {
-    const hasSupportTicketAccess = sections === null || sections.includes('support-tickets');
-
-    // => Enrollment/batch/session counts are not gated, always fetched.
-    // => The ticket query only runs at all if the admin has access, so a
-    // => restricted staff admin never even triggers that query
+// => Dashboard summary counts are shown to every admin regardless of section
+// => access, since they are plain numbers with no drill-down and no record
+// => detail attached. Section restrictions still apply on the actual
+// => Enrollments / Classes / Support Tickets pages themselves.
+export const getDashboardSummary = async () => {
     const [enrollmentRows, batchRows, classSessionsToday, ticketRows] = await Promise.all([
         getEnrollmentStatusCounts(),
         getBatchStatusCounts(),
         getClassSessionsTodayCount(),
-        hasSupportTicketAccess ? getSupportTicketStatusCounts() : Promise.resolve(null),
+        getSupportTicketStatusCounts(),
     ]);
 
     const enrollments = shapeStatusCounts(enrollmentRows, {
@@ -53,14 +49,10 @@ export const getDashboardSummary = async (sections) => {
         'Ongoing': 'ongoing',
     });
 
-    // => null (not a zeroed object) is the signal the frontend uses to hide
-    // => the Support Tickets card entirely - see DashboardHome.jsx
-    const supportTickets = hasSupportTicketAccess
-        ? shapeStatusCounts(ticketRows, {
-            'Open': 'open',
-            'In Progress': 'inProgress',
-        })
-        : null;
+    const supportTickets = shapeStatusCounts(ticketRows, {
+        'Open': 'open',
+        'In Progress': 'inProgress',
+    });
 
     return {
         enrollments,

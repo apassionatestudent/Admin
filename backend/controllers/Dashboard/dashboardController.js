@@ -5,9 +5,9 @@ import { getDashboardSummary } from '../../services/Dashboard/dashboardService.j
 // => GET /api/admin/dashboard/summary
 export const getDashboardSummaryController = async (req, res) => {
     try {
-        // => req.admin.sections comes from protectAdmin - null for super_admin,
-        // => array of section_keys for a scoped staff admin
-        const summary = await getDashboardSummary(req.admin.sections);
+        // => Dashboard summary is unscoped by section access - see
+        // => dashboardService.js for the reasoning
+        const summary = await getDashboardSummary();
         res.status(200).json(summary);
     } catch (error) {
         console.error('Error fetching dashboard summary:', error);
