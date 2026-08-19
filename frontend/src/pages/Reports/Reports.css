@@ -63,7 +63,15 @@
 }
 
 .rpt-radio input {
-  accent-color: var(--sidebar-bg);
+  /* => Visually hidden but still functional and keyboard-focusable -
+        the whole pill is already the clickable/tappable area since the
+        input sits inside the <label> in Reports.jsx */
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
 }
 
 .rpt-radio--active {
