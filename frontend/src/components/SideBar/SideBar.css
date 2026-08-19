@@ -31,7 +31,11 @@
   left: 0;
   width: var(--sidebar-width);
   height: 100vh;
-  z-index: 100;
+  /* => lowered from 100 to 60 to match the student dashboard convention: */
+  /* => raised above the mobile overlay (which should sit at 55 in Dashboard.jsx) */
+  /* => so nav links stay clickable, but below modals like ConfirmModal */
+  /* => double check your modal z-index values are higher than 60 after this change */
+  z-index: 60;
 
   display: flex;
   flex-direction: column;
@@ -40,6 +44,9 @@
 
   background-color: var(--sidebar-bg);
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.35);
+
+  /* => New: enables the slide-in/out animation on mobile */
+  transition: transform var(--sidebar-transition);
 }
 
 /* => Profile Section */
@@ -218,25 +225,69 @@
   box-sizing: border-box;
 }
 
-/* => Responsive: icon-only mode on small screens */
-@media (max-width: 768px) {
+/* => Landscape phones (short viewport, not narrow) - shrinks the profile */
+/* => section and lets the nav list scroll internally instead of forcing */
+/* => the whole sidebar to cram everything into ~350-430px of height. */
+/* => max-height alone, no max-width pairing, since a short desktop */
+/* => browser window benefits from the same fix. */
+@media (max-height: 500px) {
   .sidebar {
-    width: 64px;
+    padding: 12px 0 10px;
   }
 
-  .sidebar-profile-name,
-  .sidebar-profile-role,
-  .sidebar-nav-label {
-    display: none;
+  .sidebar-profile {
+    padding: 0 20px 10px;
+    gap: 4px;
+  }
+
+  .sidebar-avatar-ring {
+    width: calc(40px + 6px);
+    height: calc(40px + 6px);
+  }
+
+  .sidebar-avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .sidebar-nav {
+    padding: 8px 0;
   }
 
   .sidebar-nav-item {
-    justify-content: center;
-    padding: 12px;
+    padding: 7px 20px;
+  }
+}
+
+/* => Responsive: slide-in menu on tablet and mobile, replaces the old icon-only rail */
+@media (max-width: 768px) {
+  .sidebar {
+    /* => full width restored, no more icon-only collapse */
+    width: var(--sidebar-width);
+    /* => hidden off-screen to the left by default */
+    transform: translateX(-100%);
+  }
+
+  /* => toggled on by Dashboard.jsx when the hamburger button is tapped */
+  .sidebar--open {
+    transform: translateX(0);
+  }
+
+  /* => labels stay visible since the sidebar is full-width when open, not icon-only */
+  .sidebar-profile-name,
+  .sidebar-profile-role,
+  .sidebar-nav-label {
+    display: block;
+  }
+
+  .sidebar-nav-item {
+    justify-content: flex-start;
+    padding: 10px 20px;
   }
 
   .main-content {
-    margin-left: 64px;
-    width: calc(100% - 64px); /* => matches the collapsed sidebar width */
+    /* => content no longer pushed, sidebar now overlays instead of sitting inline */
+    margin-left: 0;
+    width: 100%;
   }
 }

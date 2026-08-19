@@ -66,6 +66,7 @@ export const ALLOWED_STATUSES = [
   'Rejected',
   'Dropped',
   'For Assessment',
+  'Passed Assessment',
   'Failed Assessment',
   'Reserved',
 ];

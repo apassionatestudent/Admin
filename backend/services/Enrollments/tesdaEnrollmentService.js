@@ -170,6 +170,13 @@ export const changeTesdaEnrollmentStatus = async (publicId, newStatus, externalR
     throw new Error('Cannot approve: no batch is assigned to this enrollment.');
   }
 
+  // => ULI is required before Approval - TESDA's own identifier for the
+  //    trainee, staff must fill it in from the physical form during
+  //    review rather than leaving it blank and approving anyway
+  if (newStatus === 'Approved' && !enrollment.uli?.trim()) {
+    throw new Error('Cannot approve: ULI is required and must be filled out first.');
+  }
+
   // => class_type comes from the LEFT JOIN on tesda_batches - NULL when
   //    no batch is assigned yet, so the rule is skipped in that case
   if (newStatus === 'Approved' && enrollment.class_type === 'Regular') {
@@ -234,6 +241,15 @@ export const changeTesdaEnrollmentStatus = async (publicId, newStatus, externalR
         `Cannot set status to "For Assessment": balance not fully cleared. Paid ₱${totalPaid.toFixed(2)} of ₱${totalRequired.toFixed(2)} required.`
       );
     }
+  }
+
+  // => Passed Assessment requires the enrollment to already be For
+  //    Assessment - same sequencing rule as Failed Assessment below,
+  //    can't pass an assessment that was never scheduled.
+  if (newStatus === 'Passed Assessment' && enrollment.status !== 'For Assessment' && enrollment.status !== 'Passed Assessment') {
+    throw new Error(
+      `Cannot set status to "Passed Assessment": enrollment must be in "For Assessment" status first. Current status: "${enrollment.status}".`
+    );
   }
 
   // => Failed Assessment requires the enrollment to already be For

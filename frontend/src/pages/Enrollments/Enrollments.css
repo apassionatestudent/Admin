@@ -583,12 +583,109 @@
 }
 
 /*  Responsive  */
-@media (max-width: 640px) {
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
   .adm-enroll-page {
-    padding: 20px 16px;
+    padding: 32px 28px;
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .adm-enroll-page {
+    padding: 26px 20px;
   }
 
   .adm-enroll-title {
-    font-size: 1.375rem;
+    font-size: 1.6rem;
+  }
+
+  .adm-enroll-count-num {
+    font-size: 2rem;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .adm-enroll-page {
+    /* => bottom padding clears the floating hamburger button in Dashboard.css */
+    padding: 20px 16px 88px;
+  }
+
+  .adm-enroll-title {
+    font-size: 1.5rem;
+  }
+
+  .adm-enroll-count-num {
+    font-size: 1.75rem;
+  }
+
+  /* => header stays side by side, count badge pinned top-right, matching
+     the desktop layout instead of stacking */
+  .adm-enroll-header {
+    flex-direction: row;
+    flex-wrap: nowrap; /* => overrides the base rule's flex-wrap: wrap, which was
+                            pushing the count badge onto its own line below the title */
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  /* => title block shrinks and truncates instead of forcing the row to
+     wrap once both it and the count badge compete for the same line */
+  .adm-enroll-header > div:first-child {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .adm-enroll-count {
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+
+  /* => search input takes the full row instead of shrinking to min-width
+     220px and fighting the search/more/clear buttons for space */
+  .adm-search-input {
+    min-width: 100%;
+  }
+
+  /* => search/more/clear buttons share the row evenly instead of
+     wrapping into an uneven ragged line */
+  .adm-search-row > .adm-search-btn,
+  .adm-search-row > .adm-more-btn,
+  .adm-search-row > .adm-clear-btn {
+    flex: 1;
+  }
+
+  /* => Type and Status filter groups sit on one row instead of stacking -
+     the row scrolls horizontally if content ever gets too wide to fit,
+     rather than wrapping onto a second line */
+  .adm-filter-wrap {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 14px;
+    padding-bottom: 2px;
+  }
+
+  .adm-filter-group {
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .adm-enroll-page {
+    padding: 16px 20px 88px;
+  }
+
+  .adm-enroll-header {
+    margin-bottom: 20px;
+  }
+
+  .adm-enroll-state {
+    padding: 32px 0;
   }
 }

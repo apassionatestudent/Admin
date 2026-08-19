@@ -42,7 +42,7 @@ import chevronDown from '../../../assets/icons/chevron-down.png';
 //    the natural progress order (assessed -> reviewed -> pass/fail)
 const STATUS_OPTIONS = [
   'Pending', 'Reviewed', 'Approved', 'Needs Clarification', 'Rejected',
-  'Dropped', 'For Assessment', 'Failed Assessment', 'Reserved',
+  'Dropped', 'For Assessment', 'Passed Assessment', 'Failed Assessment', 'Reserved',
 ];
 
 const statusClass = {
@@ -53,6 +53,7 @@ const statusClass = {
   'Rejected':            'status--rejected',
   'Dropped':             'status--dropped',
   'For Assessment':      'status--for-assessment',
+  'Passed Assessment':   'status--passed-assessment',
   'Failed Assessment':   'status--failed-assessment',
   'Reserved':            'status--reserved',
 };
@@ -67,6 +68,7 @@ const STATUS_DESCRIPTIONS = {
   'Rejected': 'Enrollment was declined.',
   'Dropped': 'Student withdrew or was removed after being enrolled.',
   'For Assessment': 'Training finished - student is scheduled for competency assessment.',
+  'Passed Assessment': 'Student passed the competency assessment and is certified.',
   'Failed Assessment': 'Student did not pass the competency assessment.',
   'Reserved': 'No open class section yet - held until one becomes available.',
 };
@@ -1405,6 +1407,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                         !isBatchTrainingEnded(enrollment.end_date) ||
                         totalPaid < totalRequired
                       )) ||
+                      (s === 'Passed Assessment' && enrollment.status !== 'For Assessment' && enrollment.status !== 'Passed Assessment') ||
                       (s === 'Failed Assessment' && enrollment.status !== 'For Assessment' && enrollment.status !== 'Failed Assessment')
                     }
                   >

@@ -5,4 +5,55 @@
     background-color: #0f0f0f;
     color: #fff;
     font-family: 'Segoe UI', sans-serif;
+    position: relative; /* => anchors the overlay so it covers the whole dashboard, not just the viewport */
+}
+
+/* => Hamburger toggle button, hidden by default (desktop) */
+/* => Floating circular button, sits on the left edge by default so it never overlaps */
+/* => the plus-icon buttons that already live bottom-right across the admin pages */
+.dashboard-menu-toggle {
+    display: none;
+    position: fixed;
+    bottom: 24px;
+    left: 16px;
+    z-index: 70; /* => above the sidebar (60) and overlay (55) so it stays clickable while the menu is open */
+    width: 52px;
+    height: 52px;
+    border: none;
+    border-radius: 50%; /* => circle, not rounded square */
+    background-color: #660911;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3); /* => lifts it off the page like a floating action button */
+    /* => animates the slide when the --open class toggles left offset */
+    transition: left var(--sidebar-transition, 0.2s ease);
+}
+
+/* => When the sidebar is open, the button slides right to sit just past its edge */
+/* => var(--sidebar-width) is defined globally in SideBar.css :root, so this stays */
+/* => in sync automatically if the sidebar width is ever changed there */
+.dashboard-menu-toggle--open {
+    left: calc(var(--sidebar-width) + 16px);
+}
+
+.dashboard-menu-icon {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+}
+
+/* => Dark backdrop shown behind the sidebar while it is open on mobile */
+.dashboard-overlay {
+    position: fixed;
+    inset: 0; /* => shorthand for top/right/bottom/left: 0, covers the full screen */
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 55; /* => below the sidebar (60) so nav links stay clickable, above page content */
+}
+
+/* => Reveals the hamburger button only on tablet and mobile widths */
+@media (max-width: 768px) {
+    .dashboard-menu-toggle {
+        display: flex;
+    }
 }

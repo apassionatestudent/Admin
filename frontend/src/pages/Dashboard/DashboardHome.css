@@ -4,6 +4,13 @@
     padding: 32px;
 }
 
+/* => Cards page-wide, so long stat values or long labels never force
+   horizontal scroll on narrow viewports */
+.dashboard-home,
+.dashboard-home * {
+    box-sizing: border-box;
+}
+
 /* => Title style matched to Enrollments.css's .adm-enroll-title so page
    headers look consistent across the admin dashboard */
 .dashboard-home__title {
@@ -23,8 +30,8 @@
 
 .dashboard-home__grid {
     display: grid;
-    /* => Single column, each card takes the full width and sits on its own
-       row - avoids the leftover empty space caused by row height matching */
+    /* => Single column at every width - each card takes the full row to
+       itself, matching the original intended layout */
     grid-template-columns: 1fr;
     gap: 20px;
 }
@@ -101,4 +108,97 @@
 
 .dashboard-home__stat-value--large {
     font-size: 2.2rem;
+}
+
+/* --- TABLET / SMALL LAPTOP --- */
+/* => matches the 1024px breakpoint used across the rest of the admin dashboard */
+@media (max-width: 1024px) {
+    .dashboard-home {
+        padding: 24px;
+    }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+    .dashboard-home {
+        padding: 20px;
+    }
+
+    /* => light step down from the 1.75rem base, matches the approach
+       used on Account.css's title instead of dropping straight to 1.5rem */
+    .dashboard-home__title {
+        font-size: 1.6rem;
+    }
+
+    .dashboard-home__grid {
+        gap: 16px;
+    }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+    .dashboard-home {
+        padding: 16px;
+        /* => leaves clearance so page content never sits under the
+           floating hamburger toggle button in Dashboard.css */
+        padding-bottom: 88px;
+    }
+
+    /* => holds at the same size set at 768px rather than shrinking
+       again, avoids the previous double step-down */
+    .dashboard-home__title {
+        font-size: 1.6rem;
+    }
+
+    .dashboard-home__subtitle {
+        margin-bottom: 18px;
+    }
+
+    .dashboard-home__card {
+        padding: 16px;
+    }
+
+    /* => card-header h3, stat-label, and stat-value all keep their base
+       sizes here (1.05rem / 0.95rem / 1.1rem) - the previous shrink to
+       0.95rem / 0.875rem made the numbers and labels harder to read on
+       small screens without gaining meaningful layout space */
+
+    .dashboard-home__stat-value--large {
+        font-size: 2rem;
+    }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+    .dashboard-home {
+        padding: 16px 24px 88px;
+    }
+
+    /* => matches the 640px mobile title size rather than shrinking
+       further, this pass exists to tighten vertical spacing, not text */
+    .dashboard-home__title {
+        font-size: 1.6rem;
+        margin-bottom: 2px;
+    }
+
+    .dashboard-home__subtitle {
+        margin-bottom: 14px;
+    }
+
+    .dashboard-home__grid {
+        gap: 12px;
+    }
+
+    .dashboard-home__card {
+        padding: 12px;
+    }
+
+    .dashboard-home__card-header {
+        margin-bottom: 8px;
+    }
+
+    .dashboard-home__stat-row {
+        padding: 4px 0;
+    }
 }

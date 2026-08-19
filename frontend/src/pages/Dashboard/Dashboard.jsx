@@ -5,6 +5,11 @@ import { useNavigate, Outlet } from 'react-router-dom';
 import Sidebar from '../../components/SideBar/SideBar.jsx';
 import './Dashboard.css';
 
+// => Actual picture icons for the mobile hamburger toggle, not text/unicode characters
+// => Confirm this path matches your actual admin icon folder, adjust if needed
+import MenuIcon  from '../../assets/icons/menu.png';
+import CloseIcon from '../../assets/icons/close.png';
+
 export default function Dashboard() {
     const navigate = useNavigate();
 
@@ -14,6 +19,10 @@ export default function Dashboard() {
     // => Tracks whether the auth check is still in progress
     // => Stays true until we confirm the session is valid or not
     const [isChecking, setIsChecking] = useState(true);
+
+    // => New: controls whether the mobile sidebar is slid into view
+    // => Only matters below the 768px breakpoint, see SideBar.css
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
         const verifySession = async () => {
@@ -40,11 +49,38 @@ export default function Dashboard() {
 
     return (
         <div className="dashboard">
+            {/* => Mobile-only hamburger button, hidden above 768px via CSS */}
+            {/* => Icon swaps between menu and close based on isSidebarOpen */}
+            {/* => --open class slides the button past the sidebar's right edge when expanded */}
+            <button
+                type="button"
+                className={`dashboard-menu-toggle ${isSidebarOpen ? 'dashboard-menu-toggle--open' : ''}`}
+                onClick={() => setIsSidebarOpen((prev) => !prev)}
+                aria-label={isSidebarOpen ? 'Close menu' : 'Open menu'}
+            >
+                <img
+                    src={isSidebarOpen ? CloseIcon : MenuIcon}
+                    alt=""
+                    className="dashboard-menu-icon"
+                />
+            </button>
+
+            {/* => Dark backdrop behind the slid-in sidebar, tapping it closes the menu */}
+            {/* => Only rendered while open, so it never blocks clicks on desktop or when closed */}
+            {isSidebarOpen && (
+                <div
+                    className="dashboard-overlay"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
             {/* => Pass admin identity down to the sidebar for display */}
             <Sidebar
                 adminName={admin?.full_name}
                 adminRole={admin?.role}
                 adminSections={admin?.sections || []}
+                isOpen={isSidebarOpen}
+                onClose={() => setIsSidebarOpen(false)}
             />
 
             <div className="main-content">
