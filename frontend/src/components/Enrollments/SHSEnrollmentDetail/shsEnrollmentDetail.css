@@ -141,6 +141,10 @@
   background: #e0f2fe;
   color: #075985;
 }
+.status--passed-assessment {
+  background: #bbf7d0;
+  color: #14532d;
+}
 .status--reviewed {
   background: #ccfbf1;
   color: #115e59;
@@ -1204,28 +1208,106 @@
 }
 
 /*  Responsive  */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
+  .adm-detail-page {
+    padding: 28px 28px 56px;
+  }
+
+  .adm-docs-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .adm-detail-page {
+    padding: 24px 20px 48px;
+  }
+
+  .adm-detail-hero {
+    padding: 22px 24px;
+  }
+
+  .adm-hero-name {
+    font-size: 1.4rem;
+  }
+
+  .adm-status-changer {
+    gap: 14px;
+  }
+
+  .adm-status-description {
+    max-width: 100%;
+    flex-basis: 100%;
+  }
+
+  .adm-remarks-group {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+}
+
+/* --- MOBILE --- */
 @media (max-width: 640px) {
   .adm-detail-page {
-    padding: 20px 16px 48px;
+    /* => bottom padding clears the floating hamburger button in Dashboard.css */
+    padding: 20px 16px 100px;
   }
 
   .adm-detail-hero {
     padding: 20px;
+    /* => forces hero-left and hero-badges to stack top-to-bottom instead
+       of relying on flex-wrap, which was letting the badges overlap the
+       cluster/student name text instead of sitting cleanly below it */
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .adm-hero-name {
     font-size: 1.25rem;
   }
 
+  .adm-hero-badges {
+    /* => badges wrap onto their own line(s) below the name block, and
+       wrap internally too so 3+ badges don't overflow the card width */
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
   .adm-section {
     padding: 18px 16px;
   }
 
-  .adm-info-grid {
-    grid-template-columns: 1fr 1fr;
+  /* => was `grid-template-columns: 1fr 1fr` which had no effect since
+     this container is display: flex, not grid - fixed by overriding
+     flex-basis on each card instead, so two cards sit per row */
+  .adm-info-grid > .adm-info-card {
+    flex: 1 1 calc(50% - 7px);
   }
 
   .adm-docs-grid {
     grid-template-columns: 1fr;
+  }
+
+  .adm-info-grid--halves {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .adm-detail-page {
+    padding: 16px 20px 100px;
+  }
+
+  .adm-detail-hero {
+    padding: 16px 20px;
+  }
+
+  .adm-section {
+    padding: 16px 18px;
   }
 }

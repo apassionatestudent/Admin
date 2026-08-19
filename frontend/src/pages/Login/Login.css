@@ -306,11 +306,102 @@
   font-family: var(--font-body, 'Merriweather', serif);
 }
 
+/* --- TABLET / SMALL LAPTOP --- */
+/* => matches the 1024px breakpoint used across the public site */
+@media (max-width: 1024px) {
+  .login-glow-1 { width: 340px; height: 340px; }
+  .login-glow-2 { width: 260px; height: 260px; }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .login-header h1 {
+    font-size: 2rem; /* => scaled down from --text-xl (2.4rem) */
+  }
+}
+
 /* --- MOBILE --- */
-@media (max-width: 480px) {
-  .login-card { max-width: 100%; }
+@media (max-width: 640px) {
+  .login {
+    padding: 1rem; /* => tighter outer padding on small phones */
+  }
+
+  .login-card {
+    max-width: 100%;
+  }
+
+  .login-glow-1 { width: 260px; height: 260px; }
+  .login-glow-2 { width: 200px; height: 200px; }
+
   .login-header,
   .login-form,
   .login-divider,
-  .login-footer { padding-left: 1.5rem; padding-right: 1.5rem; }
+  .login-footer {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .login-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .login-logo-wrap {
+    width: 56px;
+    height: 56px;
+  }
+
+  .login-logo {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used on the public site */
+/* => .login has overflow: hidden by default, which would clip the card on short viewports */
+/* => this override lets the card scroll instead of getting cut off */
+@media (max-height: 500px) and (orientation: landscape) {
+  .login {
+    min-height: 100%;
+    align-items: flex-start;
+    overflow-y: auto;
+    padding: 1rem;
+  }
+
+  .login-logo-wrap {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 0.5rem;
+  }
+
+  .login-logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .login-header {
+    padding: 1.2rem 1.5rem 0;
+    margin-bottom: 1rem;
+  }
+
+  .login-tag {
+    margin-bottom: 0.5rem;
+  }
+
+  .login-header h1 {
+    font-size: 1.6rem;
+  }
+
+  .login-form {
+    gap: 0.7rem;
+    padding: 0 1.5rem;
+  }
+
+  .login-divider {
+    margin: 0.8rem 1.5rem 0.6rem;
+  }
+
+  .login-footer {
+    padding: 0 1.5rem 1.2rem;
+  }
 }

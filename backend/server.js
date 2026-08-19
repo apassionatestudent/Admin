@@ -63,6 +63,9 @@ import chatbotRouter from './routes/Chatbots/chatbotRoutes.js';
 // Page: Dashboard
 import dashboardRouter from './routes/Dashboard/dashboardRoutes.js';
 
+// Page: Reports
+import reportRouter from './routes/Reports/reportRoutes.js';
+
 dotenv.config(); // => moved up - must run before any module reads process.env
 
 // => CSRF validation middleware - token is generated in adminAuthController on login
@@ -149,6 +152,9 @@ app.use('/api/admin/chatbots', chatbotRouter);
 
 // Dashboard
 app.use('/api/admin/dashboard', dashboardRouter);
+
+// Reports
+app.use('/api/admin/reports', reportRouter);
 
 
 // => Initialize DB tables that the admin backend needs

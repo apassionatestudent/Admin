@@ -44,6 +44,11 @@ const Sidebar = ({
   adminName = "Admin Name",
   adminRole = "admin",
   adminSections = [],
+  // => New props for the mobile slide-in menu, mirrors the student dashboard pattern
+  // => isOpen controls the transform (slid in vs off-screen), owned by Dashboard.jsx
+  // => onClose fires on overlay click and on nav click, so tapping a link auto-closes the menu
+  isOpen = false,
+  onClose = () => {},
 }) => {
   const [hoveredItem, setHoveredItem] = useState(null);
   const navigate = useNavigate();
@@ -93,7 +98,8 @@ const Sidebar = ({
     ].join(" ").trim();
 
   return (
-    <aside className="sidebar">
+    // => sidebar--open only matters below the 768px breakpoint, see SideBar.css
+    <aside className={`sidebar ${isOpen ? "sidebar--open" : ""}`}>
       {/* => Admin identity section at the top */}
       <div className="sidebar-profile">
         <div className="sidebar-avatar-ring">
@@ -117,7 +123,8 @@ const Sidebar = ({
               <NavLink
                 to={to}
                 className={navLinkClass(id)}
-                onClick={() => {}}
+                // => closes the mobile menu on tap, so navigating doesn't leave it open over the new page
+                onClick={() => onClose()}
                 onMouseEnter={() => setHoveredItem(id)}
                 onMouseLeave={() => setHoveredItem(null)}
                 end={to === "/dashboard"} // => 'end' only on dashboard so it doesn't stay active on sub-routes

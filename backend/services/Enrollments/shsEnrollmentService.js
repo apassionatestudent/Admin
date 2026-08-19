@@ -131,6 +131,21 @@ export const changeShsEnrollmentStatus = async (publicId, newStatus, externalRem
     throw new Error('Cannot approve: no batch is assigned to this enrollment.');
   }
 
+  // => LRN is required before Approval - DepEd's own identifier for the
+  //    student, staff must fill it in from the physical form during
+  //    review rather than leaving it blank and approving anyway. DepEd
+  //    issues LRNs as exactly 12 digits, so the format is checked too,
+  //    not just presence.
+  if (newStatus === 'Approved') {
+    const lrn = enrollment.lrn?.trim();
+    if (!lrn) {
+      throw new Error('Cannot approve: LRN is required and must be filled out first.');
+    }
+    if (!/^\d{12}$/.test(lrn)) {
+      throw new Error('Cannot approve: LRN must be exactly 12 digits.');
+    }
+  }
+
   // => For Assessment requires the enrollment to already be Approved
   if (newStatus === 'For Assessment' && enrollment.status !== 'Approved' && enrollment.status !== 'For Assessment') {
     throw new Error(
@@ -172,6 +187,15 @@ export const changeShsEnrollmentStatus = async (publicId, newStatus, externalRem
         `Cannot set status to "For Assessment": balance not fully cleared. Paid ₱${totalPaid.toFixed(2)} of ₱${totalRequired.toFixed(2)} required.`
       );
     }
+  }
+
+  // => Passed Assessment requires the enrollment to already be For
+  //    Assessment - same sequencing rule as Failed Assessment below,
+  //    and same as TESDA
+  if (newStatus === 'Passed Assessment' && enrollment.status !== 'For Assessment' && enrollment.status !== 'Passed Assessment') {
+    throw new Error(
+      `Cannot set status to "Passed Assessment": enrollment must be in "For Assessment" status first. Current status: "${enrollment.status}".`
+    );
   }
 
   // => Failed Assessment requires the enrollment to already be For

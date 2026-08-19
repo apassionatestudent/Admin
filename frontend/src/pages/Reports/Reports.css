@@ -1,0 +1,287 @@
+/* =========================================================
+   Reports.css - Admin reporting page
+   Uses an rpt- prefix on every class to avoid the generic
+   class name collisions already flagged on Students.css
+   ========================================================= */
+
+.rpt-page {
+  padding: 36px 40px;
+  min-height: 100vh;
+  background: #f4f5f8;
+  font-family: var(--font-body), sans-serif;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.rpt-header {
+  margin-bottom: 28px;
+}
+
+.rpt-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0f1724;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+  font-family: var(--font-body); /* => overrides the global display font rule on h1 */
+}
+
+.rpt-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* => Shared row wrapper for every filter group, keeps consistent vertical rhythm */
+.rpt-filter-row {
+  margin-bottom: 20px;
+}
+
+/* => Radio pills for TESDA Sectors / SHS Clusters */
+.rpt-radio-group {
+  display: flex;
+  gap: 12px;
+  width: 100%; /* => stretches the pair to fill the row */
+}
+
+.rpt-radio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1; /* => each pill takes an even 50% share */
+  padding: 12px 18px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px; /* => less pill-like at full width, reads better as a wide toggle */
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #374151;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.rpt-radio input {
+  accent-color: var(--sidebar-bg);
+}
+
+.rpt-radio--active {
+  background: var(--sidebar-bg);
+  border-color: var(--sidebar-bg);
+  color: #fff;
+}
+
+/* => Dropdown fields row (Sector/Cluster, Course, Year) */
+.rpt-filter-row:nth-of-type(2) {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.rpt-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1; /* => Sector/Cluster, Course, and Year now split the row evenly */
+  min-width: 220px;
+}
+
+.rpt-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+}
+
+.rpt-select {
+  padding: 9px 14px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #111827;
+  font-family: inherit;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+
+.rpt-select:focus {
+  outline: none;
+  border-color: var(--accent-hover, #8a0d17);
+}
+
+.rpt-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rpt-field-error {
+  font-size: 0.78rem;
+  color: #b91c1c;
+  margin: 0;
+}
+
+/* => Period toggle buttons: Annually / Quarterly / Monthly */
+.rpt-period-group {
+  display: flex;
+  gap: 8px;
+}
+
+.rpt-period-btn {
+  padding: 7px 18px;
+  background: #fff;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.rpt-period-btn:hover {
+  background: #f3f4f6;
+}
+
+.rpt-period-btn--active {
+  background: var(--sidebar-bg);
+  border-color: var(--sidebar-bg);
+  color: #fff;
+}
+
+/* => Section grouping for Enrollees / Batches output tables */
+.rpt-section {
+  margin-bottom: 36px;
+}
+
+.rpt-section-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #374151;
+  margin: 0 0 12px;
+  font-family: var(--font-body);
+}
+
+/* => Table wrapper, matches the maroon-header convention used elsewhere */
+.rpt-table-wrap {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow-x: auto;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.rpt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  color: #374151;
+  table-layout: fixed;
+}
+
+.rpt-table thead tr {
+  background: var(--sidebar-bg, #660911);
+  border-bottom: 1px solid var(--sidebar-bg, #660911);
+}
+
+.rpt-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.rpt-table-row {
+  border-bottom: 1px solid #f3f4f6;
+  animation: rpt-row-in 0.28s ease both;
+}
+
+@keyframes rpt-row-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.rpt-table-row:last-child {
+  border-bottom: none;
+}
+
+.rpt-table td {
+  padding: 14px 16px;
+  vertical-align: middle;
+}
+
+.rpt-count-cell {
+  font-weight: 700;
+  color: #111827;
+}
+
+.rpt-fillrate-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px 28px;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.rpt-fillrate-value {
+  font-size: 2rem;
+  font-weight: 800;   
+  color: var(--accent-hover, #8a0d17);
+  letter-spacing: -0.02em;
+}
+
+.rpt-fillrate-detail {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.rpt-table-row--clickable {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.rpt-table-row--clickable:hover {
+  background: rgba(102, 9, 17, 0.06);
+}
+
+/* => Empty / prompt state before a course is selected */
+.rpt-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 0;
+  color: #6b7280;
+  font-size: 0.9375rem;
+}
+
+.rpt-empty-icon {
+  width: 48px;
+  height: 48px;
+  opacity: 0.6;
+}
+
+/* => Responsive */
+@media (max-width: 640px) {
+  .rpt-page {
+    padding: 20px 16px;
+  }
+
+  .rpt-title {
+    font-size: 1.375rem;
+  }
+}
