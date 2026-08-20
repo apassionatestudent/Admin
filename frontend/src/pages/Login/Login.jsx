@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 // import axios from 'axios';
 // => axiosAdmin automatically attaches withCredentials and x-csrf-token header
 import axiosAdmin from '../../utils/axiosAdmin.js';
+// => toast handles ordinary login errors so the card doesn't stretch in height
+import toast from 'react-hot-toast';
 
 import { useNavigate } from 'react-router-dom';
 
@@ -25,8 +27,37 @@ export default function Login() {
   // => Tracks loading state to disable button while request is in flight
   const [isLoading, setIsLoading] = useState(false);
 
-  // => Holds error message returned from the backend
-  const [error, setError] = useState(null);
+  // => Holds the lockedUntil timestamp while the account is locked out
+  // => null means not locked, drives the persistent countdown banner below
+  const [lockedUntil, setLockedUntil] = useState(null);
+
+  // => Live mm:ss countdown text shown inside the lockout banner
+  const [countdown, setCountdown] = useState('');
+
+  // => Ticks every second while locked out, purely cosmetic
+  // => Real enforcement always happens server-side on the next actual submit
+  useEffect(() => {
+    if (!lockedUntil) return;
+
+    const tick = () => {
+      const remainingMs = new Date(lockedUntil).getTime() - Date.now();
+
+      if (remainingMs <= 0) {
+        setLockedUntil(null);
+        setCountdown('');
+        return;
+      }
+
+      const totalSeconds = Math.ceil(remainingMs / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      setCountdown(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [lockedUntil]);
 
   // => Toggles the password field between hidden and visible
   const [showPassword, setShowPassword] = useState(false);
@@ -36,7 +67,6 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null); // => clear previous errors on each attempt
 
     try {
       // => axiosAdmin handles withCredentials automatically
@@ -56,8 +86,17 @@ export default function Login() {
       navigate('/dashboard');
 
     } catch (err) {
-      // => show the error message returned from the backend
-      setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+      const data = err.response?.data;
+
+      // => 429 with a lockedUntil timestamp means the account just got
+      // => locked or is still inside an active lockout window
+      // => Shown as a persistent banner instead of a toast since it needs
+      // => to stay visible for the full countdown, a toast auto-dismisses
+      if (err.response?.status === 429 && data?.lockedUntil) {
+        setLockedUntil(data.lockedUntil);
+      } else {
+        toast.error(data?.message || 'Something went wrong. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -137,15 +176,20 @@ export default function Login() {
             </a>
           </div>
 
-          {/* => shows backend error messages such as invalid credentials or suspended account */}
-          {error && <p className="login-error">{error}</p>}
+          {/* => Persistent lockout banner, stays visible for the full countdown */}
+          {lockedUntil && (
+            <div className="login-locked-banner">
+              Too many requests. Please wait before trying again.
+              <span className="login-locked-countdown">{countdown}</span>
+            </div>
+          )}
 
           <button
             type="submit"
             className="login-btn"
-            disabled={isLoading}
+            disabled={isLoading || !!lockedUntil}
           >
-            {isLoading ? 'Signing in...' : 'Sign In'}
+            {isLoading ? 'Signing in...' : lockedUntil ? 'Locked' : 'Sign In'}
           </button>
         </form>
         <div className="login-divider">

@@ -16,6 +16,9 @@ import {
   addJobOpportunity,
   updateJobOpportunity,
   deleteJobOpportunity,
+  addRequirement,       
+  updateRequirement,    
+  deleteRequirement, 
   getDeletedTesdaCourses,
   restoreTesdaCourse,
   getTesdaCourseLogsController,
@@ -47,5 +50,10 @@ router.delete('/competencies/:type/:competencyId', deleteCompetency);
 router.post('/:adminUuid/job-opportunities', addJobOpportunity);
 router.patch('/job-opportunities/:jobId', updateJobOpportunity);
 router.delete('/job-opportunities/:jobId', deleteJobOpportunity);
+
+router.post('/:adminUuid/requirements', addRequirement);
+router.patch('/requirements/:requirementId', updateRequirement);
+router.delete('/requirements/:requirementId', deleteRequirement);
+
 
 export default router;

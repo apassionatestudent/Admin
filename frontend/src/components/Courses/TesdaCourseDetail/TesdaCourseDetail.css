@@ -337,6 +337,34 @@
   background: var(--bg);
 }
 
+/* => Required? column - the checkbox needs to opt out of the width:100% rule
+   => above (that rule targets text inputs; on a checkbox it stretches the
+   => invisible layout box across the whole cell, which is what was pushing
+   => the checkbox glyph away from sitting directly under its own header).
+   => Both the header and the cell share the same text-align so the checkbox
+   => lines up under "REQUIRED?" instead of drifting toward Save/Cancel. */
+.competency-table th.col-required,
+.competency-table td.col-required {
+  text-align: center;
+}
+
+.competency-table input.competency-checkbox {
+  width: 16px;
+  height: 16px;
+}
+
+/* => Max Files column - narrow number input, own width so it doesn't
+   => inherit the width:100% text-input rule and stretch across the cell */
+.competency-table th.col-max-files,
+.competency-table td.col-max-files {
+  text-align: center;
+}
+
+.competency-table input.max-files-input {
+  width: 56px;
+  text-align: center;
+}
+
 .row-actions {
   white-space: nowrap; /* => was display:flex, which overrides a <td>'s table-cell behavior and breaks its row-height/border alignment with sibling cells - that's what caused the line mismatch */
   width: 1%; /* => combined with white-space:nowrap, forces this column to shrink to its content's minimum width instead of stretching - all remaining table width goes to the first column */
