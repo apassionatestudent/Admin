@@ -26,7 +26,7 @@ import SHSEnrollmentDetail   from './components/Enrollments/SHSEnrollmentDetail/
 import TesdaBatchDetail from './components/Classes/TesdaBatchDetail/TesdaBatchDetail.jsx';
 import ShsBatchDetail   from './components/Classes/ShsBatchDetail/ShsBatchDetail.jsx';
 import StudentDetail from './components/StudentDetail/StudentDetail.jsx';
-import TesdaCourseDetail from './components/Courses/TESDACourseDetail/TesdaCourseDetail.jsx';
+import TesdaCourseDetail from './components/Courses/TesdaCourseDetail/TesdaCourseDetail.jsx';
 import ShsCourseDetail   from './components/Courses/ShsCourseDetail/ShsCourseDetail.jsx';
 import FacilityDetail    from './components/Classes/FacilityDetail/FacilityDetail.jsx';
 import FacilitySessionCalendar from './components/Classes/FacilitySessionCalendar/facilitySessionCalendar.jsx';
@@ -39,6 +39,9 @@ import ChatbotDetail  from './components/Chatbots/ChatbotDetail/chatbotDetail.js
 
 import PublicSupportTicketDetail from './components/SupportTickets/PublicSupportTicketDetail/publicSupportTicketDetail.jsx';
 import StudentSupportTicketDetail from './components/SupportTickets/StudentSupportTicketDetail/studentSupportTicketDetail.jsx';
+
+// => Route guard: redirects to /dashboard if the logged-in admin isn't granted this section
+import RequireSection from './components/RequireSection/requireSection.jsx';
 
 import { Toaster } from "react-hot-toast";
 
@@ -67,39 +70,38 @@ function App() {
                     <Route index element={<DashboardHome />} />
 
                     {/* => Sub-routes render inside the <Outlet /> in Dashboard.jsx */}
-                    <Route path="enrollments"           element={<Enrollments />} />
+                    <Route path="enrollments" element={<RequireSection section="enrollments"><Enrollments /></RequireSection>} />
                     {/* <Route path="enrollments/:publicId" element={<EnrollmentDetail />} /> */}
-                    <Route path="enrollments/tesda/:publicId" element={<TESDAEnrollmentDetail />} />
-                    <Route path="enrollments/shs/:publicId"   element={<SHSEnrollmentDetail />} />  
+                    <Route path="enrollments/tesda/:publicId" element={<RequireSection section="enrollments"><TESDAEnrollmentDetail /></RequireSection>} />
+                    <Route path="enrollments/shs/:publicId" element={<RequireSection section="enrollments"><SHSEnrollmentDetail /></RequireSection>} />  
 
-                    <Route path="classes"                 element={<Classes />} />
-                    <Route path="classes/tesda/:publicId" element={<TesdaBatchDetail />} />
-                    <Route path="classes/shs/:publicId"   element={<ShsBatchDetail />} />
-                    <Route path="classes/sessions/:facilityPublicId" element={<FacilitySessionCalendar />} />
-                    <Route path="classes/facilities/:publicId"  element={<FacilityDetail />} />
-                    <Route path="classes/trainers/:publicId" element={<TrainerDetail />} />
+                    <Route path="classes" element={<RequireSection section="classes"><Classes /></RequireSection>} />
+                    <Route path="classes/tesda/:publicId" element={<RequireSection section="classes"><TesdaBatchDetail /></RequireSection>} />
+                    <Route path="classes/shs/:publicId" element={<RequireSection section="classes"><ShsBatchDetail /></RequireSection>} />
+                    <Route path="classes/sessions/:facilityPublicId" element={<RequireSection section="classes"><FacilitySessionCalendar /></RequireSection>} />
+                    <Route path="classes/facilities/:publicId" element={<RequireSection section="classes"><FacilityDetail /></RequireSection>} />
+                    <Route path="classes/trainers/:publicId" element={<RequireSection section="classes"><TrainerDetail /></RequireSection>} />
 
-                    <Route path="support-tickets"       element={<SupportTickets />} />
-                    <Route path="support-tickets/:publicId" element={<PublicSupportTicketDetail />} />
-                    <Route path="support-tickets/students/:publicId" element={<StudentSupportTicketDetail />} />
+                    <Route path="support-tickets" element={<RequireSection section="support-tickets"><SupportTickets /></RequireSection>} />
+                    <Route path="support-tickets/:publicId" element={<RequireSection section="support-tickets"><PublicSupportTicketDetail /></RequireSection>} />
+                    <Route path="support-tickets/students/:publicId" element={<RequireSection section="support-tickets"><StudentSupportTicketDetail /></RequireSection>} />
 
-                    <Route path="students"              element={<Students />} />
-                    <Route path="students/:publicId"    element={<StudentDetail />} />
+                    <Route path="students" element={<RequireSection section="students"><Students /></RequireSection>} />
+                    <Route path="students/:publicId" element={<RequireSection section="students"><StudentDetail /></RequireSection>} />
                     
-                    <Route path="reports"               element={<Reports />} />
-                    <Route path="payments"              element={<Payments />} />
-                    <Route path="payments/:publicId"    element={<PaymentDetail />} />
-                    <Route path="refunds/:publicId"     element={<RefundDetail />} />
-                    <Route path="courses"               element={<Courses />} />
-                    <Route path="courses/tesda/:adminUuid" element={<TesdaCourseDetail />} />
-                    <Route path="courses/shs/:adminUuid"   element={<ShsCourseDetail />} />
-                    <Route path="pages"                 element={<Pages />} />
-                    <Route path="logs"                  element={<Logs />} />
-                    <Route path="chatbots"              element={<Chatbots />} />
-                    <Route path="staff"                element={<Staff />} />
-                    <Route path="staff/:publicId"      element={<StaffDetail />} />
-                    <Route path="chatbots"              element={<Chatbots />} />
-                    <Route path="chatbots/:publicId"    element={<ChatbotDetail />} />
+                    <Route path="reports" element={<RequireSection section="reports"><Reports /></RequireSection>} />
+                    <Route path="payments" element={<RequireSection section="payments"><Payments /></RequireSection>} />
+                    <Route path="payments/:publicId" element={<RequireSection section="payments"><PaymentDetail /></RequireSection>} />
+                    <Route path="refunds/:publicId" element={<RequireSection section="payments"><RefundDetail /></RequireSection>} />
+                    <Route path="courses" element={<RequireSection section="courses"><Courses /></RequireSection>} />
+                    <Route path="courses/tesda/:adminUuid" element={<RequireSection section="courses"><TesdaCourseDetail /></RequireSection>} />
+                    <Route path="courses/shs/:adminUuid" element={<RequireSection section="courses"><ShsCourseDetail /></RequireSection>} />
+                    <Route path="pages" element={<RequireSection section="pages"><Pages /></RequireSection>} />
+                    <Route path="logs" element={<RequireSection section="logs"><Logs /></RequireSection>} />
+                    <Route path="chatbots" element={<RequireSection section="chatbots"><Chatbots /></RequireSection>} />
+                    <Route path="chatbots/:publicId" element={<RequireSection section="chatbots"><ChatbotDetail /></RequireSection>} />
+                    <Route path="staff" element={<RequireSection section="staff"><Staff /></RequireSection>} />
+                    <Route path="staff/:publicId" element={<RequireSection section="staff"><StaffDetail /></RequireSection>} />
                     <Route path="account" element={<Account />} />
                 </Route>
                 
