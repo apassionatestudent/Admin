@@ -261,9 +261,19 @@
 .logs-pagination {
   display: flex;
   align-items: center;
+  justify-content: center; /* => centers the whole pagination bar under the table */
   gap: 6px;
   margin-top: 18px;
   flex-wrap: wrap;
+}
+
+/* => The '...' gap filler between page-number buttons, plain text, no
+   => border or hover state since it isn't interactive */
+.logs-page-ellipsis {
+  padding: 7px 4px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted, #9ca3af);
 }
 
 .logs-page-btn {
