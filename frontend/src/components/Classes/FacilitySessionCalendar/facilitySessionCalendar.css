@@ -67,6 +67,14 @@
   background-color: rgba(138, 13, 23, 0.06);
 }
 
+/* => Past-date cells - grayed out and non-interactive looking, applied via
+      dayPropGetter's className so it works consistently across Month and
+      Work Week views without duplicating inline styles. */
+.fsc-calendar-wrap .fsc-past-date {
+  background-color: rgba(0, 0, 0, 0.045);
+  cursor: not-allowed;
+}
+
 .fsc-calendar-wrap .rbc-event {
   padding: 3px 6px;
   font-size: 0.75rem;

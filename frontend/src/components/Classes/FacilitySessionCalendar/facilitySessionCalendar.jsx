@@ -71,6 +71,7 @@ export default function FacilitySessionCalendar() {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [slotPrefill, setSlotPrefill] = useState(null);
+  const [editingSession, setEditingSession] = useState(null); // => NEW - clicking an event opens the modal in edit mode
 
   // => Controlled date/view - previously relied on RBC's uncontrolled
   //    defaultView, switching to controlled removes any ambiguity about
@@ -168,7 +169,20 @@ export default function FacilitySessionCalendar() {
     }
   };
 
+  // => Blocks starting a new booking on a date that's already past. RBC
+  //    still fires this on past slots, so the guard needs to live here -
+  //    the real enforcement is server-side, this just avoids opening a
+  //    modal that's guaranteed to fail on save.
+  const isPastDate = (date) => {
+    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
+    return format(date, 'yyyy-MM-dd') < todayStr;
+  };
+
   const handleSelectSlot = ({ start, end }) => {
+    if (isPastDate(start)) {
+      toast.error("You can't book a session in the past.");
+      return;
+    }
     setSlotPrefill({
       date: format(start, 'yyyy-MM-dd'),
       startTime: format(start, 'HH:mm'),
@@ -177,13 +191,10 @@ export default function FacilitySessionCalendar() {
     setShowAddModal(true);
   };
 
+  // => Opens the same modal in edit mode instead of a read-only toast, so
+  //    clicking a booked slot is how you reach Edit/Cancel for it.
   const handleSelectEvent = (event) => {
-    const s = event.resource;
-    toast(
-      `${event.title}\n${format(event.start, 'h:mm a')} - ${format(event.end, 'h:mm a')}` +
-      (s.trainer_name ? `\nTrainer: ${s.trainer_name}` : ''),
-      { icon: null }
-    );
+    setEditingSession(event.resource);
   };
 
   const handleSessionCreated = () => {
@@ -195,6 +206,22 @@ export default function FacilitySessionCalendar() {
     toast.success('Class session created.');
   };
 
+  const handleSessionUpdated = (type, count) => {
+    setEditingSession(null);
+    fetchSessions(visibleRange);
+    setLogPage(1);
+    fetchLogs(1);
+    toast.success(type === 'series' ? `Series updated (${count} session(s)).` : 'Class session updated.');
+  };
+
+  const handleSessionCancelled = (type) => {
+    setEditingSession(null);
+    fetchSessions(visibleRange);
+    setLogPage(1);
+    fetchLogs(1);
+    toast.success(type === 'series' ? 'Entire series cancelled.' : 'Class session cancelled.');
+  };
+
   const eventPropGetter = (event) => ({
     style: {
       backgroundColor: event.resource.batch_type === 'shs' ? '#1a56db' : '#8a0d17',
@@ -203,9 +230,14 @@ export default function FacilitySessionCalendar() {
     },
   });
 
-  // => NEW - shades a date cell if it's a PH holiday, purely visual
+  // => Shades past dates gray and blocks pointer interaction on the cell
+  //    itself (belt-and-suspenders alongside the handleSelectSlot guard
+  //    above), holiday shading only applies to dates that aren't already past.
   const dayPropGetter = (date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
+    if (isPastDate(date)) {
+      return { className: 'fsc-past-date' };
+    }
     if (holidays[dateStr]) {
       return { style: { backgroundColor: 'rgba(245, 158, 11, 0.14)' }, title: holidays[dateStr] };
     }
@@ -419,6 +451,16 @@ export default function FacilitySessionCalendar() {
           prefill={slotPrefill}
           onClose={() => { setShowAddModal(false); setSlotPrefill(null); }}
           onCreated={handleSessionCreated}
+        />
+      )}
+
+      {editingSession && (
+        <AddSessionModal
+          facilityPublicId={facilityPublicId}
+          existingSession={editingSession}
+          onClose={() => setEditingSession(null)}
+          onUpdated={handleSessionUpdated}
+          onCancelled={handleSessionCancelled}
         />
       )}
     </div>

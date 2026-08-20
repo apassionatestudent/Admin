@@ -59,3 +59,73 @@
   flex: 1 1 100%;
   grid-column: 1 / -1;
 }
+
+/* => Repeat-weekly section - checkbox toggle row + day-of-week pills */
+.asm-repeat-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.asm-day-toggle-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.asm-day-btn {
+  padding: 6px 12px;
+  border: 1.5px solid var(--border, #e5e7eb);
+  border-radius: 999px;
+  background: none;
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.asm-day-btn--active {
+  background: #8a0d17;
+  border-color: #8a0d17;
+  color: #fff;
+}
+
+/* => Wraps both danger buttons so they sit together at the footer's left
+      edge - margin-right: auto moved here from the button itself, now
+      that there can be two buttons in this group instead of one. */
+.asm-danger-actions {
+  display: flex;
+  gap: 8px;
+  margin-right: auto;
+}
+
+/* => Destructive action in the edit-mode footer */
+.asm-danger-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1.5px solid #b91c1c;
+  border-radius: 8px;
+  background: none;
+  color: #b91c1c;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.asm-danger-btn:hover:not(:disabled) {
+  background: rgba(185, 28, 28, 0.08);
+}
+
+.asm-danger-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

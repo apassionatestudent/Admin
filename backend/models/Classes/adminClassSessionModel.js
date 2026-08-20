@@ -8,7 +8,7 @@
 //    per active, non-deleted facility, with its allowed course titles
 //    already aggregated so the frontend doesn't need N+1 requests.
 // => ASSUMPTION: only status = 'active' facilities are offered here, since
-//    an inactive facility shouldn't be booked for a NEW session. 
+//    an inactive facility shouldn't be booked for a  session. 
 export const getFacilitiesForSessionPicker = async (pool) => {
   const result = await pool.query(
     `SELECT
@@ -133,18 +133,20 @@ export const getSessionsForFacility = async (pool, facilityId, startDate, endDat
     `SELECT cs.session_id, cs.public_id, LOWER(cs.batch_type) AS batch_type, cs.batch_id,
             cs.session_type, cs.session_date, cs.start_time, cs.end_time,
             cs.trainer_id, tr.trainer_full_name AS trainer_name,
-            cs.shs_course_id, cs.remarks
+            cs.shs_course_id, cs.mobile_location, cs.meeting_link, cs.remarks,
+            cs.recurrence_group_id
        FROM class_sessions cs
        LEFT JOIN trainers tr ON tr.trainer_id = cs.trainer_id
       WHERE cs.facility_id = $1
         AND cs.session_date BETWEEN $2 AND $3
+        AND cs.deleted_at IS NULL
       ORDER BY cs.session_date ASC, cs.start_time ASC`,
     [facilityId, startDate, endDate]
   );
   return result.rows;
 };
 
-// => NEW - every Mobile/Online session within a date range, for the
+// =>  - every Mobile/Online session within a date range, for the
 //    "Mobile & Online" subsection table in Classes.jsx. No facility_id to
 //    filter on, this is a flat list across the whole institution.
 export const getRemoteSessions = async (pool, startDate, endDate) => {
@@ -152,11 +154,13 @@ export const getRemoteSessions = async (pool, startDate, endDate) => {
     `SELECT cs.session_id, cs.public_id, LOWER(cs.batch_type) AS batch_type, cs.batch_id,
             cs.session_type, cs.session_date, cs.start_time, cs.end_time,
             cs.trainer_id, tr.trainer_full_name AS trainer_name,
-            cs.shs_course_id, cs.mobile_location, cs.meeting_link, cs.remarks
+            cs.shs_course_id, cs.mobile_location, cs.meeting_link, cs.remarks,
+            cs.recurrence_group_id
        FROM class_sessions cs
        LEFT JOIN trainers tr ON tr.trainer_id = cs.trainer_id
       WHERE cs.session_type IN ('Mobile', 'Online')
         AND cs.session_date BETWEEN $1 AND $2
+        AND cs.deleted_at IS NULL
       ORDER BY cs.session_date ASC, cs.start_time ASC`,
     [startDate, endDate]
   );
@@ -183,11 +187,12 @@ export const getSessionsForBatch = async (pool, batchTypeUpper, batchId) => {
             cs.start_time, cs.end_time, cs.remarks,
             cs.trainer_id, tr.trainer_full_name AS trainer_name,
             cs.facility_id, f.name AS facility_name, f.public_id AS facility_public_id,
-            cs.mobile_location, cs.meeting_link
+            cs.mobile_location, cs.meeting_link, cs.recurrence_group_id
        FROM class_sessions cs
        LEFT JOIN trainers tr ON tr.trainer_id = cs.trainer_id
        LEFT JOIN facilities f ON f.facility_id = cs.facility_id
       WHERE cs.batch_type = $1 AND cs.batch_id = $2
+        AND cs.deleted_at IS NULL
       ORDER BY cs.session_date ASC, cs.start_time ASC`,
     [batchTypeUpper, batchId]
   );
@@ -210,18 +215,21 @@ export const getShsCourseById = async (pool, courseId) => {
 //    those are the only ones with a non-null facility_id to collide on.
 export const findConflictingSession = async (pool, { facilityId, sessionDate, startTime, endTime, excludeSessionId }) => {
   const result = await pool.query(
+    // => deleted_at IS NULL added - a cancelled session frees up its slot,
+    //    it shouldn't keep blocking  bookings at that time.
     `SELECT session_id FROM class_sessions
       WHERE facility_id = $1
         AND session_date = $2
         AND start_time < $4
         AND end_time > $3
+        AND deleted_at IS NULL
         AND ($5::int IS NULL OR session_id != $5)`,
     [facilityId, sessionDate, startTime, endTime, excludeSessionId ?? null]
   );
   return result.rows[0] ?? null;
 };
 
-// => NEW - trainer overlap check, universal across ALL session types
+// =>  - trainer overlap check, universal across ALL session types
 //    (Local, Mobile, Online). Deliberately does NOT filter by facility_id -
 //    a trainer physically can't be in two sessions at once no matter where
 //    either one happens.
@@ -232,6 +240,7 @@ export const findConflictingTrainerSession = async (pool, { trainerId, sessionDa
         AND session_date = $2
         AND start_time < $4
         AND end_time > $3
+        AND deleted_at IS NULL
         AND ($5::int IS NULL OR session_id != $5)`,
     [trainerId, sessionDate, startTime, endTime, excludeSessionId ?? null]
   );
@@ -245,6 +254,9 @@ export const findConflictingTrainerSession = async (pool, { trainerId, sessionDa
 export const insertClassSession = async (pool, {
   batch_type, batch_id, session_type, facility_id, mobile_location, meeting_link,
   session_date, start_time, end_time, trainer_id, shs_course_id, created_by, remarks,
+  recurrence_group_id, // =>  - null for a one-off session, shared UUID for every
+                        //    occurrence in a repeating series so they can be traced
+                        //    back to each other later if you ever need "cancel series"
 }) => {
   const result = await pool.query(
     // => batch_type.toUpperCase() converts the app's lowercase 'tesda'/'shs'
@@ -253,13 +265,137 @@ export const insertClassSession = async (pool, {
     //    still reads lowercase like everywhere else in the codebase.
     `INSERT INTO class_sessions
        (batch_type, batch_id, session_type, facility_id, mobile_location, meeting_link,
-        session_date, start_time, end_time, trainer_id, shs_course_id, created_by, remarks)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        session_date, start_time, end_time, trainer_id, shs_course_id, created_by, remarks,
+        recurrence_group_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
      RETURNING session_id, public_id, LOWER(batch_type) AS batch_type, batch_id, session_type,
                facility_id, mobile_location, meeting_link, session_date, start_time, end_time,
-               trainer_id, shs_course_id, remarks, created_at`,
+               trainer_id, shs_course_id, remarks, created_at, recurrence_group_id`,
     [batch_type.toUpperCase(), batch_id, session_type, facility_id ?? null, mobile_location ?? null, meeting_link ?? null,
-     session_date, start_time, end_time, trainer_id ?? null, shs_course_id ?? null, created_by, remarks ?? null]
+     session_date, start_time, end_time, trainer_id ?? null, shs_course_id ?? null, created_by, remarks ?? null,
+     recurrence_group_id ?? null]
   );
   return result.rows[0];
+};
+
+// =>  - fetches one session by its public_id, used by update/cancel to
+//    resolve the integer session_id and grab enough context (session_type,
+//    facility_id, batch info) to re-run the same validation rules that
+//    applied at creation time.
+export const getSessionByPublicId = async (pool, sessionPublicId) => {
+  const result = await pool.query(
+    `SELECT session_id, public_id, LOWER(batch_type) AS batch_type, batch_id, session_type,
+            facility_id, mobile_location, meeting_link, session_date, start_time, end_time,
+            trainer_id, shs_course_id, remarks, deleted_at, recurrence_group_id
+       FROM class_sessions
+      WHERE public_id = $1`,
+    [sessionPublicId]
+  );
+  return result.rows[0] ?? null;
+};
+
+// =>  - count of still-active (non-cancelled) sessions in a recurring
+//    series, used to label the "Cancel Entire Series" button and to word
+//    the confirm prompt before anything is actually cancelled.
+export const countActiveSessionsByRecurrenceGroup = async (pool, recurrenceGroupId) => {
+  const result = await pool.query(
+    `SELECT COUNT(*)::int AS count
+       FROM class_sessions
+      WHERE recurrence_group_id = $1 AND deleted_at IS NULL`,
+    [recurrenceGroupId]
+  );
+  return result.rows[0]?.count ?? 0;
+};
+
+// =>  - bulk soft delete for an entire recurring series in one
+//    statement, rather than looping single-row updates. RETURNING gives
+//    back enough to describe the cancelled range in one activity log entry.
+export const softDeleteSessionsByRecurrenceGroup = async (pool, recurrenceGroupId) => {
+  const result = await pool.query(
+    `UPDATE class_sessions
+        SET deleted_at = NOW()
+      WHERE recurrence_group_id = $1 AND deleted_at IS NULL
+      RETURNING session_id, public_id, session_date, start_time, end_time`,
+    [recurrenceGroupId]
+  );
+  return result.rows;
+};
+
+// =>  - partial update for Edit. Only the fields a session's edit form
+//    actually exposes - batch/course/session_type are intentionally not
+//    editable here, changing those is a cancel-and-rebook, not an edit.
+export const updateClassSessionRow = async (pool, sessionId, {
+  session_date, start_time, end_time, trainer_id, mobile_location, meeting_link, remarks,
+}) => {
+  const result = await pool.query(
+    `UPDATE class_sessions
+        SET session_date = $2,
+            start_time = $3,
+            end_time = $4,
+            trainer_id = $5,
+            mobile_location = $6,
+            meeting_link = $7,
+            remarks = $8
+      WHERE session_id = $1 AND deleted_at IS NULL
+      RETURNING session_id, public_id, LOWER(batch_type) AS batch_type, batch_id, session_type,
+                facility_id, mobile_location, meeting_link, session_date, start_time, end_time,
+                trainer_id, shs_course_id, remarks, updated_at`,
+    [sessionId, session_date, start_time, end_time, trainer_id ?? null, mobile_location ?? null, meeting_link ?? null, remarks ?? null]
+  );
+  return result.rows[0] ?? null;
+};
+
+// =>  - soft delete. Sets deleted_at instead of removing the row, so the
+//    activity log entry created for this session still points at
+//    something real, and the session's own creation/edit history in the
+//    log stays intact for audit purposes.
+export const softDeleteClassSessionRow = async (pool, sessionId) => {
+  const result = await pool.query(
+    `UPDATE class_sessions
+        SET deleted_at = NOW()
+      WHERE session_id = $1 AND deleted_at IS NULL
+      RETURNING session_id, public_id`,
+    [sessionId]
+  );
+  return result.rows[0] ?? null;
+};
+
+// =>  - every still-active session in a series dated today or later,
+//    used both to run the conflict check before a series-wide time change
+//    and to know which rows are actually eligible to be touched (past
+//    occurrences in the series are left alone).
+export const getUpcomingSessionsByRecurrenceGroup = async (pool, recurrenceGroupId, todayStr) => {
+  const result = await pool.query(
+    `SELECT session_id, session_date, facility_id, trainer_id, session_type
+       FROM class_sessions
+      WHERE recurrence_group_id = $1
+        AND deleted_at IS NULL
+        AND session_date >= $2
+      ORDER BY session_date ASC`,
+    [recurrenceGroupId, todayStr]
+  );
+  return result.rows;
+};
+
+// =>  - bulk time/trainer/notes update across every upcoming session in
+//    a series. session_date is deliberately NOT in the SET list - each
+//    occurrence keeps its own date, only these shared fields move together.
+export const updateSessionsByRecurrenceGroupRow = async (pool, recurrenceGroupId, todayStr, {
+  start_time, end_time, trainer_id, mobile_location, meeting_link, remarks,
+}) => {
+  const result = await pool.query(
+    `UPDATE class_sessions
+        SET start_time = $3,
+            end_time = $4,
+            trainer_id = $5,
+            mobile_location = $6,
+            meeting_link = $7,
+            remarks = $8
+      WHERE recurrence_group_id = $1
+        AND deleted_at IS NULL
+        AND session_date >= $2
+      RETURNING session_id, public_id, session_date, start_time, end_time`,
+    [recurrenceGroupId, todayStr, start_time, end_time, trainer_id ?? null, mobile_location ?? null, meeting_link ?? null, remarks ?? null]
+  );
+  return result.rows;
 };

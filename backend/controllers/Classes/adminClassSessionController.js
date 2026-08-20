@@ -11,7 +11,24 @@ import {
   fetchAllActiveBatchesForRemote,
   addClassSession,
   fetchFacilityActivityLogs,
+  updateClassSession,
+  cancelClassSession,
+  addRecurringClassSessions,
+  fetchSeriesSessionCount,
+  cancelClassSessionSeries,
+  updateClassSessionSeries,
 } from '../../services/Classes/adminClassSessionService.js';
+
+// => Shared with createClassSessionController below - the set of service
+//    error messages that represent a validation problem (400) rather than
+//    an unexpected server failure (500).
+const KNOWN_VALIDATION_MESSAGES = [
+  'required', 'must be after', 'weekdays', '8:00 AM', 'not found',
+  'not allowed for the selected course', 'already booked', 'Grade level is required',
+  'assigned to another session', 'in the past', 'already passed', 'conflict on',
+  'above the', 'matching dates', 'weekend', 'weekday',
+  'not part of a recurring series', 'No upcoming sessions', 'conflicts with an existing booking', // => NEW
+];
 
 //
 // GET /api/admin/class-sessions/facilities
@@ -128,16 +145,129 @@ export const createClassSessionController = async (req, res) => {
     );
     return res.status(201).json({ success: true, session });
   } catch (err) {
-    const knownValidationMessages = [
-      'required', 'must be after', 'weekdays', '8:00 AM', 'not found',
-      'not allowed for the selected course', 'already booked', 'Grade level is required',
-      'assigned to another session', // => NEW - trainer conflict
-    ];
-    if (knownValidationMessages.some(m => err.message.includes(m))) {
+    if (KNOWN_VALIDATION_MESSAGES.some(m => err.message.includes(m))) {
       return res.status(400).json({ error: err.message });
     }
     console.error('createClassSessionController error:', err);
     return res.status(500).json({ error: 'Failed to create class session.' });
+  }
+};
+
+//
+// PATCH /api/admin/class-sessions/:sessionPublicId
+// => Body: { session_date, start_time, end_time, trainer_id, mobile_location, meeting_link, remarks }
+//
+export const updateClassSessionController = async (req, res) => {
+  try {
+    const session = await updateClassSession(
+      req.params.sessionPublicId,
+      req.body,
+      { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name }
+    );
+    return res.status(200).json({ success: true, session });
+  } catch (err) {
+    if (KNOWN_VALIDATION_MESSAGES.some(m => err.message.includes(m))) {
+      return res.status(400).json({ error: err.message });
+    }
+    console.error('updateClassSessionController error:', err);
+    return res.status(500).json({ error: 'Failed to update class session.' });
+  }
+};
+
+//
+// DELETE /api/admin/class-sessions/:sessionPublicId
+// => Soft delete - sets deleted_at, never removes the row.
+//
+export const cancelClassSessionController = async (req, res) => {
+  try {
+    await cancelClassSession(
+      req.params.sessionPublicId,
+      { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name }
+    );
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    if (KNOWN_VALIDATION_MESSAGES.some(m => err.message.includes(m))) {
+      return res.status(400).json({ error: err.message });
+    }
+    console.error('cancelClassSessionController error:', err);
+    return res.status(500).json({ error: 'Failed to cancel class session.' });
+  }
+};
+
+//
+// POST /api/admin/class-sessions/recurring
+// => Body: same as POST / plus { start_date, until_date, repeat_days: [1,2,3,4,5] }
+//
+export const createRecurringClassSessionsController = async (req, res) => {
+  try {
+    const result = await addRecurringClassSessions(
+      req.body,
+      { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name }
+    );
+    return res.status(201).json({ success: true, ...result });
+  } catch (err) {
+    if (KNOWN_VALIDATION_MESSAGES.some(m => err.message.includes(m))) {
+      return res.status(400).json({ error: err.message });
+    }
+    console.error('createRecurringClassSessionsController error:', err);
+    return res.status(500).json({ error: 'Failed to create recurring class sessions.' });
+  }
+};
+
+//
+// GET /api/admin/class-sessions/series/:recurrenceGroupId/count
+//
+export const getSeriesSessionCountController = async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  try {
+    const count = await fetchSeriesSessionCount(req.params.recurrenceGroupId);
+    return res.status(200).json({ count });
+  } catch (err) {
+    console.error('getSeriesSessionCountController error:', err);
+    return res.status(500).json({ error: 'Failed to fetch series session count.' });
+  }
+};
+
+//
+// DELETE /api/admin/class-sessions/series/:recurrenceGroupId
+// => Bulk soft delete of every still-active session in the series.
+//
+export const cancelClassSessionSeriesController = async (req, res) => {
+  try {
+    const result = await cancelClassSessionSeries(
+      req.params.recurrenceGroupId,
+      { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name }
+    );
+    return res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    if (KNOWN_VALIDATION_MESSAGES.some(m => err.message.includes(m))) {
+      return res.status(400).json({ error: err.message });
+    }
+    console.error('cancelClassSessionSeriesController error:', err);
+    return res.status(500).json({ error: 'Failed to cancel the series.' });
+  }
+};
+
+
+//
+// PATCH /api/admin/class-sessions/series/:recurrenceGroupId
+// => Body: { start_time, end_time, trainer_id, mobile_location, meeting_link, remarks }
+//    session_date is intentionally not accepted here - see the service.
+//
+export const updateClassSessionSeriesController = async (req, res) => {
+  try {
+    const result = await updateClassSessionSeries(
+      req.params.recurrenceGroupId,
+      req.body,
+      { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name }
+    );
+    return res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    if (KNOWN_VALIDATION_MESSAGES.some(m => err.message.includes(m))) {
+      return res.status(400).json({ error: err.message });
+    }
+    console.error('updateClassSessionSeriesController error:', err);
+    return res.status(500).json({ error: 'Failed to update the series.' });
   }
 };
 

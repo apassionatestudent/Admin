@@ -15,10 +15,32 @@ import clockIcon from '../../../assets/icons/clock.png';
 import personIcon from '../../../assets/icons/person.png';
 import mapPinIcon from '../../../assets/icons/map-pin.png';
 import linkIcon from '../../../assets/icons/link.png';
+import repeatIcon from '../../../assets/icons/repeat.png';
+import trashIcon from '../../../assets/icons/trash.png';
+import ConfirmModal from '../../ConfirmModal/ConfirmModal.jsx';
 import './addSessionModal.css';
 
 const BOOKING_START_TIME = '08:00';
 const BOOKING_END_TIME = '17:00';
+
+// => Day checkboxes for the repeat-weekly picker. value matches JS
+//    Date.getUTCDay() (0=Sun..6=Sat), same convention the backend uses to
+//    walk the date range - keeps frontend/backend day numbers identical.
+const DAY_OPTIONS = [
+  { value: 1, label: 'Mon' },
+  { value: 2, label: 'Tue' },
+  { value: 3, label: 'Wed' },
+  { value: 4, label: 'Thu' },
+  { value: 5, label: 'Fri' },
+  { value: 6, label: 'Sat', weekend: true },
+  { value: 0, label: 'Sun', weekend: true },
+];
+
+// => Today in Manila time, 'YYYY-MM-DD' - used as the date input's `min` so
+//    the native picker itself won't offer past dates. This is a UI nicety
+//    only, the actual guard lives in the backend service.
+const getTodayManila = () =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
 const EMPTY_FORM = {
   batch_type: 'tesda',
@@ -34,18 +56,59 @@ const EMPTY_FORM = {
   session_type: '',
   mobile_location: '',
   meeting_link: '',
+  repeat_enabled: false, // => NEW
+  repeat_days: [],       // => NEW
+  repeat_until: '',      // => NEW
 };
 
-export default function AddSessionModal({ facilityPublicId, prefill, onClose, onCreated }) {
-  const isLocalMode = Boolean(facilityPublicId);
+// => existingSession switches the modal into Edit mode - batch/course
+//    fields become read-only, the recurrence section is hidden (editing
+//    only ever touches the one occurrence you clicked), and a Cancel
+//    Session action appears. onUpdated/onCancelled are the edit-mode
+//    counterparts to onCreated.
+export default function AddSessionModal({ facilityPublicId, prefill, existingSession, onClose, onCreated, onUpdated, onCancelled }) {
+  const isEditMode = Boolean(existingSession);
+  const [seriesCount, setSeriesCount] = useState(null); // => NEW - null while unknown/loading, number once fetched
+  // => Which destructive action is pending confirmation, if any -
+  //    'single' | 'series' | null. Drives the shared ConfirmModal instead
+  //    of window.confirm.
+  const [confirmAction, setConfirmAction] = useState(null);
+  // => NEW - when true, Save Changes pushes the time/trainer/notes fields
+  //    to every upcoming session in the series instead of just this one.
+  //    Only ever meaningful in edit mode on a session that belongs to a series.
+  const [applyToSeries, setApplyToSeries] = useState(false);
+  // => In edit mode, session_type on the record itself is the source of
+  //    truth for whether this is a Local booking - facilityPublicId may not
+  //    always be passed in from every place this modal gets opened for editing.
+  const isLocalMode = isEditMode ? existingSession.session_type === 'Local' : Boolean(facilityPublicId);
+  const todayStr = getTodayManila();
 
-  const [form, setForm] = useState(() => ({
-    ...EMPTY_FORM,
-    session_type: isLocalMode ? 'Local' : 'Mobile',
-    session_date: prefill?.date || '',
-    start_time: prefill?.startTime || '',
-    end_time: prefill?.endTime || '',
-  }));
+  const [form, setForm] = useState(() => {
+    if (isEditMode) {
+      return {
+        ...EMPTY_FORM,
+        batch_type: existingSession.batch_type,
+        batch_id: String(existingSession.batch_id),
+        session_date: String(existingSession.session_date).slice(0, 10),
+        start_time: existingSession.start_time?.slice(0, 5) || '',
+        end_time: existingSession.end_time?.slice(0, 5) || '',
+        shs_course_id: existingSession.shs_course_id ? String(existingSession.shs_course_id) : '',
+        trainer_id: existingSession.trainer_id,
+        trainer_name: existingSession.trainer_name || '',
+        remarks: existingSession.remarks || '',
+        session_type: existingSession.session_type,
+        mobile_location: existingSession.mobile_location || '',
+        meeting_link: existingSession.meeting_link || '',
+      };
+    }
+    return {
+      ...EMPTY_FORM,
+      session_type: isLocalMode ? 'Local' : 'Mobile',
+      session_date: prefill?.date || '',
+      start_time: prefill?.startTime || '',
+      end_time: prefill?.endTime || '',
+    };
+  });
   const [tesdaBatches, setTesdaBatches] = useState([]);
   const [shsBatches, setShsBatches] = useState([]);
   const [optionsLoading, setOptionsLoading] = useState(true);
@@ -53,7 +116,21 @@ export default function AddSessionModal({ facilityPublicId, prefill, onClose, on
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
+  // => NEW - only fires when editing a session that belongs to a series,
+  //    fetches how many sessions in that series are still active so the
+  //    "Cancel Entire Series" button can show a real count instead of a
+  //    vague "cancel all of them".
   useEffect(() => {
+    if (!isEditMode || !existingSession.recurrence_group_id) return;
+    axiosAdmin.get(`/api/admin/class-sessions/series/${existingSession.recurrence_group_id}/count`)
+      .then(res => setSeriesCount(res.data.count))
+      .catch(err => console.error('Failed to load series count:', err));
+  }, [isEditMode, existingSession]);
+
+  useEffect(() => {
+    // => Edit mode never needs the eligible-batches list - batch/course
+    //    aren't editable here, so skip the fetch entirely.
+    if (isEditMode) { setOptionsLoading(false); return; }
     const loadOptions = async () => {
       setOptionsLoading(true);
       setOptionsError(null);
@@ -72,7 +149,27 @@ export default function AddSessionModal({ facilityPublicId, prefill, onClose, on
       }
     };
     loadOptions();
-  }, [facilityPublicId, isLocalMode]);
+  }, [facilityPublicId, isLocalMode, isEditMode]);
+
+  // => Toggling repeat on defaults the day selection to whatever weekday
+  //    the chosen date already falls on, so the common case (pick a date,
+  //    tick repeat) needs zero extra clicks.
+  const handleRepeatToggle = (checked) => {
+    setForm(f => {
+      if (!checked) return { ...f, repeat_enabled: false };
+      const day = f.session_date ? new Date(`${f.session_date}T00:00:00Z`).getUTCDay() : null;
+      return { ...f, repeat_enabled: true, repeat_days: day !== null ? [day] : [], repeat_until: f.repeat_until || f.session_date };
+    });
+  };
+
+  const handleToggleRepeatDay = (value) => {
+    setForm(f => ({
+      ...f,
+      repeat_days: f.repeat_days.includes(value)
+        ? f.repeat_days.filter(d => d !== value)
+        : [...f.repeat_days, value],
+    }));
+  };
 
   const handleBatchTypeChange = (type) => {
     setForm(f => ({ ...f, batch_type: type, batch_id: '', grade_level: '', shs_course_id: '', trainer_id: null, trainer_name: '' }));
@@ -124,6 +221,54 @@ export default function AddSessionModal({ facilityPublicId, prefill, onClose, on
     setError(null);
     setSaving(true);
     try {
+      if (isEditMode && applyToSeries) {
+        const res = await axiosAdmin.patch(`/api/admin/class-sessions/series/${existingSession.recurrence_group_id}`, {
+          start_time: form.start_time,
+          end_time: form.end_time,
+          trainer_id: form.trainer_id,
+          mobile_location: form.session_type === 'Mobile' ? (form.mobile_location?.trim() || null) : null,
+          meeting_link: form.session_type === 'Online' ? (form.meeting_link?.trim() || null) : null,
+          remarks: form.remarks?.trim() || null,
+        });
+        onUpdated('series', res.data.count);
+        return;
+      }
+
+      if (isEditMode) {
+        const res = await axiosAdmin.patch(`/api/admin/class-sessions/${existingSession.public_id}`, {
+          session_date: form.session_date,
+          start_time: form.start_time,
+          end_time: form.end_time,
+          trainer_id: form.trainer_id,
+          mobile_location: form.session_type === 'Mobile' ? (form.mobile_location?.trim() || null) : null,
+          meeting_link: form.session_type === 'Online' ? (form.meeting_link?.trim() || null) : null,
+          remarks: form.remarks?.trim() || null,
+        });
+        onUpdated('single');
+        return;
+      }
+
+      if (form.repeat_enabled) {
+        await axiosAdmin.post('/api/admin/class-sessions/recurring', {
+          facility_public_id: isLocalMode ? facilityPublicId : null,
+          session_type: isLocalMode ? 'Local' : form.session_type,
+          batch_type: form.batch_type,
+          batch_id: form.batch_id ? Number(form.batch_id) : null,
+          start_date: form.session_date,
+          until_date: form.repeat_until,
+          repeat_days: form.repeat_days,
+          start_time: form.start_time,
+          end_time: form.end_time,
+          trainer_id: form.trainer_id,
+          shs_course_id: form.batch_type === 'shs' && form.shs_course_id ? Number(form.shs_course_id) : null,
+          mobile_location: form.session_type === 'Mobile' ? (form.mobile_location?.trim() || null) : null,
+          meeting_link: form.session_type === 'Online' ? (form.meeting_link?.trim() || null) : null,
+          remarks: form.remarks?.trim() || null,
+        });
+        onCreated();
+        return;
+      }
+
       const res = await axiosAdmin.post('/api/admin/class-sessions', {
         facility_public_id: isLocalMode ? facilityPublicId : null,
         session_type: isLocalMode ? 'Local' : form.session_type,
@@ -140,21 +285,62 @@ export default function AddSessionModal({ facilityPublicId, prefill, onClose, on
       });
       onCreated(res.data.session);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to create class session.');
+      setError(err.response?.data?.error || `Failed to ${isEditMode ? 'update' : 'create'} class session.`);
     } finally {
       setSaving(false);
     }
   };
 
-  const canSave = form.session_date && form.start_time && form.end_time && form.batch_id && timeWindowOk && weekdayOk &&
-    (form.batch_type === 'tesda' || (form.grade_level && form.shs_course_id));
+  const canApplyToSeries = isEditMode && Boolean(existingSession.recurrence_group_id) && seriesCount !== null && seriesCount > 1;
+
+  // => The two buttons below only ever set which confirmation is pending -
+  //    the actual DELETE call happens in handleConfirmCancel, once the
+  //    admin taps Yes on the shared ConfirmModal.
+  const handleCancelSession = () => setConfirmAction('single');
+  const handleCancelSeries = () => setConfirmAction('series');
+
+  const handleConfirmCancel = async () => {
+    const action = confirmAction;
+    setConfirmAction(null);
+    setError(null);
+    setSaving(true);
+    try {
+      if (action === 'series') {
+        await axiosAdmin.delete(`/api/admin/class-sessions/series/${existingSession.recurrence_group_id}`);
+        onCancelled('series');
+      } else {
+        await axiosAdmin.delete(`/api/admin/class-sessions/${existingSession.public_id}`);
+        onCancelled('single');
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || `Failed to cancel the ${action === 'series' ? 'series' : 'session'}.`);
+      setSaving(false);
+    }
+  };
+
+  // => Message shown inside ConfirmModal - built here so it can reference
+  //    seriesCount, which ConfirmModal itself has no knowledge of.
+  const confirmMessage = confirmAction === 'series'
+    ? `Cancel the entire series? This will cancel ${seriesCount ?? 'all'} session(s) and cannot be undone.`
+    : 'Cancel this class session? This cannot be undone.';
+
+  const repeatOk = !form.repeat_enabled || (form.repeat_days.length > 0 && form.repeat_until && form.repeat_until >= form.session_date);
+
+  const canSave = isEditMode
+    ? applyToSeries
+      ? form.start_time && form.end_time && timeWindowOk
+      : form.session_date && form.start_time && form.end_time && timeWindowOk && weekdayOk
+    : form.session_date && form.start_time && form.end_time && form.batch_id && timeWindowOk && weekdayOk && repeatOk &&
+      (form.batch_type === 'tesda' || (form.grade_level && form.shs_course_id));
 
   return (
     <div className="adm-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget && !saving) onClose(); }}>
       <div className="adm-modal-box adm-modal-box--form">
 
         <div className="adm-modal-header">
-          <span className="adm-modal-title">{isLocalMode ? 'Book Class Session' : 'Add Mobile / Online Session'}</span>
+          <span className="adm-modal-title">
+            {isEditMode ? 'Edit Class Session' : isLocalMode ? 'Book Class Session' : 'Add Mobile / Online Session'}
+          </span>
           <button className="adm-modal-close" onClick={onClose} disabled={saving}>
             <img src={closeIcon} alt="Close" />
           </button>
@@ -186,15 +372,82 @@ export default function AddSessionModal({ facilityPublicId, prefill, onClose, on
 
           <div className="adm-form-row">
             <div className="adm-form-group asm-full-width">
-              <label className="adm-form-label">Date <span className="adm-form-required">*</span></label>
+              <label className="adm-form-label">{form.repeat_enabled ? 'Start Date' : 'Date'} <span className="adm-form-required">*</span></label>
               <input
                 type="date"
                 className="adm-form-input"
+                min={todayStr}
                 value={form.session_date}
+                disabled={applyToSeries}
                 onChange={e => setForm(f => ({ ...f, session_date: e.target.value }))}
               />
             </div>
           </div>
+
+          {canApplyToSeries && (
+            <div className="adm-form-group">
+              <label className="asm-repeat-toggle-label">
+                <input
+                  type="checkbox"
+                  checked={applyToSeries}
+                  onChange={e => setApplyToSeries(e.target.checked)}
+                />
+                <img className="asm-inline-icon" src={repeatIcon} alt="" /> Apply changes to entire series ({seriesCount} upcoming)
+              </label>
+              {applyToSeries && (
+                <p className="asm-empty-text">Date stays per-session - time, trainer, and notes below will apply to every upcoming occurrence in this series.</p>
+              )}
+            </div>
+          )}
+
+          {!isEditMode && (
+            <div className="adm-form-group">
+              <label className="asm-repeat-toggle-label">
+                <input
+                  type="checkbox"
+                  checked={form.repeat_enabled}
+                  onChange={e => handleRepeatToggle(e.target.checked)}
+                />
+                <img className="asm-inline-icon" src={repeatIcon} alt="" /> Repeat weekly until a date
+              </label>
+            </div>
+          )}
+
+          {!isEditMode && form.repeat_enabled && (
+            <>
+              <div className="adm-form-group">
+                <label className="adm-form-label">Repeat On <span className="adm-form-required">*</span></label>
+                <div className="asm-day-toggle-row">
+                  {DAY_OPTIONS.filter(d => !isLocalMode || !d.weekend).map(d => (
+                    <button
+                      type="button"
+                      key={d.value}
+                      className={`asm-day-btn ${form.repeat_days.includes(d.value) ? 'asm-day-btn--active' : ''}`}
+                      onClick={() => handleToggleRepeatDay(d.value)}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+                {isLocalMode && (
+                  <p className="asm-empty-text">Facility-based sessions can only repeat on weekdays.</p>
+                )}
+              </div>
+
+              <div className="adm-form-row">
+                <div className="adm-form-group asm-full-width">
+                  <label className="adm-form-label">Repeat Until <span className="adm-form-required">*</span></label>
+                  <input
+                    type="date"
+                    className="adm-form-input"
+                    min={form.session_date || todayStr}
+                    value={form.repeat_until}
+                    onChange={e => setForm(f => ({ ...f, repeat_until: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="adm-form-row">
             <div className="adm-form-group">
@@ -235,29 +488,38 @@ export default function AddSessionModal({ facilityPublicId, prefill, onClose, on
             </p>
           )}
 
-          <div className="adm-form-group">
-            <label className="adm-form-label">Batch Type <span className="adm-form-required">*</span></label>
-            <div className="asm-type-toggle">
-              <button
-                type="button"
-                className={`asm-type-btn ${form.batch_type === 'tesda' ? 'asm-type-btn--active' : ''}`}
-                onClick={() => handleBatchTypeChange('tesda')}
-              >
-                TESDA
-              </button>
-              <button
-                type="button"
-                className={`asm-type-btn ${form.batch_type === 'shs' ? 'asm-type-btn--active' : ''}`}
-                onClick={() => handleBatchTypeChange('shs')}
-              >
-                SHS
-              </button>
+          {isEditMode ? (
+            // => Batch/course is fixed at creation time - shown read-only so
+            //    the admin still sees what this session belongs to.
+            <div className="adm-form-group">
+              <label className="adm-form-label">Batch</label>
+              <p className="asm-trainer-readout">{existingSession.batch_label || `Batch #${existingSession.batch_id}`}</p>
             </div>
-          </div>
+          ) : (
+            <div className="adm-form-group">
+              <label className="adm-form-label">Batch Type <span className="adm-form-required">*</span></label>
+              <div className="asm-type-toggle">
+                <button
+                  type="button"
+                  className={`asm-type-btn ${form.batch_type === 'tesda' ? 'asm-type-btn--active' : ''}`}
+                  onClick={() => handleBatchTypeChange('tesda')}
+                >
+                  TESDA
+                </button>
+                <button
+                  type="button"
+                  className={`asm-type-btn ${form.batch_type === 'shs' ? 'asm-type-btn--active' : ''}`}
+                  onClick={() => handleBatchTypeChange('shs')}
+                >
+                  SHS
+                </button>
+              </div>
+            </div>
+          )}
 
-          {optionsLoading ? (
+          {!isEditMode && optionsLoading ? (
             <p className="asm-loading-text">Loading eligible batches…</p>
-          ) : optionsError ? (
+          ) : isEditMode ? null : optionsError ? (
             <p className="adm-form-error"><img className="asm-inline-icon" src={warningIcon} alt="" /> {optionsError}</p>
           ) : form.batch_type === 'tesda' ? (
             <div className="adm-form-group">
@@ -393,15 +655,34 @@ export default function AddSessionModal({ facilityPublicId, prefill, onClose, on
         </div>
 
         <div className="adm-modal-footer">
+          {isEditMode && (
+            <div className="asm-danger-actions">
+              <button className="asm-danger-btn" onClick={handleCancelSession} disabled={saving}>
+                <img className="asm-inline-icon" src={trashIcon} alt="" /> Cancel This Session
+              </button>
+              {existingSession.recurrence_group_id && seriesCount !== null && seriesCount > 1 && (
+                <button className="asm-danger-btn" onClick={handleCancelSeries} disabled={saving}>
+                  <img className="asm-inline-icon" src={trashIcon} alt="" /> Cancel Entire Series ({seriesCount})
+                </button>
+              )}
+            </div>
+          )}
           <button className="adm-modal-cancel-btn" onClick={onClose} disabled={saving}>
-            Cancel
+            Close
           </button>
           <button className="adm-modal-save-btn" onClick={handleSave} disabled={saving || !canSave}>
-            {saving ? 'Creating…' : 'Create Session'}
+            {saving ? 'Saving…' : isEditMode ? (applyToSeries ? 'Update Series' : 'Save Changes') : form.repeat_enabled ? 'Create Series' : 'Create Session'}
           </button>
         </div>
 
       </div>
+
+      <ConfirmModal
+        isOpen={confirmAction !== null}
+        message={confirmMessage}
+        onConfirm={handleConfirmCancel}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   );
 }
