@@ -297,6 +297,45 @@
 .adm-save-msg--success { color: #065f46; }
 .adm-save-msg--error   { color: #b91c1c; }
 
+/* => New: Release Overflow button, maroon tone since this is a
+      consequential bulk action, pulls the same maroon used in
+      .adm-log-row:hover (rgba(102, 9, 17)) so it stays on-brand rather
+      than introducing a new color */
+.adm-release-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: #660911;
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  font-family: inherit;
+  box-shadow: 0 1px 3px rgba(102, 9, 17, 0.35);
+}
+
+.adm-release-btn:hover {
+  background: #4d060d;
+}
+
+.adm-release-btn:active {
+  transform: scale(0.98);
+}
+
+.adm-release-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+  /* => White icon on maroon background, works if your source PNG is
+        already white/light. If it's a dark icon, add:
+        filter: brightness(0) invert(1);
+        so it shows up clearly against the maroon */
+}
+
 /* INFO GRID */
 .adm-info-grid {
   display: grid;

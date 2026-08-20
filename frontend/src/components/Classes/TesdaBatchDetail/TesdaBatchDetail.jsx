@@ -17,6 +17,8 @@ import LoadingState from '../../LoadingState/loadingState.jsx';
 import pencilIcon from '../../../assets/icons/pencil.png';
 import trashIcon from '../../../assets/icons/trash.png';
 import chevronDown from '../../../assets/icons/chevron-down.png';
+import releaseIcon from '../../../assets/icons/release.png';
+
 
 import './TesdaBatchDetail.css';
 
@@ -904,7 +906,9 @@ export default function TesdaBatchDetail() {
                    release - a full batch with nobody else waiting shows
                    nothing here */}
             {approvedCount >= batchRow.max_students && releasableCount > 0 && (
+              
               <button className="adm-release-btn" onClick={() => setBulkReleaseConfirm(true)}>
+                <img src={releaseIcon} alt="" className="adm-release-icon" />
                 Release Overflow ({releasableCount})
               </button>
             )}
