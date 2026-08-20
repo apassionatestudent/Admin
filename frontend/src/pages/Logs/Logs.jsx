@@ -108,6 +108,41 @@ export default function Logs() {
       year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
     });
 
+  // => Builds a capped list of page buttons instead of rendering one button
+  //    per page. Always shows page 1 and the last page, plus a small window
+  //    of neighbors around the current page. Gaps are filled with '...'
+  //    so the bar stays a fixed width no matter how many pages exist.
+  // => delta = how many neighbor pages to show on each side of current
+  const getPageNumbers = (current, total) => {
+    const delta = 1;
+    const range = [];
+    const withDots = [];
+    let lastAdded;
+
+    for (let i = 1; i <= total; i++) {
+      const isEdge = i === 1 || i === total;
+      const isNearCurrent = i >= current - delta && i <= current + delta;
+      if (isEdge || isNearCurrent) {
+        range.push(i);
+      }
+    }
+
+    range.forEach((i) => {
+      if (lastAdded) {
+        if (i - lastAdded === 2) {
+          // => Single-page gap, just show the number instead of '...'
+          withDots.push(lastAdded + 1);
+        } else if (i - lastAdded > 2) {
+          withDots.push('...');
+        }
+      }
+      withDots.push(i);
+      lastAdded = i;
+    });
+
+    return withDots;
+  };
+
   return (
     <main className="logs-page">
       <div className="logs-header">
@@ -261,15 +296,21 @@ export default function Logs() {
           >
             Prev
           </button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              className={`logs-page-btn ${p === page ? 'logs-page-btn--active' : ''}`}
-              onClick={() => setPage(p)}
-            >
-              {p}
-            </button>
-          ))}
+          {getPageNumbers(page, totalPages).map((p, idx) =>
+            p === '...' ? (
+              // => Ellipsis is a plain span, not a button, since it isn't
+              //    clickable and shouldn't take keyboard focus
+              <span key={`dots-${idx}`} className="logs-page-ellipsis">...</span>
+            ) : (
+              <button
+                key={p}
+                className={`logs-page-btn ${p === page ? 'logs-page-btn--active' : ''}`}
+                onClick={() => setPage(p)}
+              >
+                {p}
+              </button>
+            )
+          )}
           <button
             className="logs-page-btn"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
