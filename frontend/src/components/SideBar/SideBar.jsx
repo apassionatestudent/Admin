@@ -3,6 +3,9 @@ import { NavLink, useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./SideBar.css";
 
+// => Confirms before logging out, same reusable modal used across the admin dashboard
+import ConfirmModal from "../ConfirmModal/ConfirmModal.jsx";
+
 // => Placeholder icons - swap these out with your actual admin icon assets later
 import DashboardIcon   from "../../assets/icons/dashboard.png";
 import EnrollmentIcon  from "../../assets/icons/enrollments.png";
@@ -51,6 +54,8 @@ const Sidebar = ({
   onClose = () => {},
 }) => {
   const [hoveredItem, setHoveredItem] = useState(null);
+  // => Controls the "are you sure?" modal before an actual logout happens
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
 
   // => Staff (id: "admins") is super_admin only. Dashboard/Account are always visible.
@@ -64,8 +69,11 @@ const Sidebar = ({
     return adminSections.includes(item.id);
   });
 
-  // => Formats role for display: 'super_admin' => 'Super Admin', 'staff' => 'Staff'
+  // => Formats role for display: 'super_admin' => 'Admin', 'staff' => 'Staff'
+  // => super_admin is shortened on purpose - staff don't need to see the
+  //    internal "Super" distinction, it just reads as "Admin" to them
   const formatRole = (role) => {
+    if (role === 'super_admin') return 'Admin';
     return role
       .split('_')
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -74,7 +82,9 @@ const Sidebar = ({
 
   // => Clears the session flag, calls the backend to clear the admin_token cookie,
   // => then redirects to the login page
-  const handleLogout = async () => {
+  // => This now only fires after the admin confirms via ConfirmModal, see
+  //    handleLogoutClick / confirmLogout below
+  const performLogout = async () => {
     try {
       await axios.post(
         '/api/admin-auth/logout',
@@ -88,6 +98,22 @@ const Sidebar = ({
       sessionStorage.removeItem('isAdminLoggedIn');
       navigate('/');
     }
+  };
+
+  // => Opens the confirmation modal instead of logging out immediately
+  const handleLogoutClick = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  // => Fired by ConfirmModal's Yes button
+  const confirmLogout = () => {
+    setShowLogoutConfirm(false);
+    performLogout();
+  };
+
+  // => Fired by ConfirmModal's No button or backdrop click
+  const cancelLogout = () => {
+    setShowLogoutConfirm(false);
   };
 
   const navLinkClass = (id) => ({ isActive }) =>
@@ -143,12 +169,20 @@ const Sidebar = ({
         <div className="sidebar-divider" />
         <button
           className="sidebar-nav-item sidebar-nav-item--logout"
-          onClick={handleLogout}
+          onClick={handleLogoutClick}
         >
           <img src={LogoutIcon} alt="Logout icon" className="sidebar-nav-icon" />
           <span className="sidebar-nav-label">Logout</span>
         </button>
       </div>
+
+      {/* => Confirms the admin really wants to log out before clearing the session */}
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        message="Are you sure you want to log out?"
+        onConfirm={confirmLogout}
+        onCancel={cancelLogout}
+      />
     </aside>
   );
 };

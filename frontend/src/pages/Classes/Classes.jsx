@@ -962,10 +962,8 @@ export default function Classes() {
         title="Add new class"
         aria-label="Add new class"
       >
-        {/* => White plus icon on green background */}
-        <svg className="adm-fab-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 5V19M5 12H19" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+        {/* => White plus text on green background */}
+        <span className="adm-fab-icon">+</span>
       </button>
 
       {showAddBatchModal && (
@@ -1270,9 +1268,7 @@ export default function Classes() {
                 title="Add Mobile/Online session"
                 aria-label="Add Mobile/Online session"
               >
-                <svg className="adm-fab-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 5V19M5 12H19" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                <span className="adm-fab-icon">+</span>
               </button>
 
               {showAddRemoteModal && (
@@ -1412,9 +1408,7 @@ export default function Classes() {
             title="Add new facility"
             aria-label="Add new facility"
           >
-            <svg className="adm-fab-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 5V19M5 12H19" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <span className="adm-fab-icon">+</span>
           </button>
           )}
 
@@ -1579,9 +1573,7 @@ export default function Classes() {
             title="Add new trainer"
             aria-label="Add new trainer"
           >
-            <svg className="adm-fab-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 5V19M5 12H19" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <span className="adm-fab-icon">+</span>
           </button>
           )}
 
