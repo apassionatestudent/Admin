@@ -15,6 +15,12 @@ import {
   getRemoteEligibleBatches,
   createClassSessionController,
   getFacilityActivityLogsController,
+  updateClassSessionController,
+  cancelClassSessionController,
+  createRecurringClassSessionsController,
+  getSeriesSessionCountController,
+  cancelClassSessionSeriesController,
+  updateClassSessionSeriesController,
 } from '../../controllers/Classes/adminClassSessionController.js';
 
 const router = express.Router();
@@ -31,5 +37,17 @@ router.get('/remote', adminApiRateLimit, protectAdmin, requireSection('classes')
 router.get('/batch/:batchType/:batchPublicId', adminApiRateLimit, protectAdmin, requireSection('classes'), listSessionsForBatch);
 router.get('/batches', adminApiRateLimit, protectAdmin, requireSection('classes'), getRemoteEligibleBatches);
 router.post('/', adminApiRateLimit, protectAdmin, requireSection('classes'), createClassSessionController);
+// => NEW - repeat-weekly-until creation, kept as its own route rather than
+//    overloading POST / with an optional recurrence flag, so the two
+//    request shapes (single date vs date range + weekday list) stay separate.
+router.post('/recurring', adminApiRateLimit, protectAdmin, requireSection('classes'), createRecurringClassSessionsController);
+router.patch('/:sessionPublicId', adminApiRateLimit, protectAdmin, requireSection('classes'), updateClassSessionController);
+router.delete('/:sessionPublicId', adminApiRateLimit, protectAdmin, requireSection('classes'), cancelClassSessionController);
+// => NEW - "Cancel Entire Series" support. Path shape (/series/:id) never
+//    collides with /:sessionPublicId above since that only ever matches a
+//    single path segment.
+router.get('/series/:recurrenceGroupId/count', adminApiRateLimit, protectAdmin, requireSection('classes'), getSeriesSessionCountController);
+router.delete('/series/:recurrenceGroupId', adminApiRateLimit, protectAdmin, requireSection('classes'), cancelClassSessionSeriesController);
+router.patch('/series/:recurrenceGroupId', adminApiRateLimit, protectAdmin, requireSection('classes'), updateClassSessionSeriesController);
 
 export default router;

@@ -352,6 +352,20 @@ async function initDB() {
             END $$
         `;
 
+        // => Attach the same updated_at trigger function to class_sessions
+        await sql`
+            DO $$ BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_trigger WHERE tgname = 'class_sessions_set_updated_at'
+                ) THEN
+                    CREATE TRIGGER class_sessions_set_updated_at
+                    BEFORE UPDATE ON class_sessions
+                    FOR EACH ROW
+                    EXECUTE FUNCTION set_updated_at();
+                END IF;
+            END $$;
+        `;
+
         // => Per-course trainer assignments for SHS batches - replaces the
         //    old single grade11_trainer_id/grade12_trainer_id columns on
         //    shs_batches, which couldn't represent more than one course per
