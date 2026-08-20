@@ -111,7 +111,7 @@ export async function createAdmin({ fullName, email, sections = [] }, requesting
 
 function assertNotSuperAdmin(admin) {
     if (admin.role === 'super_admin') {
-        const error = new Error('Super admin accounts cannot be modified here');
+        const error = new Error('Admin accounts cannot be modified here');
         error.status = 403;
         throw error;
     }

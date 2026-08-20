@@ -16,6 +16,8 @@ import {
   getSessionsForFacility,
   getRemoteSessions,
   getBatchIdFromPublicId,
+  getApprovedEnrollmentCount, 
+  getApprovedEnrollmentCountsByType, 
   getSessionsForBatch,
   getShsCourseById,
   findConflictingSession,
@@ -72,6 +74,26 @@ const assertNotInPast = (sessionDate, startTime) => {
   }
   if (sessionDate === todayStr && startTime < nowStr) {
     throw new Error('That start time has already passed today.');
+  }
+};
+
+// => UPDATED - checks against actual Approved-enrollment headcount rather
+//    than the batch's max_students ceiling. A batch capped at 30 but only
+//    20 Approved enrollees fits a 25-capacity facility just fine, checking
+//    max_students alone would have blocked that unnecessarily.
+// => Only applies to Local sessions since Mobile/Online have no
+//    facility_id and therefore no capacity ceiling. A null facility.capacity
+//    means "no limit set", so it always passes. Message deliberately
+//    contains "above the" - already whitelisted in
+//    adminClassSessionController.js's KNOWN_VALIDATION_MESSAGES so this
+//    surfaces as a 400 with the real message instead of a generic 500.
+const assertFacilityCapacity = async (facility, batchType, batchId) => {
+  if (facility.capacity == null) return;
+  const approvedCount = await getApprovedEnrollmentCount(pool, batchType, batchId);
+  if (approvedCount > facility.capacity) {
+    throw new Error(
+      `This batch's approved enrollees (${approvedCount}) is above the "${facility.name}" facility's capacity (${facility.capacity}). Book this as a Mobile session instead.`
+    );
   }
 };
 
@@ -153,14 +175,31 @@ export const fetchEligibleBatchesForFacility = async (facilityPublicId) => {
   const facility = await getFacilityForSessionPage(pool, facilityPublicId);
   if (!facility) return null;
 
-  const [tesdaBatches, shsBatches] = await Promise.all([
+  // => UPDATED - approved-enrollment counts fetched alongside the batch
+  //    lists, one grouped query per batch type rather than per-batch, then
+  //    looked up by batch_id below when flagging capacity_exceeded.
+  const [tesdaBatches, shsBatches, tesdaApprovedCounts, shsApprovedCounts] = await Promise.all([
     getActiveTesdaBatches(pool),
     getActiveShsBatches(pool),
+    getApprovedEnrollmentCountsByType(pool, 'tesda'),
+    getApprovedEnrollmentCountsByType(pool, 'shs'),
   ]);
 
-  const eligibleTesda = facility.allows_all_courses
+  // => UPDATED - flags each TESDA batch as too large for this facility
+  //    based on actual Approved-enrollment headcount, not max_students.
+  //    Still annotated rather than filtered out, so it shows in the
+  //    dropdown but the modal can warn on selection instead of hiding it.
+  const eligibleTesda = (facility.allows_all_courses
     ? tesdaBatches
-    : tesdaBatches.filter(b => facility.tesda_course_ids.includes(b.course_id));
+    : tesdaBatches.filter(b => facility.tesda_course_ids.includes(b.course_id))
+  ).map(b => {
+    const approvedCount = tesdaApprovedCounts.get(b.batch_id) ?? 0;
+    return {
+      ...b,
+      approved_count: approvedCount,
+      capacity_exceeded: facility.capacity != null && approvedCount > facility.capacity,
+    };
+  });
 
   // => Only one grade is ever "live" for a batch at a time - Grade 11 until
   //    grade11_completed flips true, Grade 12 afterward. Resolved here into
@@ -172,12 +211,16 @@ export const fetchEligibleBatchesForFacility = async (facilityPublicId) => {
       const activeGrade = b.grade11_completed ? 'Grade 12' : 'Grade 11';
       const rawCourses = activeGrade === 'Grade 12' ? b.grade12_courses : b.grade11_courses;
       const activeCourses = rawCourses.filter(c => facility.allows_all_courses || facility.shs_course_ids.includes(c.course_id));
+      // => UPDATED - same approved-enrollment-based capacity flag as TESDA above.
+      const approvedCount = shsApprovedCounts.get(b.batch_id) ?? 0;
       return {
         ...b,
         active_grade: activeGrade,
         active_courses: activeCourses,
         active_trainer_id: activeGrade === 'Grade 12' ? b.grade12_trainer_id : b.grade11_trainer_id,
         active_trainer_name: activeGrade === 'Grade 12' ? b.grade12_trainer_name : b.grade11_trainer_name,
+        approved_count: approvedCount,
+        capacity_exceeded: facility.capacity != null && approvedCount > facility.capacity,
       };
     })
     .filter(b => b.active_courses.length > 0);
@@ -255,6 +298,12 @@ export const addClassSession = async (data, actor) => {
     }
     // => TESDA restriction check happens implicitly via the frontend's
     //    already-filtered eligible-batches dropdown. 
+
+    // => NEW - facility capacity check, re-run here server-side even
+    //    though the modal already warns on this, since the frontend flag
+    //    is advisory only and never trusted on its own.
+    await assertFacilityCapacity(facility, batch_type, batch_id);
+
     const conflict = await findConflictingSession(pool, {
       facilityId: facility.facility_id,
       sessionDate: session_date,
@@ -468,6 +517,10 @@ export const addRecurringClassSessions = async (data, actor) => {
         throw new Error('This facility is not allowed for the selected course.');
       }
     }
+    // => NEW - same capacity check as addClassSession, run once up front
+    //    for the whole series rather than once per generated date, since
+    //    the batch/facility pairing itself never changes across dates.
+    await assertFacilityCapacity(facility, batch_type, batch_id);
   }
 
   // => Walk every calendar date in the range, keep the ones matching a

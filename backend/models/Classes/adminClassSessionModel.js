@@ -69,7 +69,9 @@ export const getFacilityForSessionPage = async (pool, facilityPublicId) => {
 //    (or leaves it unfiltered for Mobile/Online sessions).
 export const getActiveTesdaBatches = async (pool) => {
   const result = await pool.query(
-    `SELECT tb.batch_id, tb.public_id, tb.status, tb.course_id,
+    // => max_students added so the service layer can flag a batch as too
+    //    large for a given facility's capacity.
+    `SELECT tb.batch_id, tb.public_id, tb.status, tb.course_id, tb.max_students,
             tc.title AS course_title, nct.certification_type,
             tb.trainer_id, tr.trainer_full_name AS trainer_name
        FROM tesda_batches tb
@@ -90,8 +92,9 @@ export const getActiveTesdaBatches = async (pool) => {
 //    whenever a cluster had more than one course on either side.
 export const getActiveShsBatches = async (pool) => {
   const batchesResult = await pool.query(
+    // => max_students added, same reason as getActiveTesdaBatches above.
     `SELECT sb.batch_id, sb.public_id, sb.status, sb.cluster, sb.school_year,
-            sb.grade11_completed,
+            sb.grade11_completed, sb.max_students,
             cl.cluster_id, cl.name AS cluster_name,
             sb.grade11_trainer_id, t11.trainer_full_name AS grade11_trainer_name,
             sb.grade12_trainer_id, t12.trainer_full_name AS grade12_trainer_name
@@ -175,6 +178,40 @@ export const getBatchIdFromPublicId = async (pool, batchType, batchPublicId) => 
   const table = batchType === 'shs' ? 'shs_batches' : 'tesda_batches';
   const result = await pool.query(`SELECT batch_id FROM ${table} WHERE public_id = $1`, [batchPublicId]);
   return result.rows[0]?.batch_id ?? null;
+};
+
+// => UPDATED - capacity is now checked against actual approved enrollment
+//    headcount, not the batch's max_students ceiling. A batch capped at 30
+//    but sitting at 20 Approved enrollees should still fit a 25-capacity
+//    facility, checking max_students alone would have blocked that
+//    unnecessarily.
+// => Single-batch approved-enrollment count, used at save time by
+//    addClassSession/addRecurringClassSessions to check facility capacity.
+//    Table name interpolated same as getBatchIdFromPublicId above, same
+//    justification - batchType is enum-checked by the service first.
+export const getApprovedEnrollmentCount = async (pool, batchType, batchId) => {
+  const table = batchType === 'shs' ? 'shs_enrollments' : 'tesda_enrollments';
+  const result = await pool.query(
+    `SELECT COUNT(*)::int AS count FROM ${table} WHERE batch_id = $1 AND status = 'Approved'`,
+    [batchId]
+  );
+  return result.rows[0]?.count ?? 0;
+};
+
+// => NEW - approved-enrollment counts for every batch of one type, grouped
+//    by batch_id in a single query. Used by fetchEligibleBatchesForFacility
+//    so the eligible-batches list isn't running one COUNT query per batch
+//    (N+1) just to flag which ones are over capacity.
+export const getApprovedEnrollmentCountsByType = async (pool, batchType) => {
+  const table = batchType === 'shs' ? 'shs_enrollments' : 'tesda_enrollments';
+  const result = await pool.query(
+    `SELECT batch_id, COUNT(*)::int AS count
+       FROM ${table}
+      WHERE batch_id IS NOT NULL AND status = 'Approved'
+      GROUP BY batch_id`
+  );
+  // => Map for O(1) lookup by batch_id when annotating the batch list.
+  return new Map(result.rows.map(r => [r.batch_id, r.count]));
 };
 
 // => Every session (Local, Mobile, or Online) booked for one specific

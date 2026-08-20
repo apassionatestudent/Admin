@@ -207,6 +207,15 @@ export default function AddSessionModal({ facilityPublicId, prefill, existingSes
 
   const selectedShsBatch = shsBatches.find(b => String(b.batch_id) === String(form.batch_id));
 
+  // => NEW - resolves whichever batch is currently selected, TESDA or SHS,
+  //    against its capacity_exceeded flag from the eligible-batches API.
+  //    Only meaningful in Local mode, Mobile/Online sessions have no
+  //    facility so there's nothing to exceed.
+  const selectedTesdaBatch = tesdaBatches.find(b => String(b.batch_id) === String(form.batch_id));
+  const capacityExceeded = isLocalMode && Boolean(
+    form.batch_type === 'tesda' ? selectedTesdaBatch?.capacity_exceeded : selectedShsBatch?.capacity_exceeded
+  );
+
   const isWithinBookingWindow = (time) => !time || (time >= BOOKING_START_TIME && time <= BOOKING_END_TIME);
   const timeWindowOk = !isLocalMode || (isWithinBookingWindow(form.start_time) && isWithinBookingWindow(form.end_time));
 
@@ -331,6 +340,7 @@ export default function AddSessionModal({ facilityPublicId, prefill, existingSes
       ? form.start_time && form.end_time && timeWindowOk
       : form.session_date && form.start_time && form.end_time && timeWindowOk && weekdayOk
     : form.session_date && form.start_time && form.end_time && form.batch_id && timeWindowOk && weekdayOk && repeatOk &&
+      !capacityExceeded && // => NEW - blocks Save while the selected batch is too big for this facility
       (form.batch_type === 'tesda' || (form.grade_level && form.shs_course_id));
 
   return (
@@ -536,9 +546,16 @@ export default function AddSessionModal({ facilityPublicId, prefill, existingSes
                   {tesdaBatches.map(b => (
                     <option key={b.batch_id} value={b.batch_id}>
                       {b.course_title}{b.certification_type ? ` (${b.certification_type})` : ''} (Batch #{b.batch_id}, {b.status})
+                      {b.capacity_exceeded ? ' - exceeds facility capacity' : ''}
                     </option>
                   ))}
                 </select>
+              )}
+              {/* => UPDATED - checks against approved enrollees, not max_students */}
+              {capacityExceeded && form.batch_type === 'tesda' && (
+                <p className="adm-form-error">
+                  <img className="asm-inline-icon" src={warningIcon} alt="" /> This batch's approved enrollees ({selectedTesdaBatch?.approved_count}) exceed this facility's capacity. Book this batch as a Mobile session instead.
+                </p>
               )}
             </div>
           ) : (
@@ -557,6 +574,7 @@ export default function AddSessionModal({ facilityPublicId, prefill, existingSes
                     {shsBatches.map(b => (
                       <option key={b.batch_id} value={b.batch_id}>
                         {b.cluster_name} ({b.school_year}, {b.status})
+                        {b.capacity_exceeded ? ' - exceeds facility capacity' : ''}
                       </option>
                     ))}
                   </select>
@@ -596,6 +614,12 @@ export default function AddSessionModal({ facilityPublicId, prefill, existingSes
                     </select>
                   )}
                 </div>
+              )}
+              {/* => UPDATED - checks against approved enrollees, not max_students */}
+              {capacityExceeded && form.batch_type === 'shs' && (
+                <p className="adm-form-error">
+                  <img className="asm-inline-icon" src={warningIcon} alt="" /> This batch's approved enrollees ({selectedShsBatch?.approved_count}) exceed this facility's capacity. Book this batch as a Mobile session instead.
+                </p>
               )}
             </>
           )}
