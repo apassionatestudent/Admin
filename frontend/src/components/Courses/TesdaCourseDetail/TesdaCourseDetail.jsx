@@ -479,8 +479,10 @@ export default function TesdaCourseDetail() {
       }));
       cancelAddRequirementRow();
       await fetchLogs();
+      toast.success('Requirement added.'); // => confirms the row actually saved, matches the job-title/competency Save flow that had no feedback either
     } catch (error) {
       console.error('Failed to add requirement:', error);
+      toast.error(error.response?.data?.message || 'Failed to add requirement.');
     }
   };
 
