@@ -112,7 +112,7 @@ export default function Chatbots() {
       {/* => Floating action button, bottom-right, matches the pattern
              used on the Staff page rather than an inline header button */}
       <button className="chatbots-fab" onClick={() => setShowAddModal(true)} title="Add Chatbot">
-        <img src={plusIcon} alt="Add Chatbot" className="chatbots-fab-icon" />
+        <span className="chatbots-fab-icon">+</span>
       </button>
 
       <AddChatbotModal

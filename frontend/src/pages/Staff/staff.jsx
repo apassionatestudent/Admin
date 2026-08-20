@@ -8,7 +8,6 @@ import './staff.css';
 
 // => Icon imports - matches Classes.jsx's convention (magnifying-glass.png for search)
 import SearchIcon from '../../assets/icons/magnifying-glass.png';
-import PlusIcon from '../../assets/icons/plus.png';
 
 export default function Staff() {
     const navigate = useNavigate();
@@ -131,15 +130,15 @@ export default function Staff() {
                 </div>
             )}
 
-            {/* => Icons8 PNG plus icon on the green FAB - opens AddStaffModal.
-                   Same pattern as Classes.jsx's Trainers tab FAB, PNG instead of inline SVG */}
+            {/* => Plain '+' text on the green FAB - opens AddStaffModal.
+                   Same pattern as Classes.jsx's Trainers tab FAB */}
             <button
                 className="adm-fab"
                 onClick={() => setIsModalOpen(true)}
                 title="Add new staff"
                 aria-label="Add new staff"
             >
-                <img src={PlusIcon} alt="Add new staff" className="adm-fab-icon" />
+                <span className="adm-fab-icon">+</span>
             </button>
 
             {isModalOpen && (

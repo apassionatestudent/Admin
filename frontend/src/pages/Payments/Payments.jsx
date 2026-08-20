@@ -391,9 +391,7 @@ function Payments() {
             title="Add new payment"
             aria-label="Add new payment"
           >
-            <svg className="adm-fab-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 5V19M5 12H19" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <span className="adm-fab-icon">+</span>
           </button>
 
           {showAddPaymentModal && (
@@ -521,9 +519,7 @@ function Payments() {
             title="Add new refund"
             aria-label="Add new refund"
           >
-            <svg className="adm-fab-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 5V19M5 12H19" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <span className="adm-fab-icon">+</span>
           </button>
 
           {showAddRefundModal && (

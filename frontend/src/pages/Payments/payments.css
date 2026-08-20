@@ -452,9 +452,17 @@
 }
 
 .adm-fab-icon {
-  width: 24px;
-  height: 24px;
+  /* => Plain '+' text instead of an SVG icon, white on the green FAB background */
+  color: #ffffff;
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1;
   flex-shrink: 0;
+  /* => Text glyphs sit slightly above their own baseline, so even with
+        the parent .adm-fab centered via flex, the '+' visually drifts
+        downward. This pulls it back up to true center. */
+  display: block;
+  transform: translateY(-1px);
 }
 
 /* Responsive */
