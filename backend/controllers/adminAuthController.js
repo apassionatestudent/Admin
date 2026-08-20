@@ -51,6 +51,17 @@ export const loginAdmin = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
+        // => Check lockout before anything else about this account leaks
+        // => Wording is intentionally identical to ordinary rate-limit
+        // => wording, so a locked real account looks the same as IP
+        // => throttling on a fake one, closing the account-enumeration gap
+        if (admin.locked_until && new Date(admin.locked_until) > new Date()) {
+            return res.status(429).json({
+                message: 'Too many requests. Please wait before trying again.',
+                lockedUntil: admin.locked_until,
+            });
+        }
+
         // => Reject if the admin account is suspended
         if (admin.status !== 'active') {
             return res.status(403).json({ message: 'Your account has been suspended. Please contact the system owner.' });
@@ -66,8 +77,44 @@ export const loginAdmin = async (req, res) => {
         // => Compare submitted password against stored hash
         const isMatch = await bcrypt.compare(password, admin.password_hash);
         if (!isMatch) {
+            // => 3 failed attempts locks the account for 15 minutes
+            const updated = await Admin.incrementFailedAttempts(admin.admin_id);
+
+            if (updated.locked_until) {
+                // => This exact attempt is the one that crossed the threshold
+                await logActivity(pool, {
+                    entity_type: 'admin',
+                    entity_id: admin.admin_id,
+                    actor_type: 'Staff',
+                    actor_id: admin.admin_id,
+                    actor_name: admin.full_name,
+                    action: 'ACCOUNT_LOCKED',
+                    action_detail: `${admin.full_name} locked out after ${updated.failed_login_attempts} failed login attempts.`,
+                });
+
+                return res.status(429).json({
+                    message: 'Too many requests. Please wait before trying again.',
+                    lockedUntil: updated.locked_until,
+                });
+            }
+
+            // => Not locked yet, just an ordinary failed attempt
+            await logActivity(pool, {
+                entity_type: 'admin',
+                entity_id: admin.admin_id,
+                actor_type: 'Staff',
+                actor_id: admin.admin_id,
+                actor_name: admin.full_name,
+                action: 'LOGIN_FAILED',
+                action_detail: `${admin.full_name} entered an incorrect password (attempt ${updated.failed_login_attempts} of 3).`,
+            });
+
             return res.status(400).json({ message: 'Invalid credentials' });
         }
+
+        // => Successful login clears the failed attempt counter and any lock
+        await Admin.resetFailedAttempts(admin.admin_id);
+
         // => Update last_login_at on successful login
         await Admin.updateLastLogin(admin.admin_id);
 

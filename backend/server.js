@@ -180,8 +180,20 @@ async function initDB() {
                 last_login_at   TIMESTAMPTZ,
                 remarks         TEXT,
                 public_id       UUID          NOT NULL DEFAULT gen_random_uuid() UNIQUE,
-                password_set    BOOLEAN       NOT NULL DEFAULT true
+                password_set    BOOLEAN       NOT NULL DEFAULT true,
+                failed_login_attempts INTEGER NOT NULL DEFAULT 0,
+                locked_until    TIMESTAMPTZ
             )
+        `;
+
+        // => Existing live database migration: add lockout columns if the
+        //    admins table already existed before this feature was added
+        // => Stricter than the student side: 3 failed attempts locks for 15 minutes
+        await sql`
+            ALTER TABLE admins ADD COLUMN IF NOT EXISTS failed_login_attempts INTEGER NOT NULL DEFAULT 0
+        `;
+        await sql`
+            ALTER TABLE admins ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ
         `;
 
         // => Reuse the same set_updated_at trigger function if it already exists
@@ -407,13 +419,31 @@ async function initDB() {
             WHERE status = 'active' AND scope_type = 'student_dashboard'
         `;
 
-        await sql`
+                await sql`
             CREATE UNIQUE INDEX IF NOT EXISTS chatbots_one_active_per_course
             ON chatbots (scope_type, course_id)
             WHERE status = 'active' AND scope_type IN ('tesda_course', 'shs_course')
         `;
 
+        // => Per-course enrollment requirements for TESDA courses (NCI, NCII,
+        // => NCIII, etc. can each ask for a different set of documents).
+        // => document_type is free text on purpose, same as tesda_documents.
+        // => document_type - matched by string value, not a hard FK, so an
+        // => admin editing/removing a requirement later never rewrites or
+        // => blocks what a student already submitted under the old wording.
+        // => Mirrored from the Neon SQL Editor migration already run live.
+        await sql`
+            CREATE TABLE IF NOT EXISTS tesda_course_requirements (
+                requirement_id  SERIAL       PRIMARY KEY,
+                course_id       INTEGER      NOT NULL REFERENCES tesda_courses(course_id),
+                document_type   VARCHAR(150) NOT NULL,
+                is_required     BOOLEAN      NOT NULL DEFAULT true,
+                max_files       INTEGER      NOT NULL DEFAULT 1 CHECK (max_files >= 1) -- => e.g. TOR/NBI clearance spanning multiple pages/files
+            )
+        `;
+
         console.log('Admin database initialized successfully');
+
     } catch (error) {
         console.error('Error initializing admin database:', error);
         process.exit(1); // => Stop the server if DB init fails; no point running without a DB

@@ -305,3 +305,50 @@ export async function deleteJobOpportunity(jobId) {
   );
   return result.rows[0] || null;
 }
+
+// => Requirements sub-resource - same pattern as job opportunities: keyed by
+// => the INTERNAL course_id for reads, resolved from admin_uuid via subquery
+// => for inserts. document_type here should match the string later saved
+// => into tesda_documents.document_type when a student actually uploads
+// => against this requirement.
+
+export async function findRequirementsByCourseId(courseId) {
+  const result = await pool.query(
+    `SELECT requirement_id AS id, document_type, is_required, max_files
+     FROM tesda_course_requirements WHERE course_id = $1 ORDER BY requirement_id ASC`,
+    [courseId]
+  );
+  return result.rows;
+}
+
+export async function insertSingleRequirement(adminUuid, { document_type, is_required, max_files }) {
+  const result = await pool.query(
+    // => course_id added to RETURNING, same reasoning as the competency/job inserts above
+    `INSERT INTO tesda_course_requirements (course_id, document_type, is_required, max_files)
+     SELECT course_id, $2, $3, $4
+     FROM tesda_courses
+     WHERE admin_uuid = $1 AND deleted_at IS NULL
+     RETURNING course_id, requirement_id AS id, document_type, is_required, max_files`,
+    [adminUuid, document_type, is_required ?? true, max_files ?? 1]
+  );
+  return result.rows[0] || null; // => null means the admin_uuid didn't match any course
+}
+
+export async function updateRequirement(requirementId, { document_type, is_required, max_files }) {
+  const result = await pool.query(
+    `UPDATE tesda_course_requirements
+     SET document_type = $1, is_required = $2, max_files = $3
+     WHERE requirement_id = $4
+     RETURNING course_id, requirement_id AS id, document_type, is_required, max_files`,
+    [document_type, is_required ?? true, max_files ?? 1, requirementId]
+  );
+  return result.rows[0] || null;
+}
+
+export async function deleteRequirement(requirementId) {
+  const result = await pool.query(
+    `DELETE FROM tesda_course_requirements WHERE requirement_id = $1 RETURNING course_id, requirement_id AS id`,
+    [requirementId]
+  );
+  return result.rows[0] || null;
+}

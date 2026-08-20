@@ -180,3 +180,41 @@ export async function deleteJobOpportunity(req, res) {
     res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Failed to delete job opportunity' });
   }
 }
+
+export async function addRequirement(req, res) {
+  try {
+    const { adminUuid } = req.params;
+    const { document_type, is_required, max_files } = req.body;
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
+    const newRow = await TesdaCourseService.addRequirement(adminUuid, { document_type, is_required, max_files }, actor);
+    res.status(201).json({ success: true, data: newRow });
+  } catch (error) {
+    console.error('addRequirement error:', error);
+    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Failed to add requirement' });
+  }
+}
+
+export async function updateRequirement(req, res) {
+  try {
+    const { requirementId } = req.params;
+    const { document_type, is_required, max_files } = req.body;
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
+    const updated = await TesdaCourseService.editRequirement(requirementId, { document_type, is_required, max_files }, actor);
+    res.status(200).json({ success: true, data: updated });
+  } catch (error) {
+    console.error('updateRequirement error:', error);
+    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Failed to update requirement' });
+  }
+}
+
+export async function deleteRequirement(req, res) {
+  try {
+    const { requirementId } = req.params;
+    const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
+    await TesdaCourseService.removeRequirement(requirementId, actor);
+    res.status(200).json({ success: true, message: 'Requirement deleted' });
+  } catch (error) {
+    console.error('deleteRequirement error:', error);
+    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Failed to delete requirement' });
+  }
+}

@@ -430,6 +430,122 @@ export default function TesdaCourseDetail() {
   const [editJobTitle, setEditJobTitle] = useState('');
   const [editJobError, setEditJobError] = useState('');
 
+  // => Requirements - same add/edit/delete-row pattern as job opportunities,
+  // => but with an extra is_required checkbox per row
+  const [newRequirementRow, setNewRequirementRow] = useState(null);
+  const [newRequirementError, setNewRequirementError] = useState('');
+  const [editingRequirementId, setEditingRequirementId] = useState(null);
+  const [editRequirementForm, setEditRequirementForm] = useState({ document_type: '', is_required: true, max_files: 1 });
+  const [editRequirementError, setEditRequirementError] = useState('');
+
+  const startAddRequirementRow = () => {
+    setNewRequirementRow({ document_type: '', is_required: true, max_files: 1 });
+    setNewRequirementError('');
+  };
+  const cancelAddRequirementRow = () => setNewRequirementRow(null);
+
+  const handleNewRequirementChange = (e) => {
+    const val = e.target.value;
+    setNewRequirementRow({ ...newRequirementRow, document_type: val });
+    setNewRequirementError(val.trim() ? '' : 'Requirement label is required.');
+  };
+
+  const handleNewRequirementToggle = (e) => {
+    setNewRequirementRow({ ...newRequirementRow, is_required: e.target.checked });
+  };
+
+  // => Clamped to a minimum of 1 right in the handler - a student can never
+  // => be shown an upload field that accepts zero files
+  const handleNewRequirementMaxFilesChange = (e) => {
+    const val = Math.max(1, Number(e.target.value) || 1);
+    setNewRequirementRow({ ...newRequirementRow, max_files: val });
+  };
+
+  const submitNewRequirementRow = async () => {
+    if (!newRequirementRow.document_type.trim()) {
+      setNewRequirementError('Requirement label is required.');
+      return;
+    }
+    try {
+      const res = await axiosAdmin.post(`/api/admin/tesda-courses/${adminUuid}/requirements`, {
+        document_type: newRequirementRow.document_type,
+        is_required: newRequirementRow.is_required,
+        max_files: newRequirementRow.max_files,
+      });
+      const newRequirement = res.data.data;
+      setCourse((prev) => ({
+        ...prev,
+        requirements: [...(prev.requirements ?? []), newRequirement],
+      }));
+      cancelAddRequirementRow();
+      await fetchLogs();
+    } catch (error) {
+      console.error('Failed to add requirement:', error);
+    }
+  };
+
+  const startEditRequirementRow = (row) => {
+    setEditingRequirementId(row.id);
+    setEditRequirementForm({ document_type: row.document_type, is_required: row.is_required, max_files: row.max_files });
+    setEditRequirementError('');
+  };
+
+  const cancelEditRequirementRow = () => setEditingRequirementId(null);
+
+  const handleEditRequirementChange = (e) => {
+    const val = e.target.value;
+    setEditRequirementForm({ ...editRequirementForm, document_type: val });
+    setEditRequirementError(val.trim() ? '' : 'Requirement label is required.');
+  };
+
+  const handleEditRequirementToggle = (e) => {
+    setEditRequirementForm({ ...editRequirementForm, is_required: e.target.checked });
+  };
+
+  const handleEditRequirementMaxFilesChange = (e) => {
+    const val = Math.max(1, Number(e.target.value) || 1);
+    setEditRequirementForm({ ...editRequirementForm, max_files: val });
+  };
+
+  const submitEditRequirementRow = async () => {
+    if (!editRequirementForm.document_type.trim()) {
+      setEditRequirementError('Requirement label is required.');
+      return;
+    }
+    try {
+      const res = await axiosAdmin.patch(
+        `/api/admin/tesda-courses/requirements/${editingRequirementId}`,
+        editRequirementForm
+      );
+      const updatedRequirement = res.data.data;
+      setCourse((prev) => ({
+        ...prev,
+        requirements: (prev.requirements ?? []).map((r) =>
+          r.id === updatedRequirement.id ? updatedRequirement : r
+        ),
+      }));
+      setEditingRequirementId(null);
+      await fetchLogs();
+    } catch (error) {
+      console.error('Failed to update requirement:', error);
+    }
+  };
+
+  const handleDeleteRequirementRow = (id) => {
+    openConfirm('Delete this requirement?', async () => {
+      try {
+        await axiosAdmin.delete(`/api/admin/tesda-courses/requirements/${id}`);
+        setCourse((prev) => ({
+          ...prev,
+          requirements: (prev.requirements ?? []).filter((r) => r.id !== id),
+        }));
+        await fetchLogs();
+      } catch (error) {
+        console.error('Failed to delete requirement:', error);
+      }
+    });
+  };
+
   const startAddJobRow = () => {
     setNewJobRow({ job_title: '' });
     setNewJobError('');
@@ -866,6 +982,120 @@ export default function TesdaCourseDetail() {
                 <tr>
                   <td colSpan="2" className="competency-empty">
                     No job opportunities listed yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="competencies-section">
+        <h3>Enrollment Requirements</h3>
+        <div className="competency-block">
+          <div className="competency-block-header">
+            <h4>Documents Required at Enrollment</h4>
+            <button className="btn-add-row" onClick={startAddRequirementRow}>
+              + Add Row
+            </button>
+          </div>
+          <table className="competency-table">
+            <thead>
+              <tr>
+                <th>Requirement</th>
+                <th className="col-required">Required?</th>
+                <th className="col-max-files">Max Files</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {(course.requirements ?? []).map((row) =>
+                editingRequirementId === row.id ? (
+                  <tr key={row.id}>
+                    <td>
+                      <input
+                        value={editRequirementForm.document_type}
+                        onChange={handleEditRequirementChange}
+                        required
+                      />
+                      <FieldError message={editRequirementError} />
+                    </td>
+                    <td className="col-required">
+                      <input
+                        type="checkbox"
+                        className="competency-checkbox"
+                        checked={editRequirementForm.is_required}
+                        onChange={handleEditRequirementToggle}
+                      />
+                    </td>
+                    <td className="col-max-files">
+                      <input
+                        type="number"
+                        className="max-files-input"
+                        min="1"
+                        value={editRequirementForm.max_files}
+                        onChange={handleEditRequirementMaxFilesChange}
+                      />
+                    </td>
+                    <td className="row-actions">
+                      <button onClick={submitEditRequirementRow}>Save</button>
+                      <button onClick={cancelEditRequirementRow}>Cancel</button>
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={row.id}>
+                    <td>{row.document_type}</td>
+                    <td className="col-required">{row.is_required ? 'Required' : 'Optional'}</td>
+                    <td className="col-max-files">{row.max_files}</td>
+                    <td className="row-actions">
+                      <button className="icon-btn" onClick={() => startEditRequirementRow(row)} title="Edit">
+                        <img src={pencilIcon} alt="Edit" className="pencil-icon" />
+                      </button>
+                      <button className="icon-btn" onClick={() => handleDeleteRequirementRow(row.id)} title="Delete">
+                        <img src={trashIcon} alt="Delete" className="trash-icon" />
+                      </button>
+                    </td>
+                  </tr>
+                )
+              )}
+              {newRequirementRow && (
+                <tr>
+                  <td>
+                    <input
+                      value={newRequirementRow.document_type}
+                      onChange={handleNewRequirementChange}
+                      placeholder="e.g. PSA Birth Certificate"
+                      required
+                    />
+                    <FieldError message={newRequirementError} />
+                  </td>
+                  <td className="col-required">
+                    <input
+                      type="checkbox"
+                      className="competency-checkbox"
+                      checked={newRequirementRow.is_required}
+                      onChange={handleNewRequirementToggle}
+                    />
+                  </td>
+                  <td className="col-max-files">
+                    <input
+                      type="number"
+                      className="max-files-input"
+                      min="1"
+                      value={newRequirementRow.max_files}
+                      onChange={handleNewRequirementMaxFilesChange}
+                    />
+                  </td>
+                  <td className="row-actions">
+                    <button onClick={submitNewRequirementRow}>Save</button>
+                    <button onClick={cancelAddRequirementRow}>Cancel</button>
+                  </td>
+                </tr>
+              )}
+              {(course.requirements ?? []).length === 0 && !newRequirementRow && (
+                <tr>
+                  <td colSpan="4" className="competency-empty">
+                    No requirements set yet. This course will fall back to no enrollment document uploads until you add some.
                   </td>
                 </tr>
               )}

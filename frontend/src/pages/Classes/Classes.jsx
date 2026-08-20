@@ -1142,9 +1142,11 @@ export default function Classes() {
               ════════════════════════════════════ */}
           {sessionSubTab === 'facility' ? (
             sessionFacilitiesLoading ? (
-              <p>Loading facilities…</p>
+              // => Swapped the plain <p> for the shared LoadingState component,
+              //    consistent with the Batches/Facilities/Trainers subsections
+              <LoadingState message="Loading facilities…" />
             ) : sessionFacilitiesError ? (
-              <p className="adm-form-error">{sessionFacilitiesError}</p>
+              <LoadingState variant="error" message={sessionFacilitiesError} onRetry={fetchSessionFacilities} />
             ) : sessionFacilities.length === 0 ? (
               <p>No active facilities yet. Add one under the Facilities tab first.</p>
             ) : applyFacilitySessionFilters(sessionFacilities).length === 0 ? (
@@ -1218,9 +1220,10 @@ export default function Classes() {
           ) : (
             <>
               {remoteSessionsLoading ? (
-                <p>Loading Mobile/Online sessions…</p>
+                // => Swapped the plain <p> for the shared LoadingState component
+                <LoadingState message="Loading Mobile/Online sessions…" />
               ) : remoteSessionsError ? (
-                <p className="adm-form-error">{remoteSessionsError}</p>
+                <LoadingState variant="error" message={remoteSessionsError} onRetry={fetchRemoteSessions} />
               ) : remoteSessions.length === 0 ? (
                 <p>No Mobile or Online sessions scheduled in the next 60 days.</p>
               ) : applyRemoteSessionFilters(remoteSessions).length === 0 ? (

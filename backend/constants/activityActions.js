@@ -19,6 +19,9 @@ export const ACTIVITY_ACTIONS = Object.freeze({
   DOCUMENT_REPLACE: 'DOCUMENT_REPLACE',
   PERMISSION_CHANGE: 'PERMISSION_CHANGE',
   RELEASE: 'RELEASE',
+  // => covers admin login lockout tracking, not used by any other feature
+  LOGIN_FAILED: 'LOGIN_FAILED',
+  ACCOUNT_LOCKED: 'ACCOUNT_LOCKED',
 });
 
 // => Flat array form, useful for report filter dropdowns or manual input validation before insert.

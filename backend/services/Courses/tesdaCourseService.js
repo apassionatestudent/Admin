@@ -74,9 +74,12 @@ export async function getTesdaCourseDetail(adminUuid) {
   // => pulled off the row we just found
   const competencies = await TesdaCourseModel.findCompetenciesByCourseId(course.course_id);
   const jobOpportunities = await TesdaCourseModel.findJobOpportunitiesByCourseId(course.course_id);
+  // => Per-course enrollment requirements, drives the document upload fields
+  // => on the public enrollment step - see tesdaCourseModel.js
+  const requirements = await TesdaCourseModel.findRequirementsByCourseId(course.course_id);
   // => Publish/public-link feature removed - the public site doesn't gate on
   // => it, so this join was dead weight on every detail-page load
-  return { ...course, competencies, jobOpportunities };
+  return { ...course, competencies, jobOpportunities, requirements };
 }
 
 export async function createTesdaCourse({ course, competencies, jobOpportunities, actor }) {
@@ -365,6 +368,94 @@ export async function removeJobOpportunity(jobId, actor) {
     actor_name: actor?.full_name,
     action: ACTIVITY_ACTIONS.UPDATE,
     action_detail: `Removed job opportunity (id: ${deleted.id})`,
+  });
+
+  return deleted;
+}
+
+// => Requirements sub-resource - same validate-then-delegate pattern as
+// => competencies and job opportunities
+
+// => Shared by add/edit below - keeps the max_files guard in one place
+function assertValidMaxFiles(maxFiles) {
+  if (maxFiles === undefined || maxFiles === null) return; // => optional, model defaults to 1
+  if (!Number.isInteger(maxFiles) || maxFiles < 1) {
+    const error = new Error('Max files must be a whole number of at least 1');
+    error.statusCode = 400;
+    throw error;
+  }
+}
+
+export async function addRequirement(adminUuid, data, actor) {
+  if (!data?.document_type) {
+    const error = new Error('Requirement label is required');
+    error.statusCode = 400;
+    throw error;
+  }
+  assertValidMaxFiles(data?.max_files);
+  const newRow = await TesdaCourseModel.insertSingleRequirement(adminUuid, data);
+  if (!newRow) {
+    const error = new Error('Course not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  await logActivity(pool, {
+    entity_type: 'tesda_course',
+    entity_id: newRow.course_id,
+    actor_type: 'Staff',
+    actor_id: actor?.admin_id,
+    actor_name: actor?.full_name,
+    action: ACTIVITY_ACTIONS.UPDATE,
+    action_detail: `Added enrollment requirement: "${newRow.document_type}"${newRow.is_required ? '' : ' (optional)'}`,
+  });
+
+  return newRow;
+}
+
+export async function editRequirement(requirementId, data, actor) {
+  if (!data?.document_type) {
+    const error = new Error('Requirement label is required');
+    error.statusCode = 400;
+    throw error;
+  }
+  assertValidMaxFiles(data?.max_files);
+  const updated = await TesdaCourseModel.updateRequirement(requirementId, data);
+  if (!updated) {
+    const error = new Error('Requirement not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  await logActivity(pool, {
+    entity_type: 'tesda_course',
+    entity_id: updated.course_id,
+    actor_type: 'Staff',
+    actor_id: actor?.admin_id,
+    actor_name: actor?.full_name,
+    action: ACTIVITY_ACTIONS.UPDATE,
+    action_detail: `Updated enrollment requirement to "${updated.document_type}"${updated.is_required ? '' : ' (optional)'}`,
+  });
+
+  return updated;
+}
+
+export async function removeRequirement(requirementId, actor) {
+  const deleted = await TesdaCourseModel.deleteRequirement(requirementId);
+  if (!deleted) {
+    const error = new Error('Requirement not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  await logActivity(pool, {
+    entity_type: 'tesda_course',
+    entity_id: deleted.course_id,
+    actor_type: 'Staff',
+    actor_id: actor?.admin_id,
+    actor_name: actor?.full_name,
+    action: ACTIVITY_ACTIONS.UPDATE,
+    action_detail: `Removed enrollment requirement (id: ${deleted.id})`,
   });
 
   return deleted;
