@@ -124,7 +124,6 @@ app.use('/api/admin/public-support-tickets', publicSupportTicketRouter);
 app.use('/api/admin/support-tickets', supportTicketRouter);
 
 app.use('/api/admin/students', adminStudentRouter);
-app.use('/api/admin', sectorClusterRoutes);
 
 // => nationality routes 
 app.use('/api/reference', nationalityRoutes);
@@ -155,6 +154,17 @@ app.use('/api/admin/dashboard', dashboardRouter);
 
 // Reports
 app.use('/api/admin/reports', reportRouter);
+
+// Sectors / Clusters (Courses)
+// => Moved to mount last, deliberately after every other /api/admin/* router.
+// => sectorClusterRoutes.js applies requireSection('courses') via router.use()
+// => with no path restriction, so that check runs against ANY request reaching
+// => this router, not just /sectors or /clusters. Mounted first, it was
+// => intercepting unrelated routes like dashboard/summary and reports/sectors
+// => before they ever reached their own router, causing false 403s whenever
+// => an admin lacked Courses access.
+// => => root cause found: this was mounted before dashboardRouter/reportRouter, so its blanket courses check ran first and blocked unrelated endpoints
+app.use('/api/admin', sectorClusterRoutes);
 
 
 // => Initialize DB tables that the admin backend needs
