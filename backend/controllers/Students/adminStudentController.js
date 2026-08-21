@@ -10,6 +10,7 @@ import {
   updateStudentRecord,
   fetchStudentPaymentHistory,
   fetchStudentLogs,
+  sendPasswordResetLink,
 } from '../../services/Students/adminStudentService.js';
 
 // GET /api/admin/students
@@ -88,6 +89,27 @@ export const patchStudentActive = async (req, res) => {
     }
     console.error('patchStudentActive error:', err);
     return res.status(500).json({ error: 'Failed to update student status.' });
+  }
+};
+
+
+// POST /api/admin/students/:publicId/reset-password
+// => Admin-triggered - issues a reset token and emails the student a
+//    set-password link. No body required.
+export const sendPasswordResetLinkController = async (req, res) => {
+  const { publicId } = req.params;
+  try {
+    const result = await sendPasswordResetLink(publicId, {
+      admin_id: req.admin.admin_id,
+      full_name: req.admin.full_name,
+    });
+    return res.status(200).json({ success: true, email: result.email });
+  } catch (err) {
+    if (err.message === 'Student not found.') {
+      return res.status(404).json({ error: err.message });
+    }
+    console.error('sendPasswordResetLinkController error:', err);
+    return res.status(500).json({ error: 'Failed to send password reset link.' });
   }
 };
 

@@ -6,7 +6,7 @@
 // => from raw, unvalidated request body keys.
 //
 // => Same pattern as your existing buildPartialUpdate used for enrollment
-// => PATCH endpoints (ALLOWED_COLUMNS whitelist) - if you already have a
+// => PATCH endpoints (ALLOWED_COLUMNS whitelist) - have a
 // => shared version of this file, delete this copy and import that one
 // => instead in tesdaCourseModel.js / shsCourseModel.js.
 

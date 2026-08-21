@@ -8,7 +8,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+// => same toast library the public/student side already uses in Login.jsx
+import toast from 'react-hot-toast';
 import BackButton from '../BackButton/BackButton.jsx';
+// => reusable yes/no dialog, guards the Deactivate/Activate Account button
+import ConfirmModal from '../ConfirmModal/ConfirmModal.jsx';
 // => Shared spinner/error block, replaces the local adm-student-detail-state markup below
 import LoadingState from '../LoadingState/loadingState.jsx';
 // => axiosAdmin auto-attaches credentials + x-csrf-token on every mutating
@@ -417,13 +421,25 @@ export default function StudentDetail() {
 
   // => Toggle active state
   const [togglingActive, setTogglingActive] = useState(false);
-  const [toggleMsg,      setToggleMsg]      = useState(null); // => { type, text }
+  // => Controls the ConfirmModal shown before Deactivate/Activate Account
+  //    actually runs, since this action changes login access immediately
+  const [showToggleConfirm, setShowToggleConfirm] = useState(false);
 
-  // => Reset Password - stub only for now, no endpoint wired up yet
-  const [resetPwdMsg, setResetPwdMsg] = useState(null);
-  const handleResetPassword = () => {
-    // => TODO: wire this up once the "send setup/reset link" endpoint exists
-    setResetPwdMsg({ type: 'success', text: 'Reset link sending is not wired up yet - coming soon.' });
+  // => Reset Password - sends the student a reset link via email
+  const [sendingResetLink, setSendingResetLink] = useState(false);
+  const handleResetPassword = async () => {
+    setSendingResetLink(true);
+
+    try {
+      const res = await axiosAdmin.post(`/api/admin/students/${publicId}/reset-password`);
+      toast.success(`Reset link sent to ${res.data.email}.`);
+      // => Refetch so the newly written log shows up immediately
+      fetchLogs();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to send reset link.');
+    } finally {
+      setSendingResetLink(false);
+    }
   };
 
   // => Location resolved names for the READ VIEW (codes → readable names)
@@ -616,12 +632,14 @@ export default function StudentDetail() {
   
   // TOGGLE is_active
   
+  // => Runs the actual PATCH once the admin confirms in the modal, the
+  //    button itself no longer calls this directly
   const handleToggleActive = async () => {
     if (!data) return;
     const newValue = !data.studentRow.is_active;
 
+    setShowToggleConfirm(false);
     setTogglingActive(true);
-    setToggleMsg(null);
 
     try {
       const res = await axiosAdmin.patch(`/api/admin/students/${publicId}/active`, {
@@ -632,11 +650,11 @@ export default function StudentDetail() {
         ...prev,
         studentRow: { ...prev.studentRow, is_active: res.data.updated.is_active },
       }));
-      setToggleMsg({ type: 'success', text: `Account ${newValue ? 'activated' : 'deactivated'} successfully.` });
+      toast.success(`Account ${newValue ? 'activated' : 'deactivated'} successfully.`);
       // => Refetch so the newly written log shows up immediately
       fetchLogs();
     } catch (err) {
-      setToggleMsg({ type: 'error', text: err.response?.data?.error || 'Failed to update status.' });
+      toast.error(err.response?.data?.error || 'Failed to update status.');
     } finally {
       setTogglingActive(false);
     }
@@ -745,7 +763,7 @@ export default function StudentDetail() {
 
             <button
               className={`adm-action-btn ${studentRow.is_active ? 'adm-action-btn--danger' : 'adm-action-btn--success'}`}
-              onClick={handleToggleActive}
+              onClick={() => setShowToggleConfirm(true)}
               disabled={togglingActive}
             >
               {togglingActive
@@ -754,25 +772,30 @@ export default function StudentDetail() {
               }
             </button>
 
-            {/* => Reset Password - button only for now; sends nothing yet.
-                 Planned: emails the student a reset/setup link. */}
+            {/* => Confirms before flipping is_active, since this
+                 immediately blocks or restores the student's login */}
+            <ConfirmModal
+              isOpen={showToggleConfirm}
+              message={
+                studentRow.is_active
+                  ? 'Are you sure you want to deactivate this account? The student will not be able to log in until reactivated.'
+                  : 'Are you sure you want to activate this account? The student will be able to log in again.'
+              }
+              onConfirm={handleToggleActive}
+              onCancel={() => setShowToggleConfirm(false)}
+            />
+
+            {/* => Reset Password - emails the student a reset link, uses
+                 the same set-password page the enrollment flow uses */}
             <button
               className="adm-action-btn adm-action-btn--secondary"
               onClick={handleResetPassword}
+              disabled={sendingResetLink}
             >
-              Reset Password
+              {sendingResetLink ? 'Sending…' : 'Reset Password'}
             </button>
 
-            {toggleMsg && (
-              <span className={`adm-save-msg adm-save-msg--${toggleMsg.type}`}>
-                {toggleMsg.text}
-              </span>
-            )}
-            {resetPwdMsg && (
-              <span className={`adm-save-msg adm-save-msg--${resetPwdMsg.type}`}>
-                {resetPwdMsg.text}
-              </span>
-            )}
+
           </div>
         </div>
 
