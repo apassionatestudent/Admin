@@ -29,7 +29,7 @@ export async function updateProfile(adminId, role, fullName, email) {
     //    Regular staff profile changes require super_admin intervention via
     //    the Staff management page instead.
     if (role !== 'super_admin') {
-        throw { status: 403, message: 'Only the super admin can edit profile information. Contact your system owner for changes.' };
+        throw { status: 403, message: 'Only the admin can edit profile information. Contact your system owner for changes.' };
     }
 
     if (!fullName || !fullName.trim()) {
