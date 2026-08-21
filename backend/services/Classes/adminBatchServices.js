@@ -47,8 +47,9 @@ const ALLOWED_BATCH_STATUSES = ['Pending', 'Ongoing', 'Concluded', 'Dissolved'];
 //    students for enrollment before a firm schedule exists yet.
 // => When start_date IS given, it can't be today or in the past - "can't
 //    setup today and yesterday" per the standing rule.
-// => When both dates are given, end_date must be strictly after start_date
-//    - same day or earlier is rejected.
+// => CREATE-only. A brand new batch shouldn't be created already
+//    "starting" today or in the past - when both dates are given,
+//    end_date must also be strictly after start_date.
 const validateBatchDates = (start_date, end_date) => {
   if (start_date) {
     const today = new Date();
@@ -59,12 +60,54 @@ const validateBatchDates = (start_date, end_date) => {
       throw new Error('start_date must be a future date - today or earlier is not allowed.');
     }
   }
+  validateEndAfterStart(start_date, end_date);
+};
+
+// => Shared by create and edit - end_date must be strictly after
+//    start_date, same day or earlier is rejected.
+const validateEndAfterStart = (start_date, end_date) => {
   if (start_date && end_date) {
     const start = new Date(start_date);
     const end = new Date(end_date);
     if (end <= start) {
       throw new Error('end_date must be after start_date.');
     }
+  }
+};
+
+// => EDIT-only, deliberately looser than CREATE. start_date is allowed
+//    to be today - that's how a Pending batch naturally becomes eligible
+//    for the manual Ongoing window (see checkOngoingEligibility above)
+//    purely by the calendar catching up, with no edit needed at all.
+//    What's blocked is genuine backdating (setting start_date to a day
+//    that's already passed) - without this, an admin could reopen the
+//    Edit form and manually type in today's date to force a stuck batch
+//    through the Ongoing gate, defeating the point of that check.
+// => Also blocks changing start_date AT ALL once the batch is already
+//    Ongoing - at that point the batch has technically already begun,
+//    so its start date is historical fact, not an editable plan. end_date
+//    is deliberately NOT restricted here - a trainer's completion
+//    estimate is expected to shift as the batch actually runs.
+const validateStartDateOnEdit = (newStartDate, existingBatch) => {
+  if (!newStartDate) return;
+
+  if (existingBatch.status === 'Ongoing') {
+    const existingDateStr = existingBatch.start_date
+      ? new Date(existingBatch.start_date).toISOString().slice(0, 10)
+      : null;
+    const newDateStr = new Date(newStartDate).toISOString().slice(0, 10);
+    if (newDateStr !== existingDateStr) {
+      throw new Error('Cannot edit the start date - this batch has already started (status: Ongoing).');
+    }
+    return;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(newStartDate);
+  start.setHours(0, 0, 0, 0);
+  if (start < today) {
+    throw new Error('start_date cannot be set to a past date.');
   }
 };
 
@@ -111,9 +154,9 @@ export const fetchShsBatchLogs = async (publicId) => {
 
 // => Shared eligibility checks for Ongoing/Concluded - both require a
 //    trainer assigned and the relevant date to have already been
-//    reached (today or earlier). This same isDateReached helper will
-//    also back the automatic Pending -> Ongoing promotion once that
-//    piece is wired up.
+//    reached (today or earlier). Concluded stays open-ended on
+//    purpose - an admin should be able to conclude a batch any day
+//    after its end_date, not just within a narrow window.
 const isDateReached = (dateStr) => {
   if (!dateStr) return false;
   const today = new Date();
@@ -123,12 +166,35 @@ const isDateReached = (dateStr) => {
   return target <= today;
 };
 
-const checkOngoingEligibility = (trainerAssigned, start_date) => {
+// => Narrow manual-Ongoing window: start_date must be today or
+//    yesterday. Unlike Concluded, Ongoing is NOT open-ended - if an
+//    admin is trying to manually push a batch to Ongoing days after
+//    its start_date already passed, something is off (missing
+//    trainer, forgotten batch, etc.) and should be investigated
+//    rather than silently allowed through.
+const isWithinManualOngoingWindow = (dateStr) => {
+  if (!dateStr) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const target = new Date(dateStr);
+  target.setHours(0, 0, 0, 0);
+  return target.getTime() === today.getTime() || target.getTime() === yesterday.getTime();
+};
+
+const checkOngoingEligibility = (trainerAssigned, start_date, approvedCount, requiredCount) => {
   if (!trainerAssigned) {
     throw new Error('Cannot set status to Ongoing - no trainer is assigned to this batch yet.');
   }
-  if (!isDateReached(start_date)) {
-    throw new Error('Cannot set status to Ongoing - the start date has not been reached yet.');
+  if (!isWithinManualOngoingWindow(start_date)) {
+    throw new Error('Cannot set status to Ongoing - this can only be done on the start date or the day after. Update the batch\'s start date first if it needs to begin today.');
+  }
+  // => New gate: an admin should not be able to manually force a batch
+  //    to Ongoing before enough students have actually been approved
+  //    into it, even if a trainer is assigned and the date window is open.
+  if (approvedCount < requiredCount) {
+    throw new Error(`Cannot set status to Ongoing - only ${approvedCount} of ${requiredCount} required students have been approved.`);
   }
 };
 
@@ -146,14 +212,18 @@ const checkConcludedEligibility = (trainerAssigned, end_date) => {
 //    Grade 12 is deliberately NOT checked here - it doesn't start until
 //    much later (grade11_completed flips first), so requiring a Grade 12
 //    trainer this early would block an otherwise-ready batch for nothing.
-const checkShsOngoingEligibility = (courseTrainers, start_date) => {
+const checkShsOngoingEligibility = (courseTrainers, start_date, approvedCount, requiredCount) => {
   const grade11Courses = courseTrainers.filter(c => c.grade_level === 'Grade 11');
   const allGrade11Staffed = grade11Courses.length > 0 && grade11Courses.every(c => !!c.trainer_id);
   if (!allGrade11Staffed) {
     throw new Error('Cannot set status to Ongoing - every Grade 11 course needs a trainer assigned first.');
   }
-  if (!isDateReached(start_date)) {
-    throw new Error('Cannot set status to Ongoing - the start date has not been reached yet.');
+  if (!isWithinManualOngoingWindow(start_date)) {
+    throw new Error('Cannot set status to Ongoing - this can only be done on the start date or the day after. Update the batch\'s start date first if it needs to begin today.');
+  }
+  // => Same headcount gate as the TESDA side above.
+  if (approvedCount < requiredCount) {
+    throw new Error(`Cannot set status to Ongoing - only ${approvedCount} of ${requiredCount} required students have been approved.`);
   }
 };
 
@@ -184,7 +254,11 @@ export const changeTesdaBatchStatus = async (publicId, newStatus, remarks, admin
   if (!existing) throw new Error('Batch not found.');
 
   if (newStatus === 'Ongoing') {
-    checkOngoingEligibility(!!existing.trainer_id, existing.start_date);
+    // => Reuses the same enrolled-students query the batch detail page
+    //    calls, filtered down to just the Approved count needed here.
+    const enrolledStudents = await getEnrolledStudentsByTesdaBatchId(pool, existing.batch_id);
+    const approvedCount = enrolledStudents.filter(s => s.status === 'Approved').length;
+    checkOngoingEligibility(!!existing.trainer_id, existing.start_date, approvedCount, existing.required_number_of_students);
   } else if (newStatus === 'Concluded') {
     checkConcludedEligibility(!!existing.trainer_id, existing.end_date);
   }
@@ -222,7 +296,9 @@ export const changeShsBatchStatus = async (publicId, newStatus, remarks, adminId
   const courseTrainers = await getShsBatchCourseTrainers(pool, existing.batch_id);
 
   if (newStatus === 'Ongoing') {
-    checkShsOngoingEligibility(courseTrainers, existing.start_date);
+    const enrolledStudents = await getEnrolledStudentsByShsBatchId(pool, existing.batch_id);
+    const approvedCount = enrolledStudents.filter(s => s.status === 'Approved').length;
+    checkShsOngoingEligibility(courseTrainers, existing.start_date, approvedCount, existing.required_number_of_students);
   } else if (newStatus === 'Concluded') {
     checkShsConcludedEligibility(courseTrainers, existing.end_date);
   }
@@ -367,7 +443,8 @@ export const editTesdaBatchDetails = async (publicId, batchData, existingBatch, 
   if (!max_students)                throw new Error('max_students is required.');
   if (!max_applicants)              throw new Error('max_applicants is required.');
 
-  validateBatchDates(start_date, end_date);
+  validateStartDateOnEdit(start_date, existingBatch);
+  validateEndAfterStart(start_date, end_date);
 
   if (Number(required_number_of_students) > Number(max_students)) {
     throw new Error('required_number_of_students cannot exceed max_students.');
@@ -448,7 +525,8 @@ export const editShsBatchDetails = async (publicId, batchData, existingBatch, ad
   if (!max_students)                throw new Error('max_students is required.');
   if (!max_applicants)              throw new Error('max_applicants is required.');
 
-  validateBatchDates(start_date, end_date);
+  validateStartDateOnEdit(start_date, existingBatch);
+  validateEndAfterStart(start_date, end_date);
 
   if (Number(required_number_of_students) > Number(max_students)) {
     throw new Error('required_number_of_students cannot exceed max_students.');

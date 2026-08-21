@@ -39,6 +39,7 @@ export const getShsEnrollmentDetailByPublicId = async (pool, publicId) => {
         e.status,
         e.submitted_at,
         e.updated_at,
+        e.reviewed_at,
         -- => course_id/course_name join dropped: course_id is no longer
         --    written for new SHS enrollments (a cluster is a fixed 2-year
         --    curriculum, not a single course the student picks), and
@@ -115,15 +116,21 @@ export const getFamilyMembersByStudentId = async (pool, studentId) => {
 // => externalRemarks is saved ONLY here, together with the status - never
 //    through the generic /enrollment PATCH. Same reasoning as the TESDA
 //    version of this function.
-export const updateShsEnrollmentStatus = async (pool, publicId, newStatus, externalRemarks) => {
+// => isEnteringReviewed is computed in the service layer (newStatus is
+//    'Reviewed' AND the enrollment wasn't already in 'Reviewed'). Only
+//    that case stamps reviewed_at - a plain re-save while already
+//    Reviewed, or any other status change, must never touch it. This is
+//    what enrollmentAutoReserveJob.js's 7-business-day clock reads from.
+export const updateShsEnrollmentStatus = async (pool, publicId, newStatus, externalRemarks, isEnteringReviewed) => {
   const result = await pool.query(
     `UPDATE shs_enrollments
         SET status           = $1,
             external_remarks = $2,
-            updated_at       = NOW()
+            updated_at       = NOW(),
+            reviewed_at      = CASE WHEN $4 THEN NOW() ELSE reviewed_at END
       WHERE public_id        = $3
-      RETURNING public_id, status, external_remarks`,
-    [newStatus, externalRemarks ?? null, publicId]
+      RETURNING public_id, status, external_remarks, reviewed_at`,
+    [newStatus, externalRemarks ?? null, publicId, isEnteringReviewed]
   );
   return result.rows[0] ?? null;
 };

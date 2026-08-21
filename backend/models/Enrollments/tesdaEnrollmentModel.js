@@ -40,6 +40,7 @@ export const getTesdaEnrollmentDetailByPublicId = async (pool, publicId) => {
         cl.groupchat_link,
         e.internal_remarks,
         e.external_remarks,
+        e.reviewed_at,
         sa.username                                          AS student_username
       FROM tesda_enrollments e
       JOIN  student_accounts sa    ON sa.student_id = e.student_id
@@ -81,15 +82,21 @@ export const getClassificationsByEnrollmentId = async (pool, enrollmentId) => {
 //    through the generic /enrollment PATCH. That's what makes "clears on
 //    status change, only persists when Save Status is confirmed" possible:
 //    whatever the admin is typing never touches the DB until this fires.
-export const updateTesdaEnrollmentStatus = async (pool, publicId, newStatus, externalRemarks) => {
+// => isEnteringReviewed is computed in the service layer (newStatus is
+//    'Reviewed' AND the enrollment wasn't already in 'Reviewed'). Only
+//    that case stamps reviewed_at - a plain re-save while already
+//    Reviewed, or any other status change, must never touch it. This is
+//    what enrollmentAutoReserveJob.js's 7-business-day clock reads from.
+export const updateTesdaEnrollmentStatus = async (pool, publicId, newStatus, externalRemarks, isEnteringReviewed) => {
   const result = await pool.query(
     `UPDATE tesda_enrollments
         SET status           = $1,
             external_remarks = $2,
-            updated_at       = NOW()
+            updated_at       = NOW(),
+            reviewed_at      = CASE WHEN $4 THEN NOW() ELSE reviewed_at END
       WHERE public_id        = $3
-      RETURNING public_id, status, external_remarks`,
-    [newStatus, externalRemarks ?? null, publicId]
+      RETURNING public_id, status, external_remarks, reviewed_at`,
+    [newStatus, externalRemarks ?? null, publicId, isEnteringReviewed]
   );
   return result.rows[0] ?? null;
 };

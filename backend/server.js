@@ -41,6 +41,8 @@ import adminClassSessionRouter from './routes/Classes/adminClassSessionRoutes.js
 // cron jobs => check dates for Pending => Ongoing Classes 
 import cron from 'node-cron';
 import { runAutoPromoteBatches } from './jobs/batchAutoPromoteJob.js';
+// cron jobs => check dates for Reviewed => Reserved Enrollments
+import { runAutoReserveEnrollments } from './jobs/enrollmentAutoReserveJob.js';
 
 // Payments Import
 import paymentsRoutes from './routes/Payments/paymentsRoutes.js';
@@ -216,6 +218,30 @@ async function initDB() {
                 RETURN NEW;
             END;
             $$ LANGUAGE plpgsql
+        `;
+
+        // => Adds a number of business days (Mon-Fri only, no PH holiday
+        //    exclusion per current operations) to a starting date. Used by
+        //    enrollmentAutoReserveJob.js to compute the 7-business-day grace
+        //    period after an enrollment hits 'Reviewed'.
+        // => CREATE OR REPLACE mirrors the live Neon migration, safe to
+        //    re-run on every boot same as set_updated_at above.
+        await sql`
+            CREATE OR REPLACE FUNCTION add_business_days(start_date DATE, num_days INT)
+            RETURNS DATE AS $$
+            DECLARE
+                result_date DATE := start_date;
+                days_added INT := 0;
+            BEGIN
+                WHILE days_added < num_days LOOP
+                    result_date := result_date + INTERVAL '1 day';
+                    IF EXTRACT(DOW FROM result_date) NOT IN (0, 6) THEN
+                        days_added := days_added + 1;
+                    END IF;
+                END LOOP;
+                RETURN result_date;
+            END;
+            $$ LANGUAGE plpgsql IMMUTABLE
         `;
 
         // => Attach updated_at trigger to admins table only if it doesn't exist yet
@@ -488,6 +514,15 @@ async function initDB() {
     runAutoPromoteBatches().catch(err => console.error('[autoPromoteBatches] cron run failed:', err));
     });
     runAutoPromoteBatches().catch(err => console.error('[autoPromoteBatches] initial run failed:', err));
+
+    // => Auto-reserves eligible Reviewed enrollments once a day at 1:15 AM,
+    //    staggered 15 minutes after the batch promote job so they don't
+    //    both hit the pool at the exact same second. Also runs once
+    //    immediately on startup, same reasoning as above.
+    cron.schedule('15 1 * * *', () => {
+    runAutoReserveEnrollments().catch(err => console.error('[autoReserveEnrollments] cron run failed:', err));
+    });
+    runAutoReserveEnrollments().catch(err => console.error('[autoReserveEnrollments] initial run failed:', err));
 
     app.listen(PORT, () => {
         console.log(`Admin server running on port ${PORT}`);

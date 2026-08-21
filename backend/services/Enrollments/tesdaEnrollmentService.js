@@ -266,12 +266,17 @@ export const changeTesdaEnrollmentStatus = async (publicId, newStatus, externalR
   let updated;
   let sweptEnrollments = [];
 
+  // => Only true on a fresh entry into 'Reviewed' - not a re-save while
+  //    already Reviewed. Drives the reviewed_at stamp in the model, which
+  //    enrollmentAutoReserveJob.js reads to start the 7-business-day clock.
+  const isEnteringReviewed = newStatus === 'Reviewed' && enrollment.status !== 'Reviewed';
+
   if (newStatus === 'Approved') {
     const result = await approveTesdaEnrollmentWithLock(pool, publicId, enrollment.batch_id, externalRemarks);
     updated = result.updated;
     sweptEnrollments = result.sweptEnrollments;
   } else {
-    updated = await updateTesdaEnrollmentStatus(pool, publicId, newStatus, externalRemarks);
+    updated = await updateTesdaEnrollmentStatus(pool, publicId, newStatus, externalRemarks, isEnteringReviewed);
   }
 
   // => Activity log entry - action is the fixed taxonomy value; the
