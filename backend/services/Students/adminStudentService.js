@@ -19,6 +19,10 @@ import {
   updateStudentAccount,
 } from '../../models/Students/adminStudentModel.js';
 
+// => Reset Password button - issues a password reset token and emails
+//    the student a set-password link, purpose is always 'reset' here
+import { issuePasswordResetToken } from './adminPasswordTokenService.js';
+
 // => Payment History section pulls from both Payments and Refunds -
 //    same merge-in-the-service pattern as tesdaEnrollmentService.js.
 //    Each model stays strictly single-table, the merge happens here.
@@ -129,6 +133,36 @@ export const toggleActiveStatus = async (publicId, isActive, actor) => {
 
   return updated;
 };
+
+// SEND PASSWORD RESET LINK
+// => actor is { admin_id, full_name } of the admin performing this action,
+//    required for activity logging. Sends to studentRow.username since
+//    that is the actual login credential, not the profile's contact email
+//    which can differ or be blank.
+export const sendPasswordResetLink = async (publicId, actor) => {
+  const studentRow = await getStudentByPublicId(pool, publicId);
+  if (!studentRow) throw new Error('Student not found.');
+
+  await issuePasswordResetToken(pool, {
+    studentId: studentRow.student_id,
+    email: studentRow.username,
+    studentName: [studentRow.first_name, studentRow.last_name].filter(Boolean).join(' ') || studentRow.username,
+  });
+
+  await logActivity(pool, {
+    entity_type: ENTITY_TYPE,
+    entity_id: studentRow.student_id,
+    actor_type: 'Staff',
+    actor_id: actor?.admin_id,
+    actor_name: actor?.full_name,
+    action: ACTIVITY_ACTIONS.RESET_PASSWORD,
+    action_detail: `Password reset link sent to ${studentRow.username}.`,
+  });
+
+  return { email: studentRow.username };
+};
+
+// UPDATE STUDENT RECORD (profile + account fields)
 
 // UPDATE STUDENT RECORD (profile + account fields)
 // => Runs profile upsert and account update in parallel
