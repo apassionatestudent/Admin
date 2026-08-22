@@ -8,8 +8,8 @@ import BackButton from '../../BackButton/BackButton.jsx';
 import ConfirmModal from '../../ConfirmModal/ConfirmModal.jsx';
 // => Shared spinner/error block, replaces the local detail-loading-state markup below
 import LoadingState from '../../LoadingState/loadingState.jsx';
-// => Chevron icon for the Activity Logs section, same asset as TesdaCourseDetail.jsx
-import chevronDown from '../../../assets/icons/chevron-down.png';
+// => Shared log table + pagination component, chevron icon lives inside it now
+import LogComponent from '../../LogComponent/logComponent.jsx';
 import './ShsCourseDetail.css';
 
 // => Auto Title Cases Title and Job Title fields as the admin edits them -
@@ -78,8 +78,9 @@ export default function ShsCourseDetail() {
   // => Facilities/Trainers/Support Tickets/Batches pattern
   const [logs, setLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
-  // => Which log row is currently expanded to show its full action_detail
-  const [expandedLogId, setExpandedLogId] = useState(null);
+  // => Row-expand state used to live here (expandedLogId) - it now lives
+  //    inside LogComponent itself since it's pure UI state with no data
+  //    dependency, no parent page needs to read or reset it.
 
   const fetchLogs = async () => {
     setLogsLoading(true);
@@ -92,6 +93,35 @@ export default function ShsCourseDetail() {
       setLogsLoading(false);
     }
   };
+
+  // => Column defs handed to LogComponent, same Date/Actor/Action/Details
+  //    layout used on Students/Facilities/Trainers/Support Tickets
+  const logColumns = [
+    {
+      key: 'date',
+      header: 'Date',
+      render: (log) => new Date(log.created_at).toLocaleString('en-PH', {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit',
+      }),
+    },
+    {
+      key: 'actor',
+      header: 'Actor',
+      render: (log) => log.actor_type === 'System' ? (
+        <span className="adm-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>System</span>
+      ) : (
+        log.actor_name
+      ),
+    },
+    { key: 'action', header: 'Action', render: (log) => log.action },
+    {
+      key: 'details',
+      header: 'Details',
+      cellClassName: 'logc-log-detail-cell',
+      render: (log) => log.action_detail || '-',
+    },
+  ];
 
   useEffect(() => {
     fetchCourse();
@@ -521,84 +551,22 @@ export default function ShsCourseDetail() {
         </div>
       </section>
 
-      {/* ACTIVITY LOGS - chevron-expandable rows, matches the standardized
-          pattern from TesdaBatchDetail/Facilities/Trainers/Support Tickets */}
+      {/* ACTIVITY LOGS - now rendered through the shared LogComponent
+          instead of a copy-pasted table, same visual pattern as before */}
       <div className="adm-batch-section">
         <p className="adm-section-title">
           Activity Logs
           <span className="adm-section-count-inline">{logs.length}</span>
         </p>
 
-        {logsLoading && <p className="adm-empty-note">Loading logs…</p>}
-
-        {!logsLoading && logs.length === 0 && (
-          <p className="adm-empty-note">No activity recorded for this course yet.</p>
-        )}
-
-        {!logsLoading && logs.length > 0 && (
-          <div className="adm-sub-table-wrap">
-            <table className="adm-sub-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Actor</th>
-                  <th>Action</th>
-                  <th>Details</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => {
-                  const isExpanded = expandedLogId === log.log_id;
-                  return (
-                    <React.Fragment key={log.log_id}>
-                      <tr
-                        className="adm-log-row"
-                        onClick={() => setExpandedLogId(isExpanded ? null : log.log_id)}
-                      >
-                        <td className="adm-td-date">
-                          {new Date(log.created_at).toLocaleString('en-PH', {
-                            year: 'numeric', month: 'short', day: 'numeric',
-                            hour: 'numeric', minute: '2-digit',
-                          })}
-                        </td>
-                        <td>
-                          {log.actor_type === 'System' ? (
-                            <span className="adm-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>
-                              System
-                            </span>
-                          ) : (
-                            log.actor_name
-                          )}
-                        </td>
-                        <td>{log.action}</td>
-                        <td className="adm-log-detail-cell" title={log.action_detail || ''}>
-                          {log.action_detail || '-'}
-                        </td>
-                        <td>
-                          <img
-                            src={chevronDown}
-                            alt="Expand row"
-                            className={`adm-log-chevron ${isExpanded ? 'adm-log-chevron-open' : ''}`}
-                          />
-                        </td>
-                      </tr>
-                      {isExpanded && (
-                        <tr className="adm-log-detail-row">
-                          <td colSpan={5}>
-                            <div className="adm-log-detail-full">
-                              <p>{log.action_detail || '-'}</p>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <LogComponent
+          logs={logs}
+          columns={logColumns}
+          getRowId={(log) => log.log_id}
+          loading={logsLoading}
+          emptyMessage="No activity recorded for this course yet."
+          renderDetail={(log) => <p>{log.action_detail || '-'}</p>}
+        />
       </div>
       </main>
 

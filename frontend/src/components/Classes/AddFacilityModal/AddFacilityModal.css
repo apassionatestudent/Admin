@@ -49,3 +49,38 @@
   color: var(--text-muted, var(--text));
   margin: 4px 0;
 }
+
+/* ════════════════════════════════════
+   RESPONSIVE
+   => Standard 4-breakpoint set. The adm-modal-box shell itself already
+      caps its own width via Classes.css (max-width: 90vw at 768px,
+      100% at 640px), so this file only needs to handle the checklist's
+      own height, which otherwise eats too much of a short modal.
+   ════════════════════════════════════ */
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .facility-modal-checklist {
+    max-height: 160px;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .facility-modal-checklist {
+    max-height: 140px;
+  }
+
+  .facility-modal-toggle-label {
+    font-size: 0.8125rem;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => short viewport height, so the checklist needs to shrink further to
+     leave room for the rest of the form above/below it */
+@media (max-height: 500px) and (orientation: landscape) {
+  .facility-modal-checklist {
+    max-height: 100px;
+  }
+}

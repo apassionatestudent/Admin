@@ -95,13 +95,18 @@
 .faqw-table-wrap {
   border: 1px solid var(--border, #e0d8d0);
   border-radius: 10px;
-  overflow: hidden;
+  overflow-x: auto; /* => was overflow: hidden, which clipped the Actions column
+                         instead of letting the table scroll to reveal it */
+  overflow-y: hidden; /* => explicit, not auto-resolved, to keep corner clipping clean
+                           (see the same fix already applied on .sdaw-table-wrap) */
 }
 
 .faqw-table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
+  min-width: 480px; /* => forces horizontal scroll on mobile instead of squeezing
+                         Question/Answer/Actions into unreadable columns */
 }
 
 .faqw-table th {
@@ -130,6 +135,10 @@
   width: 32%;
   font-weight: 600;
   color: var(--text-h, #1a0305);
+  overflow: hidden; /* => was spilling long unbroken words into the Answer column
+                         since table-layout: fixed doesn't clip content on its own */
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .faqw-td-answer {
@@ -146,32 +155,105 @@
 }
 
 .faqw-edit-btn {
-  padding: 5px 14px;
+  display: inline-flex; /* => centers the icon inside the button, was text-sized padding before */
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
   border: 1px solid #8a0d17;
   border-radius: 6px;
   background: none;
-  color: #8a0d17;
-  font-size: 0.8125rem;
-  font-weight: 600;
   cursor: pointer;
 }
 
 .faqw-edit-btn:hover {
   background: #8a0d17;
-  color: #fff;
+}
+
+.faqw-edit-btn img {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .faqw-delete-btn {
-  padding: 5px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
   border: 1px solid #fecaca;
   border-radius: 6px;
   background: #fee2e2;
-  color: #991b1b;
-  font-size: 0.8125rem;
-  font-weight: 600;
   cursor: pointer;
 }
 
 .faqw-delete-btn:hover {
   background: #fecaca;
+}
+
+.faqw-delete-btn img {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+/*  Responsive  */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
+  .faqw-section-card {
+    padding: 16px;
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .faqw-guidelines {
+    padding: 12px 16px;
+    font-size: 0.8125rem;
+  }
+
+  .faqw-section-name {
+    font-size: 1rem;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .faqw-wrap {
+    padding: 4px 0 24px;
+  }
+
+  .faqw-section-card {
+    padding: 14px;
+  }
+
+  /* => header stacks the section name above the action buttons instead of
+     squeezing "+ Add FAQ" / "Delete Section" onto the same line as a long
+     section name */
+  .faqw-section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .faqw-section-actions {
+    justify-content: flex-end;
+  }
+
+  .faqw-add-faq-btn,
+  .faqw-delete-section-btn {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .faqw-wrap {
+    padding: 4px 0 20px;
+  }
+
+  .faqw-section-card {
+    padding: 12px 14px;
+  }
 }

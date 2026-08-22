@@ -278,3 +278,83 @@
   border-color: var(--sidebar-bg, #660911);
   color: #fff;
 }
+
+/* ════════════════════════════════════
+   RESPONSIVE
+   => Standard 4-breakpoint set, mirrors publicSupportTicketDetail.css's
+      block with the std-ticket-detail- prefix swapped in.
+   => NOTE: same as publicSupportTicketDetail.css, the Activity Logs
+      section below renders with the generic adm-batch-section /
+      adm-sub-table / adm-log-* classes, whose mobile handling already
+      lives in FacilityDetail.css / trainerDetail.css.
+   ════════════════════════════════════ */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
+  .std-ticket-detail-page {
+    padding: 28px;
+  }
+
+  .std-ticket-detail-card {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .std-ticket-detail-page {
+    padding: 24px 20px 48px;
+  }
+
+  .std-ticket-detail-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .std-ticket-detail-card {
+    padding: 22px;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .std-ticket-detail-page {
+    padding: 20px 16px 48px;
+  }
+
+  .std-ticket-detail-card {
+    padding: 18px;
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .std-ticket-detail-value-row {
+    gap: 10px;
+  }
+
+  .std-ticket-detail-edit-actions {
+    flex-direction: column;
+  }
+
+  .std-ticket-detail-edit-actions .btn-create-course,
+  .std-ticket-detail-edit-actions .btn-secondary {
+    flex: none;
+    width: 100%;
+  }
+
+  .std-ticket-detail-status-select {
+    width: 100%;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .std-ticket-detail-page {
+    padding: 16px 20px 48px;
+  }
+
+  .std-ticket-detail-card {
+    padding: 16px 18px;
+  }
+}

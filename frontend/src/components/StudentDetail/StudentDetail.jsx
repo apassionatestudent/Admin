@@ -25,8 +25,7 @@ import './StudentDetail.css';
 import clipboardIcon from '../../assets/icons/clipboard.png';
 import checkMarkIcon from '../../assets/icons/checkmark.png';
 import pencilIcon from '../../assets/icons/pencil.png';
-// => Same chevron used by FacilityDetail/TrainerDetail/Support Tickets' Activity Log section
-import chevronDown from '../../assets/icons/chevron-down.png';
+import LogComponent from '../LogComponent/logComponent.jsx'; // => shared log table + pagination, chevron icon lives inside it now
 
 
 // HELPERS
@@ -468,8 +467,7 @@ export default function StudentDetail() {
   //    chevron-expandable rows.
   const [logs, setLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
-  // => Which log row is currently expanded to show its full action_detail
-  const [expandedLogId, setExpandedLogId] = useState(null);
+
   // => Pagination, 10 per page, fetched fresh from the DB on every page change
   const [logsPage, setLogsPage] = useState(1);
   const [logsTotalPages, setLogsTotalPages] = useState(1);
@@ -562,6 +560,28 @@ export default function StudentDetail() {
       setLogsLoading(false);
     }
   };
+
+  // => Column defs handed to LogComponent, matches the Date/Actor/Action/
+  //    Details layout used on FacilityDetail/TrainerDetail/Support Tickets
+  const logColumns = [
+    { key: 'date', header: 'Date', render: (log) => formatDateTime(log.created_at) },
+    {
+      key: 'actor',
+      header: 'Actor',
+      render: (log) => log.actor_type === 'System' ? (
+        <span className="adm-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>System</span>
+      ) : (
+        log.actor_name
+      ),
+    },
+    { key: 'action', header: 'Action', render: (log) => log.action },
+    {
+      key: 'details',
+      header: 'Details',
+      cellClassName: 'logc-log-detail-cell',
+      render: (log) => log.action_detail || '-',
+    },
+  ];
 
   useEffect(() => {
     if (!publicId) return;
@@ -696,10 +716,13 @@ export default function StudentDetail() {
         },
       }));
       cancelEdit();
+      toast.success('Student record updated successfully.');
       // => Refetch so the newly written log shows up immediately
       fetchLogs();
     } catch (err) {
-      setSectionError(err.response?.data?.error || 'Failed to save changes.');
+      const message = err.response?.data?.error || 'Failed to save changes.';
+      setSectionError(message);
+      toast.error(message);
     } finally {
       setSectionSaving(false);
     }
@@ -1155,97 +1178,16 @@ export default function StudentDetail() {
             <span className="adm-section-count-inline">{logs.length}</span>
           </p>
 
-          {logsLoading && <p className="adm-empty-note">Loading logs…</p>}
-
-          {!logsLoading && logs.length === 0 && (
-            <p className="adm-empty-note">No activity recorded for this student yet.</p>
-          )}
-
-          {!logsLoading && logs.length > 0 && (
-            <div className="adm-sub-table-wrap">
-              <table className="adm-sub-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Actor</th>
-                    <th>Action</th>
-                    <th>Details</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.map(log => {
-                    const isExpanded = expandedLogId === log.log_id;
-                    return (
-                      <React.Fragment key={log.log_id}>
-                        <tr
-                          className="adm-log-row"
-                          onClick={() => setExpandedLogId(isExpanded ? null : log.log_id)}
-                        >
-                          <td className="adm-td-date">{formatDateTime(log.created_at)}</td>
-                          <td>
-                            {log.actor_type === 'System' ? (
-                              <span className="adm-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>
-                                System
-                              </span>
-                            ) : (
-                              log.actor_name
-                            )}
-                          </td>
-                          <td>{log.action}</td>
-                          <td className="adm-log-detail-cell" title={log.action_detail || ''}>
-                            {log.action_detail || '-'}
-                          </td>
-                          <td>
-                            <img
-                              src={chevronDown}
-                              alt="Expand row"
-                              className={`adm-log-chevron ${isExpanded ? 'adm-log-chevron-open' : ''}`}
-                            />
-                          </td>
-                        </tr>
-                        {isExpanded && (
-                          <tr className="adm-log-detail-row">
-                            <td colSpan={5}>
-                              <div className="adm-log-detail-full">
-                                <p>{log.action_detail || '-'}</p>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {!logsLoading && logs.length > 0 && (
-            <div className="adm-log-pagination">
-              <button
-                className="adm-log-page-btn"
-                onClick={() => fetchLogs(logsPage - 1)}
-                disabled={logsPage <= 1}
-              >
-                {/* => Prev button, disabled on page 1 */}
-                Prev
-              </button>
-
-              <span className="adm-log-page-indicator">
-                Page {logsPage} of {logsTotalPages}
-              </span>
-
-              <button
-                className="adm-log-page-btn"
-                onClick={() => fetchLogs(logsPage + 1)}
-                disabled={logsPage >= logsTotalPages}
-              >
-                {/* => Next button, disabled on the last page */}
-                Next
-              </button>
-            </div>
-          )}
+          <LogComponent
+            logs={logs}
+            columns={logColumns}
+            loading={logsLoading}
+            page={logsPage}
+            totalPages={logsTotalPages}
+            onPageChange={fetchLogs}
+            emptyMessage="No activity recorded for this student yet."
+            renderDetail={(log) => <p>{log.action_detail || '-'}</p>}
+          />
         </div>
 
       </div>

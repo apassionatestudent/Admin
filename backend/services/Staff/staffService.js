@@ -10,6 +10,8 @@ import { logActivity, getActivityLogsForStaffPaginated } from '../../models/admi
 import { ACTIVITY_ACTIONS } from '../../constants/activityActions.js';
 import { sendStaffInviteEmail } from '../../utils/sendStaffInviteEmail.js';
 import { sendStaffResetPasswordEmail } from '../../utils/sendStaffResetPasswordEmail.js';
+// => Builds a "field: old -> new" diff string for activity log action_detail
+import { buildFieldDiff, formatDiffDetail } from '../../utils/buildFieldDiff.js';
 import { pool } from '../../config/db.js';
 
 const ALLOWED_SECTIONS = [
@@ -78,7 +80,15 @@ export async function createAdmin({ fullName, email, sections = [] }, requesting
         throw error;
     }
 
-    const created = await staffModel.createAdmin({ fullName, email });
+    // => Locked hash: a random value nobody can ever type in, hashed the
+    // => same way a real password would be. This satisfies the NOT NULL
+    // => constraint on password_hash while keeping the account unusable
+    // => for login until the invite link is completed and setAdminPassword
+    // => overwrites this with a real hash.
+    const lockedPassword = crypto.randomBytes(32).toString('hex');
+    const lockedHash = await bcrypt.hash(lockedPassword, 10);
+
+    const created = await staffModel.createAdmin({ fullName, email, lockedHash });
 
     if (sections.length > 0) {
         await staffModel.replacePermissions(created.admin_id, sections, requestingAdmin.admin_id);
@@ -177,6 +187,64 @@ export async function updateAdminPermissions(publicId, sections, requestingAdmin
 
     return attachPermissions(await staffModel.findAdminByPublicId(publicId));
 }
+
+
+// => Updates full name and email for a staff member. Email uniqueness is
+// => checked here since two admins can never share a login email, but a
+// => staff member saving their own unchanged email must not 409 against
+// => themselves.
+export async function updateAdminProfile(publicId, { fullName, email }, requestingAdmin) {
+    if (!fullName || !fullName.trim()) {
+        const error = new Error('Full name is required');
+        error.status = 400;
+        throw error;
+    }
+    if (!email || !email.trim()) {
+        const error = new Error('Email is required');
+        error.status = 400;
+        throw error;
+    }
+
+    const target = await staffModel.findAdminByPublicId(publicId);
+    if (!target) {
+        const error = new Error('Staff member not found');
+        error.status = 404;
+        throw error;
+    }
+    assertNotSuperAdmin(target);
+
+    const existing = await staffModel.findAdminByEmail(email);
+    // => existing.admin_id !== target.admin_id is what lets the staff
+    // => member save with their own current email unchanged
+    if (existing && existing.admin_id !== target.admin_id) {
+        const error = new Error('A staff account with this email already exists');
+        error.status = 409;
+        throw error;
+    }
+
+    // => Diff against the pre-update record (target), not the response from
+    // => updateAdminProfile, since target still holds the old values here
+    const changes = buildFieldDiff(
+        target,
+        { full_name: fullName, email },
+        { full_name: 'Full Name', email: 'Email' }
+    );
+
+    const updated = await staffModel.updateAdminProfile(publicId, { fullName, email });
+
+    await logActivity(pool, {
+        entity_type: 'admin',
+        entity_id: target.admin_id,
+        actor_type: 'Staff',
+        actor_id: requestingAdmin.admin_id,
+        actor_name: requestingAdmin.full_name,
+        action: ACTIVITY_ACTIONS.UPDATE,
+        action_detail: formatDiffDetail('Profile', changes),
+    });
+
+    return attachPermissions(updated);
+}
+
 
 // => Only valid while the staff member has never completed setup (password_set === false).
 // => Once they've set a real password, use resetPassword instead.

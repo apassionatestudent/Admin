@@ -77,6 +77,9 @@ export default function Chatbots() {
       ) : fetchError ? (
         <LoadingState variant="error" message={fetchError} onRetry={fetchChatbots} />
       ) : (
+        // => wrapper enables horizontal scroll on narrow screens instead of
+        //    crushing columns unreadably - same pattern as sdaw-table-wrap / faqw-table-wrap
+        <div className="chatbots-table-wrap">
         <table className="chatbots-table">
           <thead>
             <tr>
@@ -107,6 +110,7 @@ export default function Chatbots() {
             )}
           </tbody>
         </table>
+        </div>
       )}
 
       {/* => Floating action button, bottom-right, matches the pattern

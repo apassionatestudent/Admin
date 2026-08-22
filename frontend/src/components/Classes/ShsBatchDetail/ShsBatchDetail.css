@@ -618,10 +618,132 @@
   transform: rotate(180deg);
 }
 
+/* ════════════════════════════════════
+   RESPONSIVE
+   => Standard 4-breakpoint set, matching Enrollments.css and the
+      enrollment detail pages: 1024 (tablet/small laptop), 768 (tablet
+      portrait), 640 (mobile), and the max-height landscape pass for
+      short mobile viewports. Mirrors TesdaBatchDetail.css's block with
+      the adm-shs-batch-detail-page selector swapped in.
+   ════════════════════════════════════ */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
+  .adm-shs-batch-detail-page {
+    padding: 28px 28px 56px;
+  }
+
+  .adm-info-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .adm-shs-batch-detail-page {
+    padding: 24px 20px 48px;
+  }
+
+  .adm-batch-detail-hero {
+    padding: 22px 24px;
+  }
+
+  .adm-hero-course-name {
+    font-size: 1.4rem;
+  }
+
+  .adm-status-changer {
+    gap: 14px;
+  }
+
+  /* => remarks input takes the full row instead of fighting the status
+     select for the same line */
+  .adm-status-remarks-input {
+    min-width: 100%;
+    flex-basis: 100%;
+  }
+
+  /* => Course Trainers group no longer forces a wide two-column span at
+     tablet width, so it doesn't overflow beside Cluster on a narrower grid */
+  .adm-course-trainers-group {
+    grid-column: 1 / -1;
+  }
+}
+
+/* --- MOBILE --- */
 @media (max-width: 640px) {
-  .adm-shs-batch-detail-page   { padding: 20px 16px 48px; }
-  .adm-batch-detail-hero        { padding: 20px; }
-  .adm-hero-course-name         { font-size: 1.25rem; }
-  .adm-batch-section            { padding: 18px 16px; }
-  .adm-info-grid                { grid-template-columns: 1fr 1fr; }
+  .adm-shs-batch-detail-page { padding: 20px 16px 48px; }
+
+  /* => hero stacks top-to-bottom instead of relying on flex-wrap, which
+     was letting the status badge overlap the cluster name text */
+  .adm-batch-detail-hero {
+    padding: 20px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .adm-hero-course-name { font-size: 1.25rem; }
+
+  .adm-hero-badge {
+    align-self: flex-start;
+    margin-top: 8px;
+  }
+
+  .adm-batch-section { padding: 18px 16px; }
+
+  .adm-info-grid { grid-template-columns: 1fr 1fr; }
+
+  /* => status changer controls stack instead of squeezing select +
+     remarks input + button onto one cramped row */
+  .adm-status-changer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .adm-status-select,
+  .adm-status-remarks-input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .adm-fee-add-row .adm-form-input {
+    min-width: 0;
+  }
+
+  /* => Course Trainer rows (fixed 160px label + select) stack instead of
+     squeezing the select into a sliver next to the label, same fix
+     already applied in Classes.css / TesdaBatchDetail.css for this pattern */
+  .adm-course-trainer-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .adm-form-label--sub {
+    flex-basis: auto;
+  }
+
+  .adm-course-trainers-group {
+    grid-column: 1 / -1;
+  }
+
+  .adm-modal-course-list {
+    max-height: 100px;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .adm-shs-batch-detail-page {
+    padding: 16px 20px 48px;
+  }
+
+  .adm-batch-detail-hero {
+    padding: 16px 20px;
+  }
+
+  .adm-batch-section {
+    padding: 16px 18px;
+  }
 }

@@ -99,3 +99,68 @@
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+
+/* => ════════════════════════════════════════════
+      RESPONSIVE - 4-TIER BREAKPOINT SYSTEM
+      1024px => 768px => 640px => landscape short-height
+      ════════════════════════════════════════════ */
+
+/* => TIER 1: 1024px - tablet / small laptop */
+@media (max-width: 1024px) {
+  .adm-modal {
+    width: 400px;
+  }
+}
+
+/* => TIER 2: 768px - tablet portrait */
+@media (max-width: 768px) {
+  .adm-modal {
+    width: 92vw;
+    padding: 20px;
+  }
+}
+
+/* => TIER 3: 640px - mobile
+      Padding tightens further, section checklist gets a touch more
+      breathing room per row since this is the tallest part of the form */
+@media (max-width: 640px) {
+  .adm-modal-overlay {
+    padding: 12px; /* => keeps a small margin so the modal doesn't touch screen edges */
+  }
+
+  .adm-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    padding: 16px;
+  }
+
+  .adm-modal-sections {
+    padding: 10px;
+  }
+
+  .adm-modal-checkbox {
+    margin-bottom: 10px; /* => slightly more gap between checkboxes for easier tapping on touch screens */
+  }
+}
+
+/* => TIER 4: max-height 500px landscape - short phone screens
+      10 checkboxes plus two text inputs is the tallest form in this
+      module - the modal's existing max-height:85vh already provides
+      internal scroll via overflow-y:auto, this tier just tightens the
+      header/note spacing so more room goes to the actual form */
+@media (max-height: 500px) and (orientation: landscape) {
+  .adm-modal {
+    max-height: 94vh;
+    padding: 14px 16px;
+  }
+
+  .adm-modal-header {
+    margin-bottom: 10px;
+  }
+
+  .adm-modal-note {
+    margin-bottom: 8px;
+  }
+}

@@ -16,6 +16,10 @@ import ConfirmModal from '../../ConfirmModal/ConfirmModal.jsx';
 import LoadingState from '../../LoadingState/loadingState.jsx';
 import './faqsWYSIWYG.css';
 
+// => PNG icons - project convention is actual image icons, not text/emoji or icon libraries
+import pencilIcon from '../../../assets/icons/pencil.png';
+import trashIcon from '../../../assets/icons/trash.png';
+
 // => forwardRef so pages.jsx's shared header "+ Add Section" button can
 //    call openAddSectionModal() directly - the title/subtitle/button that
 //    used to live in this component's own header now live in pages.jsx
@@ -207,8 +211,12 @@ const FAQsWYSIWYG = forwardRef(function FAQsWYSIWYG(_props, ref) {
                             <td className="faqw-td-answer">{stripHtml(faq.answer)}</td>
                             <td>
                               <div className="faqw-row-actions">
-                                <button className="faqw-edit-btn" onClick={() => openEditFaqModal(faq)}>Edit</button>
-                                <button className="faqw-delete-btn" onClick={() => handleDeleteFaq(faq)}>Delete</button>
+                                <button className="faqw-edit-btn" onClick={() => openEditFaqModal(faq)} title="Edit" aria-label="Edit FAQ">
+                                  <img src={pencilIcon} alt="Edit" />
+                                </button>
+                                <button className="faqw-delete-btn" onClick={() => handleDeleteFaq(faq)} title="Delete" aria-label="Delete FAQ">
+                                  <img src={trashIcon} alt="Delete" />
+                                </button>
                               </div>
                             </td>
                           </tr>

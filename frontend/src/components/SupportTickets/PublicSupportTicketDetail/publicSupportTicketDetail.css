@@ -285,3 +285,91 @@
   border-color: var(--sidebar-bg, #660911);
   color: #fff;
 }
+
+/* ════════════════════════════════════
+   RESPONSIVE
+   => Standard 4-breakpoint set, matching the enrollment detail pages:
+      1024 (tablet/small laptop), 768 (tablet portrait), 640 (mobile), and
+      the max-height landscape pass for short mobile viewports. This page
+      had none before this pass.
+   => NOTE: the Activity Logs section below this card renders with the
+      generic adm-batch-section / adm-sub-table / adm-log-* classes
+      (assumed global, same convention as addBatchModal.css), not this
+      file's own ticket-detail-* prefix. Its mobile handling already lives
+      in FacilityDetail.css / trainerDetail.css's own Responsive sections,
+      nothing to duplicate here.
+   ════════════════════════════════════ */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
+  .ticket-detail-page {
+    padding: 28px;
+  }
+
+  .ticket-detail-card {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .ticket-detail-page {
+    padding: 24px 20px 48px;
+  }
+
+  .ticket-detail-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .ticket-detail-card {
+    padding: 22px;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .ticket-detail-page {
+    padding: 20px 16px 48px;
+  }
+
+  .ticket-detail-card {
+    padding: 18px;
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  /* => copy-to-clipboard row keeps the value from crowding the copy
+     button on a narrow column */
+  .ticket-detail-value-row {
+    gap: 10px;
+  }
+
+  /* => Save/Cancel stack full-width instead of splitting 50/50 on a
+     narrow screen */
+  .ticket-detail-edit-actions {
+    flex-direction: column;
+  }
+
+  .ticket-detail-edit-actions .btn-create-course,
+  .ticket-detail-edit-actions .btn-secondary {
+    flex: none;
+    width: 100%;
+  }
+
+  .ticket-detail-status-select {
+    width: 100%;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .ticket-detail-page {
+    padding: 16px 20px 48px;
+  }
+
+  .ticket-detail-card {
+    padding: 16px 18px;
+  }
+}

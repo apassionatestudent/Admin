@@ -115,6 +115,17 @@
   color: var(--text);
 }
 
+/* => New: scroll wrapper so the table can be dragged horizontally on
+      narrow screens instead of squeezing every column - pairs with the
+      tickets-table-wrap div added around both <table> tags in
+      SupportTickets.jsx, same pattern as adm-table-wrap on Classes.css /
+      Enrollments.css */
+.tickets-table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  width: 100%;
+}
+
 .tickets-table th {
   text-align: left;
   padding: 12px 16px;
@@ -346,4 +357,127 @@
   background: var(--sidebar-bg, #660911);
   border-color: var(--sidebar-bg, #660911);
   color: #fff;
+}
+
+/* ════════════════════════════════════
+   RESPONSIVE
+   => Standard 4-breakpoint set, matching Enrollments.css and Classes.css:
+      1024 (tablet/small laptop), 768 (tablet portrait), 640 (mobile), and
+      the max-height landscape pass for short mobile viewports. This page
+      had none before this pass.
+   ════════════════════════════════════ */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
+  .tickets-page {
+    padding: 32px 28px;
+  }
+
+  .tickets-table {
+    min-width: 720px;
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .tickets-page {
+    padding: 26px 20px;
+  }
+
+  .tickets-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .tickets-count-num {
+    font-size: 1.75rem;
+  }
+
+  .tickets-count-wrap {
+    gap: 14px;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .tickets-page {
+    padding: 20px 16px 48px;
+  }
+
+  /* => header stays side by side, count badges pinned top-right, instead
+     of stacking - matches the Enrollments.css / Classes.css mobile
+     header pattern */
+  .tickets-header {
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .tickets-header > div:first-child {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .tickets-count-wrap {
+    flex-shrink: 0;
+    gap: 10px;
+  }
+
+  .tickets-count-num {
+    font-size: 1.5rem;
+  }
+
+  /* => search input takes the full row instead of sharing space with
+     whatever else is on the search row */
+  .adm-search-input {
+    min-width: 100%;
+  }
+
+  /* => Concern Type/Status filters and the Hide Resolved toggle scroll
+     horizontally instead of wrapping onto extra lines, same strategy as
+     Enrollments.css / Classes.css */
+  .adm-filter-wrap {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 14px;
+    padding-bottom: 2px;
+  }
+
+  .adm-filter-group {
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+  }
+
+  .tickets-table {
+    min-width: 640px;
+  }
+
+  .concern-cell {
+    max-width: 160px;
+  }
+
+  .tickets-pagination {
+    gap: 4px;
+  }
+
+  .tickets-page-btn {
+    min-width: 30px;
+    padding: 6px 9px;
+    font-size: 0.75rem;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .tickets-page {
+    padding: 16px 20px 48px;
+  }
+
+  .tickets-header {
+    margin-bottom: 14px;
+  }
+
+  .tickets-status-block {
+    padding: 20px;
+  }
 }

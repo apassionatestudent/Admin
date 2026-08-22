@@ -6,4 +6,12 @@
       is ever rendered from) still imports it. Nothing modal-specific
       enough to need its own rule here yet - this file exists so the
       import in addBatchModal.jsx has somewhere to point, and so future
-      AddBatchModal-only styling has an obvious home. */
+      AddBatchModal-only styling has an obvious home.
+
+   => RESPONSIVE: no media queries needed in this file specifically -
+      every class this modal renders (adm-modal-box, adm-form-row,
+      adm-course-trainer-row, adm-form-label--sub, etc.) already has its
+      mobile/tablet/landscape treatment defined in Classes.css's own
+      Responsive section, since that's where these classes live. If a
+      class unique to this modal ever gets added here, give it its own
+      1024/768/640/landscape block matching the same pattern. */

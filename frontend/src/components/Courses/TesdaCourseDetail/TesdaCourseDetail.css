@@ -389,12 +389,117 @@
   color: var(--text-muted, var(--text));
 }
 
+/* ════════════════════════════════════
+   RESPONSIVE
+   => Standard 4-breakpoint set, matching the rest of the admin dashboard:
+      1024 (tablet/small laptop), 768 (tablet portrait), 640 (mobile), and
+      the max-height landscape pass for short viewports. This file is also
+      loaded by ShsCourseDetail.css via @import, so these rules apply to
+      both course detail pages.
+   ════════════════════════════════════ */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
+  .course-detail-page {
+    padding: 28px 24px;
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .course-detail-page {
+    padding: 22px 18px;
+  }
+
+  .info-view-grid,
+  .info-edit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .title-cert-row {
+    grid-template-columns: 1fr;
+  }
+
+  .info-edit-grid .span-2 {
+    grid-column: span 1;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .course-detail-page {
+    /* => bottom clearance for the floating hamburger button (bottom-left,
+       fixed position), same 96px used elsewhere in the campaign */
+    padding: 18px 16px 96px;
+  }
+
+  .course-detail-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .course-detail-header h2 {
+    font-size: 1.3rem;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions .status-toggle,
+  .header-actions .btn-delete {
+    flex: 1;
+  }
+
+  /* => Code column's fixed 140px right padding eats too much of a narrow
+     viewport - shrunk here, the section still scrolls horizontally via
+     the overflow-x: auto rule above for anything that still doesn't fit */
+  .competency-table th.col-code,
+  .competency-table td.col-code {
+    padding-right: 32px;
+  }
+
+  .edit-actions {
+    flex-direction: column-reverse;
+  }
+
+  .edit-actions button {
+    width: 100%;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .course-detail-page {
+    padding: 16px 20px 88px;
+  }
+
+  .course-info-section,
+  .competencies-section {
+    padding: 14px 16px;
+  }
+}
+
 /* => Publish section removed - status alone now governs course visibility */
 
 .form-error {
   color: #dc2626;
   font-size: 13px;
   margin: 4px 0 0;
+}
+
+/* => Lets a competency table scroll horizontally instead of squeezing its
+   columns unreadable - same reliable pattern as .adm-table-wrap elsewhere
+   in the dashboard, applied directly to the section since these tables
+   aren't wrapped in a separate scroll container in either
+   TesdaCourseDetail.jsx or ShsCourseDetail.jsx */
+.competencies-section {
+  overflow-x: auto;
+}
+
+.competency-table {
+  min-width: 480px;
 }
 
 
@@ -469,95 +574,10 @@
   margin: 0;
 }
 
-.adm-sub-table-wrap {
-  overflow-x: auto;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-}
-
-.adm-sub-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.8375rem;
-  color: var(--text);
-  min-width: 560px;
-}
-
-.adm-sub-table thead tr {
-  background: var(--code-bg, var(--bg));
-  border-bottom: 1px solid var(--border);
-}
-
-.adm-sub-table th {
-  padding: 10px 14px;
-  text-align: left;
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted, var(--text));
-  white-space: nowrap;
-}
-
-.adm-sub-table td {
-  padding: 11px 14px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
-}
-
-.adm-sub-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.adm-td-date {
-  white-space: nowrap;
-  color: var(--text-muted, var(--text));
-}
-
-.adm-badge {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
-.adm-log-row {
-  cursor: pointer;
-  transition: background 0.12s;
-}
-
-.adm-log-row:hover {
-  background: rgba(102, 9, 17, 0.05); /* => maroon tint, matches Courses.css's own row-hover tone */
-}
-
-.adm-log-detail-cell {
-  max-width: 360px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.adm-log-detail-row td {
-  background: var(--code-bg, var(--bg));
-  padding: 14px 20px;
-}
-
-.adm-log-detail-full p {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-.adm-log-chevron {
-  width: 12px;
-  height: 12px;
-  transition: transform 0.15s ease;
-  opacity: 0.6;
-}
-
-.adm-log-chevron-open {
-  transform: rotate(180deg);
-}
+/* => .adm-sub-table-wrap/.adm-sub-table/.adm-td-date/.adm-log-row/
+      .adm-log-detail-cell/.adm-log-detail-row/.adm-log-detail-full/
+      .adm-log-chevron were removed here - they only ever styled this
+      page's own hand-rolled log table, which now renders through
+      LogComponent (styles live in logComponent.css instead).
+      .adm-badge is kept above, still used for the "System" actor badge
+      passed into LogComponent's Actor column. */

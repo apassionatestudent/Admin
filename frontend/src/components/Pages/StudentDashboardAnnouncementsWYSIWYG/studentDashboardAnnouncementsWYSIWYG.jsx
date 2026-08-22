@@ -15,6 +15,10 @@ import ConfirmModal from '../../ConfirmModal/ConfirmModal.jsx';
 import LoadingState from '../../LoadingState/loadingState.jsx';
 import './studentDashboardAnnouncementsWYSIWYG.css';
 
+// => PNG icons - project convention is actual image icons, not text/emoji or icon libraries
+import pencilIcon from '../../../assets/icons/pencil.png';
+import trashIcon from '../../../assets/icons/trash.png';
+
 // => forwardRef so pages.jsx's shared header "+ Add Announcement" button
 //    can call openAddModal() directly - the title/subtitle/button that
 //    used to live in this component's own header now live in pages.jsx
@@ -157,9 +161,17 @@ const StudentDashboardAnnouncementsWYSIWYG = forwardRef(function StudentDashboar
             <tbody>
               {visibleAnnouncements.map((a) => (
                 <tr key={a.public_id}>
-                  <td className="sdaw-td-title">
-                    <span className="sdaw-row-title">{a.title}</span>
-                    <span className="sdaw-row-preview">{stripHtml(a.message)}</span>
+                  <td>
+                    {/* => flex layout now lives on this inner div instead of the <td>
+                           itself - display:flex directly on a table cell breaks its
+                           table-cell box type in some browsers, which was pulling this
+                           column out of the row's normal height/border-collapse
+                           calculation and cutting the row divider under every other
+                           column (Status, Last Updated, Actions) */}
+                    <div className="sdaw-td-title">
+                      <span className="sdaw-row-title">{a.title}</span>
+                      <span className="sdaw-row-preview">{stripHtml(a.message)}</span>
+                    </div>
                   </td>
                   <td>
                     <button
@@ -173,8 +185,12 @@ const StudentDashboardAnnouncementsWYSIWYG = forwardRef(function StudentDashboar
                   <td className="sdaw-td-date">{formatDate(a.updated_at)}</td>
                   <td>
                     <div className="sdaw-actions">
-                      <button className="sdaw-edit-btn" onClick={() => openEditModal(a)}>Edit</button>
-                      <button className="sdaw-delete-btn" onClick={() => handleDelete(a)}>Delete</button>
+                      <button className="sdaw-edit-btn" onClick={() => openEditModal(a)} title="Edit" aria-label="Edit announcement">
+                        <img src={pencilIcon} alt="Edit" />
+                      </button>
+                      <button className="sdaw-delete-btn" onClick={() => handleDelete(a)} title="Delete" aria-label="Delete announcement">
+                        <img src={trashIcon} alt="Delete" />
+                      </button>
                     </div>
                   </td>
                 </tr>

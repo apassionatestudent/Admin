@@ -146,8 +146,19 @@
 /* ════════════════════════════════════
    TABLE
    ════════════════════════════════════ */
+/* => Scroll wrapper for logs-table - overflow-x:auto lets the table
+      scroll horizontally on narrow screens instead of squeezing columns;
+      overflow-y:hidden kept explicit (not left to auto) so the border-radius
+      corner clipping stays clean when combined with border-collapse */
+.logs-table-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: 8px;
+}
+
 .logs-table {
   width: 100%;
+  min-width: 720px; /* => forces the scrollbar to actually trigger instead of columns just squeezing */
   border-collapse: collapse;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -302,4 +313,104 @@
   background: var(--sidebar-bg, #660911);
   border-color: var(--sidebar-bg, #660911);
   color: #fff;
+}
+
+/* => ════════════════════════════════════════════
+      RESPONSIVE - 4-TIER BREAKPOINT SYSTEM
+      1024px => 768px => 640px => landscape short-height
+      ════════════════════════════════════════════ */
+
+/* => TIER 1: 1024px - tablet / small laptop */
+@media (max-width: 1024px) {
+  .logs-page {
+    padding: 24px;
+  }
+
+  .logs-header h2 {
+    font-size: 1.5rem;
+  }
+}
+
+/* => TIER 2: 768px - tablet portrait
+      Header stacks - title/subtitle above the Today/Total counts instead
+      of side by side, since space-between gets too tight with both */
+@media (max-width: 768px) {
+  .logs-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .logs-count-wrap {
+    align-self: flex-start;
+  }
+
+  .logs-count-item {
+    align-items: flex-start;
+  }
+
+  .adm-filter-wrap {
+    gap: 12px;
+  }
+
+  .logs-detail-cell {
+    max-width: 200px;
+  }
+}
+
+/* => TIER 3: 640px - mobile
+      Search input and filter selects go full-width, count badges shrink,
+      detail cell truncates tighter */
+@media (max-width: 640px) {
+  .logs-page {
+    padding: 16px;
+  }
+
+  .logs-count-wrap {
+    gap: 14px;
+  }
+
+  .logs-count-num {
+    font-size: 1.5rem;
+  }
+
+  .adm-search-input {
+    min-width: 0; /* => allows it to actually shrink to full container width instead of forcing horizontal overflow */
+  }
+
+  .adm-filter-select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .logs-detail-cell {
+    max-width: 140px;
+  }
+
+  .logs-detail-row td {
+    padding: 12px 16px;
+  }
+
+  .logs-pagination {
+    gap: 4px;
+  }
+
+  .logs-page-btn {
+    min-width: 30px;
+    padding: 6px 9px;
+  }
+}
+
+/* => TIER 4: max-height 500px landscape - short phone screens
+      Detail row (expanded log content) can push pagination off-screen;
+      cap its height and let it scroll internally instead */
+@media (max-height: 500px) and (orientation: landscape) {
+  .logs-page {
+    padding: 14px;
+  }
+
+  .logs-detail-row td {
+    max-height: 160px;
+    overflow-y: auto;
+  }
 }

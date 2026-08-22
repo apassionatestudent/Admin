@@ -21,3 +21,16 @@
   background: var(--code-bg, #faf7f5);
   border-bottom: 1px solid var(--border, #e0d8d0);
 }
+
+/*  Responsive  */
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  /* => tighter side padding matches the modal body's own mobile padding
+     tightening elsewhere in the campaign, so this row doesn't sit wider
+     than the content below it */
+  .afm-meta-row {
+    padding: 8px 18px;
+    font-size: 0.78rem;
+  }
+}

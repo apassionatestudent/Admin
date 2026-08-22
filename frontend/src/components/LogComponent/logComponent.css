@@ -1,0 +1,221 @@
+/* => components/LogComponent/logComponent.css
+   => Copied 1:1 from facilitySessionCalendar.css's fsc-log-* rules, just
+      renamed to logc-log-* so this can be shared without colliding with
+      that page's own file, and with the pagination row centered. Every
+      other value (padding, font sizes, colors) matches the original
+      design on purpose, since that page's look is the one to replicate. */
+
+.logc-log-table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.logc-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8375rem;
+  color: var(--text);
+  min-width: 600px;
+}
+
+.logc-log-table thead tr {
+  background: var(--code-bg, #f9fafb);
+  border-bottom: 1px solid var(--border);
+}
+
+.logc-log-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, var(--text));
+  white-space: nowrap;
+}
+
+.logc-log-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.logc-log-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.logc-log-row {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.logc-log-row:hover {
+  background: rgba(138, 13, 23, 0.05);
+}
+
+.logc-log-detail-cell {
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logc-log-detail-row td {
+  background: var(--code-bg, #f4f3ec);
+  padding: 14px 20px;
+}
+
+.logc-log-detail-full p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.logc-log-chevron {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.15s ease;
+  opacity: 0.6;
+}
+
+.logc-log-chevron-open {
+  transform: rotate(180deg);
+}
+
+.logc-log-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* => the one intentional change from fsc-log-pagination, centers the bar */
+  gap: 6px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+/* => The '...' gap filler between page-number buttons, plain text, no
+   => border or hover state since it isn't interactive - matches
+   => logs.css's .logs-page-ellipsis */
+.logc-log-page-ellipsis {
+  padding: 7px 4px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted, #9ca3af);
+}
+
+.logc-log-page-btn {
+  min-width: 32px;
+  padding: 6px 10px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.logc-log-page-btn:hover:not(:disabled) {
+  background: var(--code-bg, #f3f4f6);
+}
+
+.logc-log-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.logc-log-page-btn--active {
+  background: #8a0d17;
+  border-color: #8a0d17;
+  color: #fff;
+}
+
+.logc-empty-note {
+  font-size: 0.875rem;
+  color: var(--text-muted, var(--text));
+  margin: 0;
+}
+
+/* => Responsive - breakpoints match Enrollments.css so this component
+      behaves consistently no matter which admin page renders it */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
+  .logc-log-table {
+    font-size: 0.8125rem;
+  }
+
+  .logc-log-table th,
+  .logc-log-table td {
+    padding: 9px 12px;
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .logc-log-table th {
+    font-size: 0.68rem;
+  }
+
+  .logc-log-table td {
+    font-size: 0.8rem;
+  }
+
+  .logc-log-detail-cell {
+    max-width: 220px; /* => narrower cap since the table itself now scrolls sooner */
+  }
+
+  .logc-log-detail-row td {
+    padding: 12px 16px;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .logc-log-table th,
+  .logc-log-table td {
+    padding: 8px 10px;
+  }
+
+  .logc-log-chevron {
+    width: 10px;
+    height: 10px;
+  }
+
+  .logc-log-detail-full p {
+    font-size: 0.8rem;
+  }
+
+  /* => pagination buttons shrink and tighten gap so more page numbers
+        fit per row before wrapping */
+  .logc-log-pagination {
+    gap: 5px;
+    margin-top: 12px;
+  }
+
+  .logc-log-page-btn {
+    min-width: 28px;
+    padding: 5px 8px;
+    font-size: 0.75rem;
+  }
+
+  /* => shrinks alongside the page buttons so the '...' filler doesn't
+        look oversized next to them at this width */
+  .logc-log-page-ellipsis {
+    padding: 5px 2px;
+    font-size: 0.75rem;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .logc-log-pagination {
+    margin-top: 8px;
+  }
+
+  .logc-log-detail-row td {
+    padding: 8px 14px;
+  }
+}

@@ -16,6 +16,8 @@ router.use(csrfProtection);
 
 router.get('/', staffController.listAdmins);
 router.get('/:publicId', staffController.getAdmin);
+// => Full Name / Email edit, separate from status and permissions
+router.put('/:publicId', staffController.updateProfile);
 router.post('/', staffController.createAdmin);
 router.patch('/:publicId/status', staffController.updateStatus);
 router.patch('/:publicId/permissions', staffController.updatePermissions);
