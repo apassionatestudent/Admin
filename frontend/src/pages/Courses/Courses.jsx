@@ -368,7 +368,29 @@ export default function Courses() {
         //    LoadingState's onRetry prop instead of a local btn-secondary
         <LoadingState variant="error" message={fetchError} onRetry={fetchCourses} />
       ) : (
-        <table className="courses-table">
+        <div className="courses-table-wrap">
+        <table className="courses-table" style={{ minWidth: activeTab === 'tesda' ? '760px' : '560px' }}>
+          {/* => colgroup gives table-layout: fixed a real width per column
+                 instead of letting header text bleed into the next column
+                 on narrow screens - same fix already applied on
+                 Students.css / Reports.css */}
+          {activeTab === 'tesda' ? (
+            <colgroup>
+              <col style={{ width: '26%' }} />
+              <col style={{ width: '18%' }} />
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '18%' }} />
+            </colgroup>
+          ) : (
+            <colgroup>
+              <col style={{ width: '34%' }} />
+              <col style={{ width: '24%' }} />
+              <col style={{ width: '18%' }} />
+              <col style={{ width: '24%' }} />
+            </colgroup>
+          )}
           <thead>
             {activeTab === 'tesda' ? (
               <tr>
@@ -446,6 +468,7 @@ export default function Courses() {
             )}
           </tbody>
         </table>
+        </div>
       )}
 
       {isCreateModalOpen && activeTab === 'tesda' && (

@@ -2,17 +2,9 @@ import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import axiosAdmin from '../../utils/axiosAdmin.js';
 import pencilIcon from '../../assets/icons/pencil.png';
-// => Same chevron used by StudentDetail/StaffDetail's Activity Log sections
-import chevronDown from '../../assets/icons/chevron-down.png';
+// => Shared log table + pagination component, chevron icon lives inside it now
+import LogComponent from '../../components/LogComponent/logComponent.jsx';
 import './account.css';
-
-// => Icon imports needed, replace src paths with your Icons8 assets
-// import lockIcon from '../../assets/icons/lock.png';
-// import moonIcon from '../../assets/icons/moon.png';
-// import sunIcon from '../../assets/icons/sun.png';
-// import userIcon from '../../assets/icons/user-circle.png';
-// import paletteIcon from '../../assets/icons/palette.png';
-// import historyIcon from '../../assets/icons/history.png';
 
 function Account() {
     const [account, setAccount] = useState(null);
@@ -38,9 +30,9 @@ function Account() {
     const [logsPage, setLogsPage] = useState(1);
     const [logsTotalPages, setLogsTotalPages] = useState(1);
     const [logsLoading, setLogsLoading] = useState(true);
-    // => Which log row is currently expanded to show its full action_detail,
-    // => same chevron-expand pattern as StudentDetail/StaffDetail
-    const [expandedLogId, setExpandedLogId] = useState(null);
+    // => Row-expand state used to live here (expandedLogId) - it now lives
+    //    inside LogComponent itself since it's pure UI state with no data
+    //    dependency, no parent page needs to read or reset it.
 
     useEffect(() => {
         fetchAccount();
@@ -80,6 +72,35 @@ function Account() {
             setLogsLoading(false);
         }
     }
+
+    // => Column defs handed to LogComponent. Details column carries the
+    //    entity_type badge as well as action_detail, unlike the plainer
+    //    Details column on Students/Staff/Courses - kept here since it's
+    //    just JSX inside render(), no change needed in LogComponent itself
+    const logColumns = [
+        { key: 'date', header: 'Date', render: (log) => formatLogDate(log.created_at) },
+        {
+            key: 'actor',
+            header: 'Actor',
+            render: (log) => log.actor_type === 'System' ? (
+                <span className="adm-account-logs-badge-system">System</span>
+            ) : (
+                log.actor_name
+            ),
+        },
+        { key: 'action', header: 'Action', render: (log) => log.action },
+        {
+            key: 'details',
+            header: 'Details',
+            cellClassName: 'logc-log-detail-cell',
+            render: (log) => (
+                <>
+                    {log.entity_type && <span className="adm-account-logs-entity">{log.entity_type}</span>}
+                    {log.action_detail}
+                </>
+            ),
+        },
+    ];
 
     // => Save updated full name
     async function handleSaveProfile() {
@@ -370,94 +391,20 @@ function Account() {
                         <p>No activity yet.</p>
                     </div>
                 ) : (
-                    <>
-                        <div className="adm-account-logs-table-wrap">
-                            <table className="adm-account-logs-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Actor</th>
-                                        <th>Action</th>
-                                        <th>Details</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {logs.map((log) => {
-                                        // => Toggles this row's expanded detail view on click,
-                                        // => same chevron-expand pattern as StudentDetail/StaffDetail
-                                        const isExpanded = expandedLogId === log.log_id;
-                                        return (
-                                            <React.Fragment key={log.log_id}>
-                                                <tr
-                                                    className="adm-account-logs-row"
-                                                    onClick={() => setExpandedLogId(isExpanded ? null : log.log_id)}
-                                                >
-                                                    <td className="adm-account-logs-date">{formatLogDate(log.created_at)}</td>
-                                                    <td>
-                                                        {/* => Same System actor badge treatment as StudentDetail/StaffDetail */}
-                                                        {log.actor_type === 'System' ? (
-                                                            <span className="adm-account-logs-badge-system">System</span>
-                                                        ) : (
-                                                            log.actor_name
-                                                        )}
-                                                    </td>
-                                                    <td className="adm-account-logs-action">{log.action}</td>
-                                                    <td className="adm-account-logs-detail" title={log.action_detail || ''}>
-                                                        {log.entity_type && (
-                                                            <span className="adm-account-logs-entity">{log.entity_type}</span>
-                                                        )}
-                                                        {log.action_detail}
-                                                    </td>
-                                                    <td>
-                                                        <img
-                                                            src={chevronDown}
-                                                            alt="Expand row"
-                                                            className={`adm-account-logs-chevron ${isExpanded ? 'adm-account-logs-chevron-open' : ''}`}
-                                                        />
-                                                    </td>
-                                                </tr>
-                                                {isExpanded && (
-                                                    <tr className="adm-account-logs-detail-row">
-                                                        <td colSpan={5}>
-                                                            <div className="adm-account-logs-detail-full">
-                                                                {log.entity_type && (
-                                                                    <span className="adm-account-logs-entity">{log.entity_type}</span>
-                                                                )}
-                                                                <p>{log.action_detail || '-'}</p>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </React.Fragment>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {logsTotalPages > 1 && (
-                            <div className="adm-account-logs-pagination">
-                                <button
-                                    className="adm-account-logs-page-btn"
-                                    disabled={logsPage <= 1}
-                                    onClick={() => setLogsPage((p) => Math.max(1, p - 1))}
-                                >
-                                    Prev
-                                </button>
-                                <span className="adm-account-logs-page-label">
-                                    Page {logsPage} of {logsTotalPages}
-                                </span>
-                                <button
-                                    className="adm-account-logs-page-btn"
-                                    disabled={logsPage >= logsTotalPages}
-                                    onClick={() => setLogsPage((p) => Math.min(logsTotalPages, p + 1))}
-                                >
-                                    Next
-                                </button>
-                            </div>
+                    <LogComponent
+                        logs={logs}
+                        columns={logColumns}
+                        getRowId={(log) => log.log_id}
+                        page={logsPage}
+                        totalPages={logsTotalPages}
+                        onPageChange={setLogsPage}
+                        renderDetail={(log) => (
+                            <>
+                                {log.entity_type && <span className="adm-account-logs-entity">{log.entity_type}</span>}
+                                <p>{log.action_detail || '-'}</p>
+                            </>
                         )}
-                    </>
+                    />
                 )}
             </section>
         </div>

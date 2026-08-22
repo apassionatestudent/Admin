@@ -107,3 +107,132 @@
 .adm-pages-body {
   margin-top: 20px;
 }
+
+/* ════════════════════════════════════
+   MAIN TABS (Announcements | Privacy Policy | Terms and Conditions | FAQs)
+   => Ported directly from Classes.css's .adm-main-tabs-row block, since
+      pages.css never actually defined these itself - it was only working
+      because Vite doesn't scope plain .css imports, so Classes.css's
+      global rules leaked in whenever that page loaded first in the same
+      session. Duplicating here per project convention (Classes.css and
+      Courses.css already duplicate this same block for the same reason).
+   ════════════════════════════════════ */
+.adm-main-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.adm-main-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.adm-main-tab-btn {
+  background: none;
+  border: none;
+  padding: 10px 18px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--text-muted, var(--text));
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-body), sans-serif;
+}
+
+.adm-main-tab-btn--active {
+  color: var(--accent-hover, #8a0d17);
+  border-bottom: 2px solid var(--accent-hover, #8a0d17);
+}
+
+/*  Responsive  */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
+  .adm-pages-page {
+    padding: 24px 28px 48px;
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .adm-pages-page {
+    padding: 20px 20px 40px;
+  }
+
+  /* => allows the title block and header-actions button to wrap onto
+     separate lines instead of squeezing together on narrower tablets */
+  .adm-pages-header {
+    flex-wrap: wrap;
+  }
+
+  .adm-pages-title {
+    font-size: 1.55rem;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .adm-pages-page {
+    /* => bottom padding clears the floating hamburger button in Dashboard.css */
+    padding: 16px 16px 96px;
+  }
+
+  /* => title block and the action button stack top to bottom instead of
+     fighting for the same row on narrow screens */
+  .adm-pages-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .adm-pages-title {
+    font-size: 1.4rem;
+  }
+
+  /* => action button takes the full row width instead of shrinking to
+     its text size and sitting awkwardly on the left */
+  .adm-pages-header-actions {
+    width: 100%;
+  }
+
+  .adm-pages-btn-solid,
+  .adm-pages-btn-outline {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* => Main tabs plus the Active/Inactive toggle can outgrow a narrow
+     screen together - lets the tab row scroll horizontally instead of
+     wrapping into a cramped second line, same pattern as Classes.css */
+  .adm-main-tabs-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .adm-main-tabs {
+    flex-shrink: 0;
+  }
+
+  .adm-main-tab-btn {
+    flex-shrink: 0;
+    padding: 10px 14px; /* => slightly tighter than desktop's 18px so more tabs fit before scrolling kicks in */
+  }
+
+  .view-toggle {
+    flex-shrink: 0;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .adm-pages-page {
+    padding: 16px 20px 96px;
+  }
+
+  .adm-pages-header {
+    margin-bottom: 14px;
+  }
+}

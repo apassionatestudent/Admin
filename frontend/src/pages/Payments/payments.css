@@ -465,18 +465,80 @@
   transform: translateY(-1px);
 }
 
-/* Responsive */
+/* ════════════════════════════════════
+   RESPONSIVE
+   => Standard 4-breakpoint set, matching Classes.css / Enrollments.css /
+      Students.css: 1024 (tablet/small laptop), 768 (tablet portrait),
+      640 (mobile), and the max-height landscape pass for short viewports.
+   ════════════════════════════════════ */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
+  .adm-payments-page {
+    padding: 32px 28px;
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .adm-payments-page {
+    padding: 26px 20px;
+  }
+
+  .adm-payments-title {
+    font-size: 1.6rem;
+  }
+}
+
+/* --- MOBILE --- */
 @media (max-width: 640px) {
   .adm-payments-page {
-    padding: 20px 16px;
+    /* => bottom clearance for the floating hamburger button (bottom-left,
+       fixed position), same 96px used elsewhere in the campaign - the
+       pagination's own margin-bottom already covers this when pagination
+       is showing, this covers the empty-state case too */
+    padding: 20px 16px 96px;
   }
 
   .adm-payments-title {
     font-size: 1.375rem;
   }
 
+  /* => Search input takes the full row width, matches Students.css /
+     Enrollments.css mobile treatment for the same search-row layout */
+  .adm-search-input {
+    min-width: 100%;
+  }
+
+  .adm-payments-pagination {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
   .adm-fab {
     bottom: 24px;
     right: 20px;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .adm-payments-page {
+    padding: 16px 20px 88px;
+  }
+
+  .adm-payments-header {
+    margin-bottom: 20px;
+  }
+
+  .adm-payments-state {
+    padding: 32px 0;
+  }
+
+  .adm-fab {
+    bottom: 16px;
+    right: 16px;
   }
 }

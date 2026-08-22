@@ -8,6 +8,22 @@
     position: relative; /* => anchors the overlay so it covers the whole dashboard, not just the viewport */
 }
 
+/* => The content flex item was completely unstyled, so it had no way to
+      shrink below a wide child's content width (e.g. Classes.css's 820px
+      table). That forced the whole .dashboard flex row wider than the
+      viewport during resize, which is what exposed the plain white body
+      background in the gap for a frame before layout settled. flex: 1
+      lets it take the remaining space next to the sidebar, and min-width: 0
+      overrides the flex-item default of min-width: auto so it's actually
+      allowed to shrink down to the viewport's width. overflow-x: hidden is
+      a second layer of safety so any page that forgets its own overflow
+      handling still can't blow out past this wrapper. */
+.main-content {
+    flex: 1;
+    min-width: 0;
+    overflow-x: hidden;
+}
+
 /* => Hamburger toggle button, hidden by default (desktop) */
 /* => Floating circular button, sits on the left edge by default so it never overlaps */
 /* => the plus-icon buttons that already live bottom-right across the admin pages */
@@ -16,7 +32,12 @@
     position: fixed;
     bottom: 24px;
     left: 16px;
-    z-index: 70; /* => above the sidebar (60) and overlay (55) so it stays clickable while the menu is open */
+    /* => raised alongside the sidebar/overlay bump below - FABs across the app
+          (chatbots-fab, adm-fab) sit at z-index 500, so the overlay had to move
+          above that, which meant this toggle needed to move above the overlay
+          too or it would end up buried under its own dim layer and become
+          unclickable to close the menu */
+    z-index: 960; /* => above dashboard-overlay (900) and the sidebar (950), below modal tiers (1000+) */
     width: 52px;
     height: 52px;
     border: none;
@@ -48,11 +69,25 @@
     position: fixed;
     inset: 0; /* => shorthand for top/right/bottom/left: 0, covers the full screen */
     background-color: rgba(0, 0, 0, 0.5);
-    z-index: 55; /* => below the sidebar (60) so nav links stay clickable, above page content */
+    /* => raised above every FAB in the app (chatbots-fab, adm-fab, etc. all sit
+          at z-index 500) - previously at 55 the overlay rendered underneath
+          those FABs, so tapping the dimmed area over a FAB still triggered the
+          button instead of closing the menu. Still kept below the sidebar (950)
+          so nav links stay on top of their own dim layer, and below modal tiers
+          (1000+) so a modal opened from within the sidebar, like the logout
+          ConfirmModal, still renders above everything. */
+    z-index: 900;
 }
 
-/* => Reveals the hamburger button only on tablet and mobile widths */
-@media (max-width: 768px) {
+/* => Reveals the hamburger button only at mobile widths. Was 768px, but
+      every page's own CSS (Classes.css, Enrollments.css, DashboardHome.css)
+      only reserves bottom clearance for this button starting at 640px -
+      the "MOBILE" tier convention used everywhere else. Between 641px and
+      768px the button was visible with zero space reserved for it, which
+      is what caused it to sit on top of the table header in your
+      screenshot. Aligning this to 640px matches every page's existing
+      clearance breakpoint instead of introducing a fifth, one-off value. */
+@media (max-width: 640px) {
     .dashboard-menu-toggle {
         display: flex;
     }

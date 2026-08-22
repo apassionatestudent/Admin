@@ -78,3 +78,13 @@ export async function getLogs(req, res) {
         res.status(error.status || 500).json({ message: error.message || 'Failed to load activity logs' });
     }
 }
+
+export async function updateProfile(req, res) {
+    try {
+        const { fullName, email } = req.body;
+        const updated = await staffService.updateAdminProfile(req.params.publicId, { fullName, email }, req.admin);
+        res.json(updated);
+    } catch (error) {
+        res.status(error.status || 500).json({ message: error.message || 'Failed to update profile' });
+    }
+}

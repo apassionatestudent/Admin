@@ -30,7 +30,7 @@ import checkMarkIcon from '../../../assets/icons/checkmark.png';
 import errorIcon from '../../../assets/icons/warning.png';
 import pencilIcon from '../../../assets/icons/pencil.png';
 import trashIcon from '../../../assets/icons/trash.png';
-import chevronDown from '../../../assets/icons/chevron-down.png';
+import LogComponent from '../../../components/LogComponent/logComponent.jsx'; // => shared log table + pagination, chevron icon lives inside it now
 
 // Constants
 
@@ -584,8 +584,7 @@ export default function SHSEnrollmentDetail() {
   // => Client-side pagination for the Activity Logs table - same
   //    reasoning as tesdaEnrollmentDetail.jsx
   const [logPage, setLogPage] = useState(1);
-  // => Which Activity Logs row is expanded to show its full diff, null when none
-  const [expandedLogId, setExpandedLogId] = useState(null);
+
   const [nationalities, setNationalities] = useState([]);
   const [saving,         setSaving]         = useState(false);
   // => saveMsg state removed - status save feedback now goes through
@@ -1127,6 +1126,20 @@ export default function SHSEnrollmentDetail() {
   //    fetchShsEnrollmentDetail in adminEnrollmentService.js
   const clusterCourses = data?.clusterCourses ?? [];
   const logs = data?.logs ?? [];
+
+  // => Column defs handed to LogComponent, matches this page's existing
+  //    Date/Actor/Action/Details layout and field names
+  const logColumns = [
+    { key: 'date', header: 'Date', render: (log) => formatDateTime(log.created_at) },
+    { key: 'actor', header: 'Actor', render: (log) => log.performed_by_name ?? 'System' },
+    { key: 'action', header: 'Action', render: (log) => log.action },
+    {
+      key: 'details',
+      header: 'Details',
+      cellClassName: 'logc-log-detail-cell',
+      render: (log) => log.remarks || '-',
+    },
+  ];
 
   const sortedFamily = [...familyMembers].sort(
     (a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role)
@@ -2001,6 +2014,9 @@ export default function SHSEnrollmentDetail() {
             {logs.length === 0 ? (
               <p className="adm-empty-note">No activity recorded yet.</p>
             ) : (() => {
+              // => Client-side pagination - logs come back as one full array
+              //    in the detail bundle, this slices it into 10-per-page for
+              //    LogComponent
               const LOGS_PER_PAGE = 10;
               const totalLogPages = Math.max(1, Math.ceil(logs.length / LOGS_PER_PAGE));
               const currentLogPage = Math.min(logPage, totalLogPages);
@@ -2010,89 +2026,14 @@ export default function SHSEnrollmentDetail() {
               );
 
               return (
-                <>
-                  <div className="adm-sub-table-wrap">
-                    <table className="adm-sub-table">
-                      <thead>
-                        <tr>
-                          <th>Date</th>
-                          <th>Actor</th>
-                          <th>Action</th>
-                          <th>Details</th>
-                          <th></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {pagedLogs.map((log, i) => {
-                          const logKey = log.log_id ?? i;
-                          const isExpanded = expandedLogId === logKey;
-                          return (
-                            <React.Fragment key={logKey}>
-                              <tr
-                                className="adm-log-row"
-                                onClick={() => setExpandedLogId(isExpanded ? null : logKey)}
-                              >
-                                <td>{formatDateTime(log.created_at)}</td>
-                                <td>{log.performed_by_name ?? 'System'}</td>
-                                <td>{log.action}</td>
-                                <td className="adm-log-detail-cell" title={log.remarks || ''}>
-                                  {log.remarks || '-'}
-                                </td>
-                                <td>
-                                  <img
-                                    src={chevronDown}
-                                    alt="Expand row"
-                                    className={`adm-log-chevron ${isExpanded ? 'adm-log-chevron-open' : ''}`}
-                                  />
-                                </td>
-                              </tr>
-                              {isExpanded && (
-                                <tr className="adm-log-detail-row">
-                                  <td colSpan={5}>
-                                    <div className="adm-log-detail-full">
-                                      {/* => Single flowing paragraph - wraps naturally to fill the
-                                           full row width, only breaking when text actually runs out
-                                           of room, instead of hard-breaking on every changed field */}
-                                      <p>{log.remarks || '-'}</p>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {totalLogPages > 1 && (
-                    <div className="adm-log-pagination">
-                      <button
-                        className="adm-log-page-btn"
-                        onClick={() => setLogPage(p => Math.max(1, p - 1))}
-                        disabled={currentLogPage === 1}
-                      >
-                        Prev
-                      </button>
-                      {Array.from({ length: totalLogPages }, (_, i) => i + 1).map(p => (
-                        <button
-                          key={p}
-                          className={`adm-log-page-btn ${p === currentLogPage ? 'adm-log-page-btn--active' : ''}`}
-                          onClick={() => setLogPage(p)}
-                        >
-                          {p}
-                        </button>
-                      ))}
-                      <button
-                        className="adm-log-page-btn"
-                        onClick={() => setLogPage(p => Math.min(totalLogPages, p + 1))}
-                        disabled={currentLogPage === totalLogPages}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  )}
-                </>
+                <LogComponent
+                  logs={pagedLogs}
+                  columns={logColumns}
+                  page={currentLogPage}
+                  totalPages={totalLogPages}
+                  onPageChange={setLogPage}
+                  renderDetail={(log) => <p>{log.remarks || '-'}</p>}
+                />
               );
             })()}
           </section>

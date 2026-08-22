@@ -931,18 +931,63 @@
   color: #059669;
 }
 
-/* Responsive */
-@media (max-width: 640px) {
+/* ════════════════════════════════════
+   RESPONSIVE
+   => Standard 4-breakpoint set, matching the other detail pages:
+      1024 (tablet/small laptop), 768 (tablet portrait), 640 (mobile), and
+      the max-height landscape pass for short mobile viewports.
+   ════════════════════════════════════ */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
   .adm-student-detail-page {
-    padding: 20px 16px 48px;
+    padding: 28px 28px 56px;
+  }
+
+  .adm-info-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .adm-student-detail-page {
+    padding: 24px 20px 48px;
   }
 
   .adm-student-hero {
+    padding: 22px 24px;
+  }
+
+  .adm-hero-name {
+    font-size: 1.4rem;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .adm-student-detail-page {
+    /* => was padding: 20px 16px 48px - 48px isn't enough clearance for the
+       floating hamburger button, same fix as Students.css, bumped to
+       match the 96px convention used on the other detail pages */
+    padding: 20px 16px 96px;
+  }
+
+  /* => hero stacks top-to-bottom instead of relying on flex-wrap, which
+     was letting the status badge overlap the student name text */
+  .adm-student-hero {
     padding: 20px;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .adm-hero-name {
     font-size: 1.25rem;
+  }
+
+  .adm-hero-badge {
+    align-self: flex-start;
+    margin-top: 8px;
   }
 
   .adm-student-section {
@@ -955,5 +1000,21 @@
 
   .adm-form-row {
     grid-template-columns: 1fr;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .adm-student-detail-page {
+    padding: 16px 20px 88px;
+  }
+
+  .adm-student-hero {
+    padding: 16px 20px;
+  }
+
+  .adm-student-section {
+    padding: 16px 18px;
   }
 }

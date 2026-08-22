@@ -21,7 +21,7 @@ import AddSessionModal from '../AddSessionModal/addSessionModal.jsx';
 // => Shared spinner/error block, replaces the local fsc-state markup below
 import LoadingState from '../../LoadingState/loadingState.jsx'; 
 import calendarIcon from '../../../assets/icons/calendar.png'; 
-import chevronDown from '../../../assets/icons/chevron-down.png';
+import LogComponent from '../../LogComponent/logComponent.jsx'; // => shared log table + pagination, chevron icon lives inside it now
 import './facilitySessionCalendar.css';
 
 // => FIX: the previous localizer wrapped startOfWeek in `() => startOfWeek(new
@@ -100,7 +100,6 @@ export default function FacilitySessionCalendar() {
   const [logsTotal, setLogsTotal] = useState(0);
   const [logPage, setLogPage] = useState(1);
   const [logsLoading, setLogsLoading] = useState(true);
-  const [expandedLogId, setExpandedLogId] = useState(null);
 
   useEffect(() => {
     const years = new Set([visibleRange.start.getFullYear(), visibleRange.end.getFullYear()]);
@@ -293,6 +292,20 @@ export default function FacilitySessionCalendar() {
     </div>
   );
 
+  // => Column defs handed to LogComponent, matches this page's original
+  //    Date/Actor/Action/Details layout and field names
+  const logColumns = [
+    { key: 'date', header: 'Date', render: (log) => format(new Date(log.created_at), 'MMM d, yyyy h:mm a') },
+    { key: 'actor', header: 'Actor', render: (log) => log.actor_name },
+    { key: 'action', header: 'Action', render: (log) => log.action },
+    {
+      key: 'details',
+      header: 'Details',
+      cellClassName: 'logc-log-detail-cell',
+      render: (log) => log.action_detail || '-',
+    },
+  ];
+
   // => Swapped local fsc-state spinner/warning markup for the shared
   //    LoadingState component, same variant pattern used elsewhere
   if (loading && !facility) {
@@ -356,93 +369,18 @@ export default function FacilitySessionCalendar() {
           <span className="fsc-logs-count">{logsTotal}</span>
         </h3>
 
-        {logsLoading ? (
-          <p className="fsc-empty-note">Loading activity logs…</p>
-        ) : logs.length === 0 ? (
-          <p className="fsc-empty-note">No activity recorded yet.</p>
-        ) : (
-          <>
-            <div className="fsc-log-table-wrap">
-              <table className="fsc-log-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Actor</th>
-                    <th>Action</th>
-                    <th>Details</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.map((log) => {
-                    const isExpanded = expandedLogId === log.log_id;
-                    return (
-                      <React.Fragment key={log.log_id}>
-                        <tr
-                          className="fsc-log-row"
-                          onClick={() => setExpandedLogId(isExpanded ? null : log.log_id)}
-                        >
-                          <td>{format(new Date(log.created_at), 'MMM d, yyyy h:mm a')}</td>
-                          <td>{log.actor_name}</td>
-                          <td>{log.action}</td>
-                          <td className="fsc-log-detail-cell" title={log.action_detail || ''}>
-                            {log.action_detail || '-'}
-                          </td>
-                          <td>
-                            <img
-                              src={chevronDown}
-                              alt="Expand row"
-                              className={`fsc-log-chevron ${isExpanded ? 'fsc-log-chevron-open' : ''}`}
-                            />
-                          </td>
-                        </tr>
-                        {isExpanded && (
-                          <tr className="fsc-log-detail-row">
-                            <td colSpan={5}>
-                              <div className="fsc-log-detail-full">
-                                {/* => Single flowing paragraph, wraps naturally instead of
-                                     hard-breaking on every changed field */}
-                                <p>{log.action_detail || '-'}</p>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {Math.ceil(logsTotal / 10) > 1 && (
-              <div className="fsc-log-pagination">
-                <button
-                  className="fsc-log-page-btn"
-                  onClick={() => setLogPage(p => Math.max(1, p - 1))}
-                  disabled={logPage === 1}
-                >
-                  Prev
-                </button>
-                {Array.from({ length: Math.ceil(logsTotal / 10) }, (_, i) => i + 1).map(p => (
-                  <button
-                    key={p}
-                    className={`fsc-log-page-btn ${p === logPage ? 'fsc-log-page-btn--active' : ''}`}
-                    onClick={() => setLogPage(p)}
-                  >
-                    {p}
-                  </button>
-                ))}
-                <button
-                  className="fsc-log-page-btn"
-                  onClick={() => setLogPage(p => Math.min(Math.ceil(logsTotal / 10), p + 1))}
-                  disabled={logPage === Math.ceil(logsTotal / 10)}
-                >
-                  Next
-                </button>
-              </div>
-            )}
-          </>
-        )}
+        {/* => Table + pagination now lives in the shared LogComponent, this
+               page still owns the section wrapper, title, and count badge
+               above, plus the fetch/page state that feeds it */}
+        <LogComponent
+          logs={logs}
+          columns={logColumns}
+          loading={logsLoading}
+          page={logPage}
+          totalPages={Math.ceil(logsTotal / 10)}
+          onPageChange={setLogPage}
+          renderDetail={(log) => <p>{log.action_detail || '-'}</p>}
+        />
       </section>
 
       {showAddModal && (

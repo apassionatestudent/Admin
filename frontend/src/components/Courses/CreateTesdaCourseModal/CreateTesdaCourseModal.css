@@ -246,3 +246,71 @@
   width: 100%;
   box-sizing: border-box;
 }
+
+/* ════════════════════════════════════
+   RESPONSIVE
+   => Standard breakpoints matching the rest of the admin dashboard: 1024
+      (tablet/small laptop), 768 (tablet portrait), 640 (mobile). No
+      landscape-height pass needed - .modal-overlay already scrolls the
+      whole modal via overflow-y: auto.
+   ════════════════════════════════════ */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
+  .modal-overlay {
+    padding: 32px 16px;
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .create-course-modal {
+    padding: 20px;
+  }
+
+  /* => Title/NC Level and the rest of the form drop to a single column
+     instead of squeezing two columns into a narrowing modal */
+  .form-grid,
+  .title-cert-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid label.span-2 {
+    grid-column: span 1;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 20px 12px;
+  }
+
+  .create-course-modal {
+    padding: 16px;
+  }
+
+  .modal-header h3 {
+    font-size: 1.05rem;
+  }
+
+  /* => Competency rows (Code + Description + remove button) and Job rows
+     stack instead of squeezing a 120px fixed code column into a narrow
+     modal */
+  .competency-row,
+  .job-row {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-remove-row {
+    justify-self: start;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions button {
+    width: 100%;
+  }
+}

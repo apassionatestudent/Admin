@@ -7,8 +7,11 @@ import axiosAdmin from '../../../utils/axiosAdmin.js';
 import './staffDetail.css';
 
 import ResendIcon from '../../../assets/icons/resend.png';
-// => Same chevron used by StudentDetail's Activity Log section
-import chevronDown from '../../../assets/icons/chevron-down.png';
+// => Same pencil icon path/depth as ResendIcon above, opens the inline
+// => Full Name / Email edit fields in the profile header
+import pencilIcon from '../../../assets/icons/pencil.png';
+// => Shared log table + pagination component, chevron icon lives inside it now
+import LogComponent from '../../LogComponent/logComponent.jsx';
 
 const SECTION_OPTIONS = [
     { key: 'enrollments', label: 'Enrollments' },
@@ -22,6 +25,21 @@ const SECTION_OPTIONS = [
     { key: 'logs', label: 'Logs' },
     { key: 'chatbots', label: 'Chatbots' },
 ];
+
+// => Same EMAIL_REGEX as StudentDetail.jsx, kept local since this file
+// => never imports validators from other pages by project convention
+const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+const validateEmail = (value) => {
+    if (!value || !value.trim()) return 'Email is required.';
+    if (!EMAIL_REGEX.test(value)) return 'Please enter a valid email address.';
+    return null;
+};
+
+// => Generic required-text check, same pattern as StudentDetail.jsx
+const validateRequiredText = (label) => (value) => {
+    if (!value || !value.trim()) return `${label} is required.`;
+    return null;
+};
 
 // => Same date formatting convention as Classes.jsx's formatDate
 const formatLogDate = (dateStr) => {
@@ -45,8 +63,17 @@ export default function StaffDetail() {
     const [logsPage, setLogsPage] = useState(1);
     const [logsTotalPages, setLogsTotalPages] = useState(1);
     const [logsLoading, setLogsLoading] = useState(true);
-    // => Which log row is currently expanded to show its full action_detail
-    const [expandedLogId, setExpandedLogId] = useState(null);
+
+    // => Profile edit mode (Full Name / Email), same pencil -> Save/Cancel
+    // => interaction as StudentDetail.jsx's Account & Personal Profile section
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
+    const [profileDraft, setProfileDraft] = useState({ fullName: '', email: '' });
+    const [profileFieldErrors, setProfileFieldErrors] = useState({});
+    const [profileSectionError, setProfileSectionError] = useState(null);
+    const [profileSaving, setProfileSaving] = useState(false);
+    // => Row-expand state used to live here (expandedLogId) - it now lives
+    //    inside LogComponent itself since it's pure UI state with no data
+    //    dependency, no parent page needs to read or reset it.
 
     useEffect(() => {
         if (currentAdmin && currentAdmin.role !== 'super_admin') {
@@ -82,6 +109,28 @@ export default function StaffDetail() {
         }
     }, [publicId, logsPage]);
 
+    // => Column defs handed to LogComponent, same Date/Actor/Action/Details
+    //    layout used on Students/Courses/Facilities/Trainers/Support Tickets
+    const logColumns = [
+        { key: 'date', header: 'Date', render: (log) => formatLogDate(log.created_at) },
+        {
+            key: 'actor',
+            header: 'Actor',
+            render: (log) => log.actor_type === 'System' ? (
+                <span className="adm-admin-detail-logs-badge-system">System</span>
+            ) : (
+                log.actor_name
+            ),
+        },
+        { key: 'action', header: 'Action', render: (log) => log.action },
+        {
+            key: 'details',
+            header: 'Details',
+            cellClassName: 'logc-log-detail-cell',
+            render: (log) => log.action_detail || '-',
+        },
+    ];
+
     useEffect(() => {
         fetchStaffMember();
     }, [fetchStaffMember]);
@@ -89,6 +138,52 @@ export default function StaffDetail() {
     useEffect(() => {
         fetchLogs();
     }, [fetchLogs]);
+
+    const startEditProfile = () => {
+        setProfileDraft({ fullName: target.full_name ?? '', email: target.email ?? '' });
+        setProfileFieldErrors({});
+        setProfileSectionError(null);
+        setIsEditingProfile(true);
+    };
+
+    const cancelEditProfile = () => {
+        setIsEditingProfile(false);
+        setProfileDraft({ fullName: '', email: '' });
+        setProfileFieldErrors({});
+        setProfileSectionError(null);
+    };
+
+    const handleSaveProfile = async () => {
+        // => Re-validate on save in case a field was never touched
+        const errors = {
+            fullName: validateRequiredText('Full Name')(profileDraft.fullName),
+            email: validateEmail(profileDraft.email),
+        };
+        if (Object.values(errors).some(Boolean)) {
+            setProfileFieldErrors(errors);
+            setProfileSectionError('Please fix the highlighted fields before saving.');
+            return;
+        }
+        setProfileSaving(true);
+        setProfileSectionError(null);
+        try {
+            const res = await axiosAdmin.put(`/api/admin/admins/${publicId}`, {
+                fullName: profileDraft.fullName,
+                email: profileDraft.email,
+            });
+            setTarget(prev => ({ ...prev, ...res.data }));
+            setIsEditingProfile(false);
+            toast.success('Staff profile updated');
+            // => Refetch so the newly written log shows up immediately
+            fetchLogs();
+        } catch (error) {
+            const message = error.response?.data?.message || 'Failed to update profile';
+            setProfileSectionError(message);
+            toast.error(message);
+        } finally {
+            setProfileSaving(false);
+        }
+    };
 
     const toggleSection = (key) => {
         setSections(prev =>
@@ -157,18 +252,74 @@ export default function StaffDetail() {
                         {target.full_name?.charAt(0).toUpperCase() || '?'}
                     </div>
                     <div className="adm-admin-detail-heading">
-                        <div className="adm-admin-detail-name-row">
-                            <h2>{target.full_name}</h2>
-                            <span className={`adm-admin-detail-status adm-admin-detail-status--${target.status}`}>
-                                {target.status}
-                            </span>
-                            {!target.password_set && (
-                                <span className="adm-admin-detail-status adm-admin-detail-status--pending">
-                                    Invite Pending
-                                </span>
-                            )}
-                        </div>
-                        <p className="adm-admin-detail-email">{target.email}</p>
+                        {isEditingProfile ? (
+                            // => Edit mode: Full Name / Email swap to inputs, Save/Cancel below
+                            <div className="adm-admin-detail-edit-fields">
+                                <div className="adm-admin-detail-edit-field">
+                                    <label className="adm-admin-detail-edit-label">
+                                        Full Name <span className="adm-req-asterisk">*</span>
+                                    </label>
+                                    <input
+                                        className={`adm-edit-input ${profileFieldErrors.fullName ? 'adm-edit-input--error' : ''}`}
+                                        type="text"
+                                        value={profileDraft.fullName}
+                                        onChange={e => {
+                                            const value = e.target.value;
+                                            setProfileDraft(prev => ({ ...prev, fullName: value }));
+                                            setProfileFieldErrors(prev => ({ ...prev, fullName: validateRequiredText('Full Name')(value) }));
+                                        }}
+                                    />
+                                    {profileFieldErrors.fullName && <span className="adm-edit-error">{profileFieldErrors.fullName}</span>}
+                                </div>
+
+                                <div className="adm-admin-detail-edit-field">
+                                    <label className="adm-admin-detail-edit-label">
+                                        Email <span className="adm-req-asterisk">*</span>
+                                    </label>
+                                    <input
+                                        className={`adm-edit-input ${profileFieldErrors.email ? 'adm-edit-input--error' : ''}`}
+                                        type="email"
+                                        value={profileDraft.email}
+                                        onChange={e => {
+                                            const value = e.target.value;
+                                            setProfileDraft(prev => ({ ...prev, email: value }));
+                                            setProfileFieldErrors(prev => ({ ...prev, email: validateEmail(value) }));
+                                        }}
+                                    />
+                                    {profileFieldErrors.email && <span className="adm-edit-error">{profileFieldErrors.email}</span>}
+                                </div>
+
+                                {profileSectionError && <p className="adm-section-error">{profileSectionError}</p>}
+
+                                <div className="adm-admin-detail-edit-actions">
+                                    <button className="adm-section-save-btn" onClick={handleSaveProfile} disabled={profileSaving}>
+                                        {profileSaving ? 'Saving...' : 'Save'}
+                                    </button>
+                                    <button className="adm-section-cancel-btn" onClick={cancelEditProfile} disabled={profileSaving}>
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="adm-admin-detail-name-row">
+                                    <h2>{target.full_name}</h2>
+                                    <span className={`adm-admin-detail-status adm-admin-detail-status--${target.status}`}>
+                                        {target.status}
+                                    </span>
+                                    {!target.password_set && (
+                                        <span className="adm-admin-detail-status adm-admin-detail-status--pending">
+                                            Invite Pending
+                                        </span>
+                                    )}
+                                    {/* => Pencil opens the Full Name / Email edit fields above */}
+                                    <button className="adm-section-edit-btn" onClick={startEditProfile} title="Edit profile">
+                                        <img src={pencilIcon} alt="Edit" className="adm-pencil-icon" />
+                                    </button>
+                                </div>
+                                <p className="adm-admin-detail-email">{target.email}</p>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -231,94 +382,17 @@ export default function StaffDetail() {
                     <span className="adm-admin-detail-section-count">{logs.length}</span>
                 </p>
 
-                {logsLoading && <p className="adm-admin-detail-logs-empty">Loading logs…</p>}
-
-                {!logsLoading && logs.length === 0 && (
-                    <p className="adm-admin-detail-logs-empty">No activity recorded for this staff member yet.</p>
-                )}
-
-                {!logsLoading && logs.length > 0 && (
-                    <div className="adm-admin-detail-logs-table-wrap">
-                        <table className="adm-admin-detail-logs-table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Actor</th>
-                                    <th>Action</th>
-                                    <th>Details</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {logs.map((log) => {
-                                    // => Toggles this row's expanded detail view on click,
-                                    // => same chevron-expand pattern as StudentDetail
-                                    const isExpanded = expandedLogId === log.log_id;
-                                    return (
-                                        <React.Fragment key={log.log_id}>
-                                            <tr
-                                                className="adm-admin-detail-logs-row"
-                                                onClick={() => setExpandedLogId(isExpanded ? null : log.log_id)}
-                                            >
-                                                <td className="adm-admin-detail-logs-date">{formatLogDate(log.created_at)}</td>
-                                                <td>
-                                                    {/* => Same System actor badge treatment as StudentDetail */}
-                                                    {log.actor_type === 'System' ? (
-                                                        <span className="adm-admin-detail-logs-badge-system">System</span>
-                                                    ) : (
-                                                        log.actor_name
-                                                    )}
-                                                </td>
-                                                <td className="adm-admin-detail-logs-action">{log.action}</td>
-                                                <td className="adm-admin-detail-logs-detail" title={log.action_detail || ''}>
-                                                    {log.action_detail || '-'}
-                                                </td>
-                                                <td>
-                                                    <img
-                                                        src={chevronDown}
-                                                        alt="Expand row"
-                                                        className={`adm-admin-detail-logs-chevron ${isExpanded ? 'adm-admin-detail-logs-chevron-open' : ''}`}
-                                                    />
-                                                </td>
-                                            </tr>
-                                            {isExpanded && (
-                                                <tr className="adm-admin-detail-logs-detail-row">
-                                                    <td colSpan={5}>
-                                                        <div className="adm-admin-detail-logs-detail-full">
-                                                            <p>{log.action_detail || '-'}</p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </React.Fragment>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-
-                {!logsLoading && logs.length > 0 && logsTotalPages > 1 && (
-                    <div className="adm-admin-detail-logs-pagination">
-                        <button
-                            className="adm-admin-detail-logs-page-btn"
-                            disabled={logsPage <= 1}
-                            onClick={() => setLogsPage(p => p - 1)}
-                        >
-                            Prev
-                        </button>
-                        <span className="adm-admin-detail-logs-page-indicator">
-                            Page {logsPage} of {logsTotalPages}
-                        </span>
-                        <button
-                            className="adm-admin-detail-logs-page-btn"
-                            disabled={logsPage >= logsTotalPages}
-                            onClick={() => setLogsPage(p => p + 1)}
-                        >
-                            Next
-                        </button>
-                    </div>
-                )}
+                <LogComponent
+                    logs={logs}
+                    columns={logColumns}
+                    getRowId={(log) => log.log_id}
+                    loading={logsLoading}
+                    emptyMessage="No activity recorded for this staff member yet."
+                    page={logsPage}
+                    totalPages={logsTotalPages}
+                    onPageChange={setLogsPage}
+                    renderDetail={(log) => <p>{log.action_detail || '-'}</p>}
+                />
             </div>
         </main>
     );

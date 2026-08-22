@@ -302,21 +302,74 @@
   vertical-align: middle;
 }
 
-/* => Responsive */
-@media (max-width: 800px) {
-  .refund-detail-top-row {
-    grid-template-columns: 1fr;
+/* ════════════════════════════════════
+   RESPONSIVE
+   => Standard 4-breakpoint set, matching paymentDetail.css and the rest
+      of the campaign. Replaces the previous custom 800px/560px
+      breakpoints.
+   ════════════════════════════════════ */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
+  .refund-detail-page {
+    padding: 32px 28px;
   }
 }
 
-@media (max-width: 560px) {
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
   .refund-detail-page {
-    padding: 20px 16px;
+    padding: 26px 20px;
   }
+
+  .refund-detail-top-row {
+    grid-template-columns: 1fr;
+  }
+
+  .refund-detail-header h1 {
+    font-size: 1.7rem;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .refund-detail-page {
+    /* => bottom clearance for the floating hamburger button (bottom-left,
+       fixed position), same 96px used elsewhere in the campaign */
+    padding: 20px 16px 96px;
+  }
+
   .refund-detail-grid {
     grid-template-columns: 1fr;
   }
+
   .refund-detail-header {
     flex-direction: column;
+  }
+
+  .refund-detail-header-actions {
+    width: 100%;
+  }
+
+  .refund-detail-download-btn,
+  .refund-detail-void-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .refund-detail-page {
+    padding: 16px 20px 88px;
+  }
+
+  .refund-detail-header {
+    margin-bottom: 20px;
+  }
+
+  .refund-detail-card {
+    padding: 16px 18px;
   }
 }

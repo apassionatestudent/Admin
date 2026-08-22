@@ -262,6 +262,11 @@
   font-size: 0.875rem;
   color: var(--text); /* => was #374151, matches .tickets-table td */
   min-width: 640px;
+  /* => uses the colgroup widths in Students.jsx instead of auto-sizing to
+     each cell's own content, same fix as Enrollments.css - this is what
+     was letting the header text overflow its own column and overlap the
+     next one on narrow screens */
+  table-layout: fixed;
 }
 
 .adm-table thead tr {
@@ -281,6 +286,11 @@
   background: var(--sidebar-bg, #660911);
   color: #fff;
   white-space: nowrap;
+  /* => clips header text at the column edge instead of letting it spill
+     visually into the next column, same fix already applied to the
+     td cells (adm-td-name, adm-td-email) above */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Table row */
@@ -317,12 +327,17 @@
 .adm-td-num {
   color: var(--text-muted, #9ca3af); /* => was #9ca3af */
   font-size: 0.8125rem;
-  width: 40px;
+  /* => width dropped - table-layout: fixed now takes column widths from
+     the colgroup in Students.jsx, a per-cell width here would just fight it */
 }
 
 /* Name cell */
 .adm-td-name {
-  min-width: 180px;
+  /* => min-width dropped for the same reason as adm-td-num above - overflow
+     truncates instead of trying to stretch the fixed column wider */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .adm-student-name {
@@ -334,6 +349,11 @@
 .adm-td-email {
   color: var(--text-muted, var(--text)); /* => was #6b7280 */
   font-size: 0.8375rem;
+  /* => same truncation as adm-td-name - long emails/usernames now clip
+     with an ellipsis inside their fixed column instead of forcing it wider */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Date cell */
@@ -437,14 +457,89 @@
   user-select: none;
 }
 
-/* Responsive */
+/* ════════════════════════════════════
+   RESPONSIVE
+   => Standard 4-breakpoint set, matching Classes.css / Enrollments.css:
+      1024 (tablet/small laptop), 768 (tablet portrait), 640 (mobile), and
+      the max-height landscape pass for short mobile viewports.
+   ════════════════════════════════════ */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
+  .adm-students-page {
+    padding: 32px 28px;
+  }
+
+  .adm-more-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .adm-students-page {
+    padding: 26px 20px;
+  }
+
+  .adm-students-title {
+    font-size: 1.6rem;
+  }
+
+  .adm-students-count-num {
+    font-size: 1.9rem;
+  }
+}
+
+/* --- MOBILE --- */
 @media (max-width: 640px) {
   .adm-students-page {
-    padding: 20px 16px;
+    /* => was padding: 20px 16px with no bottom clearance at all - the
+       floating hamburger button (bottom-left, fixed position) sat
+       directly on top of the last visible table row. 96px bottom padding
+       matches the clearance already used on Classes.css / Enrollments.css
+       for the same button. */
+    padding: 20px 16px 96px;
   }
 
   .adm-students-title {
     font-size: 1.375rem;
+  }
+
+  /* => header stays side by side, count badge pinned top-right, instead
+     of stacking - matches the Enrollments.css / Classes.css pattern */
+  .adm-students-header {
+    flex-wrap: nowrap;
+    align-items: flex-start;
+  }
+
+  .adm-students-header > div:first-child {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .adm-students-count {
+    flex-shrink: 0;
+  }
+
+  .adm-students-count-num {
+    font-size: 1.6rem;
+  }
+
+  .adm-search-input {
+    min-width: 100%;
+  }
+
+  /* => Search and More Options buttons share the row evenly instead of
+     each sizing to its own padding, matches Enrollments.css's mobile
+     treatment for the same search-row layout */
+  .adm-search-row > .adm-search-btn,
+  .adm-search-row > .adm-more-btn,
+  .adm-search-row > .adm-clear-btn {
+    flex: 1;
+  }
+
+  .adm-more-grid {
+    grid-template-columns: 1fr;
   }
 
   .adm-pagination {
@@ -455,5 +550,21 @@
     min-width: 32px;
     height: 32px;
     font-size: 0.8125rem;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .adm-students-page {
+    padding: 16px 20px 88px;
+  }
+
+  .adm-students-header {
+    margin-bottom: 20px;
+  }
+
+  .adm-students-state {
+    padding: 32px 0;
   }
 }

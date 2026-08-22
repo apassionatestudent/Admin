@@ -80,9 +80,11 @@ export async function findAdminByEmail(email) {
 // => here, overriding the table's DEFAULT true (that default exists only to
 // => correctly mark pre-existing rows as active).
 export async function createAdmin({ fullName, email, lockedHash }) {
+    // => lockedHash restored - was hardcoded to NULL before, which violates
+    // => the NOT NULL constraint on password_hash and broke account creation
     const result = await sql`
         INSERT INTO admins (full_name, email, password_hash, role, status, password_set)
-        VALUES (${fullName}, ${email}, NULL, 'staff', 'active', false)
+        VALUES (${fullName}, ${email}, ${lockedHash}, 'staff', 'active', false)
         RETURNING admin_id, public_id, full_name, email, role, status, password_set, created_at
     `;
     return result.rows[0];
@@ -96,6 +98,20 @@ export async function updateAdminStatus(publicId, status) {
         SET status = ${status}
         WHERE public_id = ${publicId}
         RETURNING admin_id, public_id, full_name, email, role, status, password_set
+    `;
+    return result.rows[0] || null;
+}
+
+// => Updates the editable profile fields (full name, email) for a staff
+// => member. Status and section access are updated through their own
+// => dedicated functions above, not through this one.
+export async function updateAdminProfile(publicId, { fullName, email }) {
+    const result = await sql`
+        UPDATE admins
+        SET full_name = ${fullName}, email = ${email}, updated_at = NOW()
+        WHERE public_id = ${publicId}
+        RETURNING admin_id, public_id, full_name, email, role, status, password_set,
+                  is_night_mode, created_at, updated_at, last_login_at, remarks
     `;
     return result.rows[0] || null;
 }

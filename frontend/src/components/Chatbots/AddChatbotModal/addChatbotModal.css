@@ -131,3 +131,78 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+
+/* => ════════════════════════════════════════════
+      RESPONSIVE - 4-TIER BREAKPOINT SYSTEM
+      1024px => 768px => 640px => landscape short-height
+      ════════════════════════════════════════════ */
+
+/* => TIER 1: 1024px - tablet / small laptop */
+@media (max-width: 1024px) {
+  .chatbot-modal-panel {
+    max-width: 480px;
+  }
+}
+
+/* => TIER 2: 768px - tablet portrait
+      Panel takes most of the viewport width instead of a fixed max-width,
+      padding tightens a bit */
+@media (max-width: 768px) {
+  .chatbot-modal-panel {
+    max-width: 92vw;
+    padding: 22px;
+  }
+
+  .chatbot-modal-title {
+    font-size: 1.2rem;
+  }
+}
+
+/* => TIER 3: 640px - mobile
+      Panel goes near-full-width, action buttons stack full-width
+      instead of staying side by side and getting squeezed */
+@media (max-width: 640px) {
+  .chatbot-modal-backdrop {
+    padding: 12px; /* => keeps a small margin so the panel doesn't touch screen edges */
+  }
+
+  .chatbot-modal-panel {
+    max-width: 100%;
+    max-height: 92vh;
+    padding: 18px;
+  }
+
+  .chatbot-modal-form {
+    gap: 12px;
+  }
+
+  .chatbot-modal-actions {
+    flex-direction: column-reverse; /* => primary action ends up on top, matches thumb-reach expectation on mobile */
+    gap: 8px;
+  }
+
+  .chatbot-modal-btn-primary,
+  .chatbot-modal-btn-secondary {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* => TIER 4: max-height 500px landscape - short phone screens
+      Form is long (5 fields including two multi-line textareas) so this
+      is the tier most at risk of the modal overflowing a short viewport */
+@media (max-height: 500px) and (orientation: landscape) {
+  .chatbot-modal-panel {
+    max-height: 94vh;
+    padding: 14px 18px;
+  }
+
+  .chatbot-modal-header {
+    margin-bottom: 10px;
+  }
+
+  .chatbot-modal-form {
+    gap: 8px;
+  }
+}

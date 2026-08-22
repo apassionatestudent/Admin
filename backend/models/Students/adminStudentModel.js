@@ -316,17 +316,18 @@ export const updateStudentProfile = async (pool, studentId, profileFields) => {
 // => Updates username and/or  on student_accounts
 // 
 export const updateStudentAccount = async (pool, studentId, accountFields) => {
-  const { username,  } = accountFields;
+  const { username } = accountFields;
+  // => username-only update, admin does not touch password_hash
+  // => password changes are student-initiated via the reset flow, not this function
 
   const result = await pool.query(
     `UPDATE student_accounts
         SET username           = COALESCE($1, username),
-             = COALESCE($2, ),
             updated_at         = NOW()
-      WHERE student_id = $3
-      RETURNING public_id, student_id, username, , is_active, updated_at`,
+      WHERE student_id = $2
+      RETURNING public_id, student_id, username, is_active, updated_at`,
     [
-      username           ?? null,
+      username ?? null,
       studentId,
     ]
   );

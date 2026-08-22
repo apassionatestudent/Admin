@@ -305,6 +305,7 @@ export default function SupportTickets() {
           ) : studentFetchError ? (
             <LoadingState variant="error" message={studentFetchError} onRetry={fetchStudentTickets} />
           ) : (
+            <div className="tickets-table-wrap">
             <table className="tickets-table">
               <thead>
                 <tr>
@@ -353,6 +354,7 @@ export default function SupportTickets() {
                 )}
               </tbody>
             </table>
+            </div>
           )}
 
           {!studentLoading && !studentFetchError && studentTotalPages > 1 && (
@@ -446,6 +448,7 @@ export default function SupportTickets() {
           ) : fetchError ? (
             <LoadingState variant="error" message={fetchError} onRetry={fetchTickets} />
           ) : (
+            <div className="tickets-table-wrap">
             <table className="tickets-table">
               <thead>
                 <tr>
@@ -497,6 +500,7 @@ export default function SupportTickets() {
                 )}
               </tbody>
             </table>
+            </div>
           )}
 
           {!loading && !fetchError && totalPages > 1 && (

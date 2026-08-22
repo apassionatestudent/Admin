@@ -292,106 +292,13 @@
   margin: 0;
 }
 
-.adm-account-logs-table-wrap {
-  overflow-x: auto;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-}
-
-.adm-account-logs-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.8375rem;
-  color: #374151;
-  min-width: 640px;
-}
-
-.adm-account-logs-table thead tr {
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.adm-account-logs-table th {
-  padding: 10px 14px;
-  text-align: left;
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #6b7280;
-  white-space: nowrap;
-}
-
-.adm-account-logs-table td {
-  padding: 11px 14px;
-  border-bottom: 1px solid #f3f4f6;
-  vertical-align: middle;
-  color: #374151;
-}
-
-.adm-account-logs-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.adm-account-logs-date {
-  white-space: nowrap;
-  color: #6b7280;
-}
-
-.adm-account-logs-action {
-  white-space: nowrap;
-  font-weight: 600;
-  color: #111827;
-}
-
-.adm-account-logs-detail {
-  color: #6b7280;
-  max-width: 260px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* => Centered pagination with ghost disabled state, matches
-      StudentDetail/StaffDetail's Activity Log pagination */
-.adm-account-logs-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
-}
-
-.adm-account-logs-page-btn {
-  padding: 6px 16px;
-  border: 1.5px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
-  color: #374151;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: var(--font-body), sans-serif;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
-}
-
-.adm-account-logs-page-btn:hover:not(:disabled) {
-  background: #f0f4ff;
-  border-color: #1a56db;
-  color: #1a56db;
-}
-
-.adm-account-logs-page-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.adm-account-logs-page-label {
-  font-size: 0.8125rem;
-  color: #6b7280;
-}
+/* => .adm-account-logs-table/-date/-action/-detail/-pagination/
+      -page-btn/-page-label/-row/-chevron/-detail-row/-detail-full were
+      removed here - they only ever styled this page's own hand-rolled
+      log table, which now renders through LogComponent (styles live in
+      logComponent.css instead).
+      .adm-account-logs-entity and .adm-account-logs-badge-system are
+      kept below, still used inside logColumns' Details/Actor render. */
 
 .adm-account-logs-entity {
   display: inline-block;
@@ -410,39 +317,6 @@
   font-weight: 600;
   background: #ede9fe;
   color: #5b21b6;
-}
-
-/* => Row hover and click-to-expand behavior */
-.adm-account-logs-row {
-  cursor: pointer;
-  transition: background 0.12s ease;
-}
-
-.adm-account-logs-row:hover {
-  background: #f0f4ff;
-}
-
-.adm-account-logs-chevron {
-  width: 14px;
-  height: 14px;
-  transition: transform 0.15s ease;
-}
-
-.adm-account-logs-chevron-open {
-  transform: rotate(180deg);
-}
-
-.adm-account-logs-detail-row td {
-  background: #f9fafb;
-  padding: 14px 16px;
-}
-
-.adm-account-logs-detail-full p {
-  margin: 0;
-  font-size: 0.8375rem;
-  color: #374151;
-  line-height: 1.5;
-  white-space: pre-wrap;
 }
 
 /* =========================================================
@@ -547,9 +421,91 @@
     border-bottom: none;
 }
 
-@media (max-width: 700px) {
-  .adm-account-page { padding: 1.5rem 1rem; }
-  .adm-account-card { padding: 1.3rem 1.2rem 1.5rem; }
-  .adm-account-g2 { grid-template-columns: 1fr; }
-  .adm-account-g3 { grid-template-columns: 1fr; }
+/* => ════════════════════════════════════════════
+      RESPONSIVE - 4-TIER BREAKPOINT SYSTEM
+      1024px => 768px => 640px => landscape short-height
+      Replaces the old single 700px breakpoint - same rules now live
+      in the 640px tier below, plus the standard three tiers added
+      ════════════════════════════════════════════ */
+
+/* => TIER 1: 1024px - tablet / small laptop
+      Three-column grids (adm-account-g3) get tight at this width, so
+      they drop to two columns before going fully single-column at 640px */
+@media (max-width: 1024px) {
+  .adm-account-page {
+    padding: 2rem 1.5rem;
+  }
+
+  .adm-account-g3 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* => TIER 2: 768px - tablet portrait
+      Card padding tightens, appearance row (label + toggle) allowed to
+      wrap instead of forcing a squeeze */
+@media (max-width: 768px) {
+  .adm-account-card {
+    padding: 1.4rem 1.4rem 1.6rem;
+  }
+
+  .adm-account-appearance-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+/* => TIER 3: 640px - mobile
+      Carries forward the original 700px rules (page/card padding,
+      g2/g3 collapse to single column), plus actions row goes
+      full-width stacked */
+@media (max-width: 640px) {
+  .adm-account-page {
+    padding: 1.5rem 1rem;
+  }
+
+  .adm-account-card {
+    padding: 1.3rem 1.2rem 1.5rem;
+  }
+
+  .adm-account-g2 {
+    grid-template-columns: 1fr;
+  }
+
+  .adm-account-g3 {
+    grid-template-columns: 1fr;
+  }
+
+  .adm-account-actions {
+    flex-direction: column-reverse; /* => primary action ends up on top, matches thumb-reach expectation on mobile */
+  }
+
+  .adm-account-btn,
+  .adm-account-btn-secondary {
+    width: 100%;
+  }
+
+  .adm-account-field-edit-row {
+    flex-wrap: wrap;
+  }
+}
+
+/* => TIER 4: max-height 500px landscape - short phone screens
+      This page can stack several cards (profile, security/appearance,
+      logs) - tighten vertical rhythm so more fits without excessive
+      scrolling */
+@media (max-height: 500px) and (orientation: landscape) {
+  .adm-account-page {
+    padding: 1.2rem 1rem;
+  }
+
+  .adm-account-card {
+    padding: 1rem 1.2rem;
+    margin-bottom: 1rem;
+  }
+
+  .adm-account-state,
+  .adm-account-logs-state {
+    padding: 24px 0;
+  }
 }

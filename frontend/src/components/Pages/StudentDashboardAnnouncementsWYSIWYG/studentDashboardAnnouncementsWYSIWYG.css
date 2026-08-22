@@ -16,13 +16,18 @@
 .sdaw-table-wrap {
   border: 1px solid var(--border, #e0d8d0);
   border-radius: 10px;
-  overflow: hidden;
+  overflow-x: auto; /* => allows horizontal scroll so Status/Actions aren't clipped */
+  overflow-y: hidden; /* => explicit, not auto-resolved - restores clean clipping to the
+                           10px rounded corners, which broke when overflow-y was left to
+                           auto-compute alongside overflow-x: auto and border-collapse: collapse */
 }
 
 .sdaw-table {
   width: 100%;
   border-collapse: collapse;
   background: #fff;
+  min-width: 560px; /* => forces horizontal scroll on mobile instead of
+                         squeezing Title/Status/Date/Actions into unreadable columns */
 }
 
 .sdaw-table th {
@@ -96,32 +101,89 @@
 }
 
 .sdaw-edit-btn {
-  padding: 5px 14px;
+  display: inline-flex; /* => centers the icon inside the button, was text-sized padding before */
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
   border: 1px solid #8a0d17;
   border-radius: 6px;
   background: none;
-  color: #8a0d17;
-  font-size: 0.8125rem;
-  font-weight: 600;
   cursor: pointer;
 }
 
 .sdaw-edit-btn:hover {
   background: #8a0d17;
-  color: #fff;
+}
+
+/* => pencil.png stays its natural color on hover since PNGs aren't
+      recolorable via CSS like text was - only the button background flips */
+.sdaw-edit-btn img {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .sdaw-delete-btn {
-  padding: 5px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
   border: 1px solid #fecaca;
   border-radius: 6px;
   background: #fee2e2;
-  color: #991b1b;
-  font-size: 0.8125rem;
-  font-weight: 600;
   cursor: pointer;
 }
 
 .sdaw-delete-btn:hover {
   background: #fecaca;
+}
+
+.sdaw-delete-btn img {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+/*  Responsive  */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
+  .sdaw-td-title {
+    max-width: 300px;
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .sdaw-td-title {
+    max-width: 220px;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .sdaw-td-title {
+    max-width: 160px;
+  }
+
+  /* => Edit/Delete stack instead of squeezing side by side in a
+     narrow Actions column */
+  .sdaw-actions {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .sdaw-edit-btn,
+  .sdaw-delete-btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .sdaw-wrap {
+    padding: 4px 0 20px;
+  }
 }

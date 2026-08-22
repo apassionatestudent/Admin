@@ -321,21 +321,78 @@
   vertical-align: middle;
 }
 
-/* => Responsive */
-@media (max-width: 800px) {
-  .payment-detail-top-row {
-    grid-template-columns: 1fr;
+/* ════════════════════════════════════
+   RESPONSIVE
+   => Standard 4-breakpoint set, matching Classes.css / Enrollments.css /
+      Students.css: 1024 (tablet/small laptop), 768 (tablet portrait),
+      640 (mobile), and the max-height landscape pass for short viewports.
+      Replaces the previous custom 800px/560px breakpoints.
+   ════════════════════════════════════ */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
+  .payment-detail-page {
+    padding: 32px 28px;
   }
 }
 
-@media (max-width: 560px) {
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
   .payment-detail-page {
-    padding: 20px 16px;
+    padding: 26px 20px;
   }
+
+  /* => Student / Enrollment cards stack instead of squeezing side by
+     side - was the custom 800px breakpoint, now the campaign's standard
+     tablet-portrait tier */
+  .payment-detail-top-row {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-detail-header h1 {
+    font-size: 1.7rem;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .payment-detail-page {
+    /* => bottom clearance for the floating hamburger button (bottom-left,
+       fixed position), same 96px used elsewhere in the campaign */
+    padding: 20px 16px 96px;
+  }
+
   .payment-detail-grid {
     grid-template-columns: 1fr;
   }
+
   .payment-detail-header {
     flex-direction: column;
+  }
+
+  .payment-detail-header-actions {
+    width: 100%;
+  }
+
+  .payment-detail-download-btn,
+  .payment-detail-void-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .payment-detail-page {
+    padding: 16px 20px 88px;
+  }
+
+  .payment-detail-header {
+    margin-bottom: 20px;
+  }
+
+  .payment-detail-card {
+    padding: 16px 18px;
   }
 }

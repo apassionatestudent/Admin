@@ -216,3 +216,24 @@
   background: var(--accent-hover, #8a0d17);
   color: #fff;
 }
+
+/* ════════════════════════════════════
+   RESPONSIVE
+   ════════════════════════════════════ */
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 20px 12px;
+  }
+
+  .add-lookup-modal {
+    padding: 18px;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions button {
+    width: 100%;
+  }
+}

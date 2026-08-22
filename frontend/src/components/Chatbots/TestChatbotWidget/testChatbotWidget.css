@@ -47,7 +47,6 @@
 .test-widget-close-icon {
   width: 14px;
   height: 14px;
-  filter: brightness(0) invert(1);
 }
 
 .test-widget-messages {
@@ -172,4 +171,75 @@
 .test-widget-send-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+
+/* => ════════════════════════════════════════════
+      RESPONSIVE - 4-TIER BREAKPOINT SYSTEM
+      1024px => 768px => 640px => landscape short-height
+      ════════════════════════════════════════════ */
+
+/* => TIER 1: 1024px - tablet / small laptop
+      Panel pulled in slightly, still fixed bottom-right */
+@media (max-width: 1024px) {
+  .test-widget-panel {
+    width: 340px;
+    bottom: 24px;
+    right: 24px;
+  }
+}
+
+/* => TIER 2: 768px - tablet portrait
+      Panel width now tracks viewport instead of a fixed px value, since
+      380px/340px is already tight against a 768px-wide screen once the
+      admin sidebar is accounted for */
+@media (max-width: 768px) {
+  .test-widget-panel {
+    width: min(360px, calc(100vw - 32px));
+    bottom: 16px;
+    right: 16px;
+    max-height: 70vh;
+  }
+}
+
+/* => TIER 3: 640px - mobile
+      Panel goes full-width/full-height-ish and anchors to the bottom
+      edge instead of floating as a card, matching how chat widgets
+      typically behave on small screens */
+@media (max-width: 640px) {
+  .test-widget-panel {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    top: 0;
+    border-radius: 0; /* => edge-to-edge, no floating card look on this tier */
+  }
+
+  .test-widget-messages {
+    min-height: 0; /* => let flex:1 do the sizing now that the panel is full height, fixed min-height would fight it */
+  }
+
+  .test-widget-bubble {
+    max-width: 88%;
+  }
+}
+
+/* => TIER 4: max-height 500px landscape - short phone screens
+      Full-height panel from Tier 3 still applies; header/input rows
+      tightened so more vertical space goes to the actual messages */
+@media (max-height: 500px) and (orientation: landscape) {
+  .test-widget-header {
+    padding: 10px 14px;
+  }
+
+  .test-widget-input-row {
+    padding: 8px 12px;
+  }
+
+  .test-widget-messages {
+    padding: 10px 16px;
+  }
 }

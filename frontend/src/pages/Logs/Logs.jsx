@@ -228,6 +228,9 @@ export default function Logs() {
       ) : fetchError ? (
         <LoadingState variant="error" message={fetchError} onRetry={fetchLogs} />
       ) : (
+        // => wrapper enables horizontal scroll on narrow screens instead of
+        //    crushing columns unreadably - same pattern as sdaw-table-wrap / faqw-table-wrap
+        <div className="logs-table-wrap">
         <table className="logs-table">
           <thead>
             <tr>
@@ -285,6 +288,7 @@ export default function Logs() {
             )}
           </tbody>
         </table>
+        </div>
       )}
 
       {!loading && !fetchError && totalPages > 1 && (

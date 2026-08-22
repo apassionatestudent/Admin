@@ -20,8 +20,7 @@ import warningIcon from '../../../assets/icons/warning.png'; // => still used by
 // => Shared spinner/error block, replaces the local trainer-state markup below
 import LoadingState from '../../LoadingState/loadingState.jsx';
 import pencilIcon from '../../../assets/icons/pencil.png'; //
-// => Confirmed filename from TesdaBatchDetail.jsx / FacilityDetail.jsx
-import chevronDown from '../../../assets/icons/chevron-down.png';
+import LogComponent from '../../LogComponent/logComponent.jsx'; // => shared log table, chevron icon lives inside it now
 import './trainerDetail.css';
 
 // => Philippine mobile format: must start with 09, exactly 11 digits total
@@ -88,8 +87,7 @@ export default function TrainerDetail() {
   //    chevron-expandable rows.
   const [logs, setLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
-  // => Which log row is currently expanded to show its full action_detail
-  const [expandedLogId, setExpandedLogId] = useState(null);
+
 
   // => Loads the trainer itself. This is the ONLY fetch that can put the
   //    page into the hard "Failed to load trainer" error state.
@@ -160,6 +158,29 @@ export default function TrainerDetail() {
       setLogsLoading(false);
     }
   };
+
+  // => Column defs handed to LogComponent, matches the Date/Actor/Action/
+  //    Details layout used on TesdaBatchDetail, ShsBatchDetail, and
+  //    FacilityDetail
+  const logColumns = [
+    { key: 'date', header: 'Date', render: (log) => formatDateTime(log.created_at) },
+    {
+      key: 'actor',
+      header: 'Actor',
+      render: (log) => log.actor_type === 'System' ? (
+        <span className="adm-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>System</span>
+      ) : (
+        log.actor_name
+      ),
+    },
+    { key: 'action', header: 'Action', render: (log) => log.action },
+    {
+      key: 'details',
+      header: 'Details',
+      cellClassName: 'logc-log-detail-cell',
+      render: (log) => log.action_detail || '-',
+    },
+  ];
 
   useEffect(() => {
     fetchLogs();
@@ -589,71 +610,16 @@ export default function TrainerDetail() {
           <span className="adm-section-count-inline">{logs.length}</span>
         </p>
 
-        {logsLoading && <p className="adm-empty-note">Loading logs…</p>}
-
-        {!logsLoading && logs.length === 0 && (
-          <p className="adm-empty-note">No activity recorded for this trainer yet.</p>
-        )}
-
-        {!logsLoading && logs.length > 0 && (
-          <div className="adm-sub-table-wrap">
-            <table className="adm-sub-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Actor</th>
-                  <th>Action</th>
-                  <th>Details</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map(log => {
-                  const isExpanded = expandedLogId === log.log_id;
-                  return (
-                    <React.Fragment key={log.log_id}>
-                      <tr
-                        className="adm-log-row"
-                        onClick={() => setExpandedLogId(isExpanded ? null : log.log_id)}
-                      >
-                        <td className="adm-td-date">{formatDateTime(log.created_at)}</td>
-                        <td>
-                          {log.actor_type === 'System' ? (
-                            <span className="adm-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>
-                              System
-                            </span>
-                          ) : (
-                            log.actor_name
-                          )}
-                        </td>
-                        <td>{log.action}</td>
-                        <td className="adm-log-detail-cell" title={log.action_detail || ''}>
-                          {log.action_detail || '-'}
-                        </td>
-                        <td>
-                          <img
-                            src={chevronDown}
-                            alt="Expand row"
-                            className={`adm-log-chevron ${isExpanded ? 'adm-log-chevron-open' : ''}`}
-                          />
-                        </td>
-                      </tr>
-                      {isExpanded && (
-                        <tr className="adm-log-detail-row">
-                          <td colSpan={5}>
-                            <div className="adm-log-detail-full">
-                              <p>{log.action_detail || '-'}</p>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <LogComponent
+          logs={logs}
+          columns={logColumns}
+          loading={logsLoading}
+          page={1}
+          totalPages={1}
+          onPageChange={() => {}}
+          emptyMessage="No activity recorded for this trainer yet."
+          renderDetail={(log) => <p>{log.action_detail || '-'}</p>}
+        />
       </div>
 
       {/* => Requires a remarks reason before the Active/Inactive change is

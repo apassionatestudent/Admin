@@ -250,3 +250,29 @@
   object-fit: contain;
   display: block;
 }
+
+/* ════════════════════════════════════
+   RESPONSIVE
+   => The fixed 480px modal width has nothing capping it on small
+      viewports, so it clips off-screen on mobile instead of shrinking.
+   ════════════════════════════════════ */
+@media (max-width: 640px) {
+  .add-payment-overlay {
+    padding: 16px;
+    box-sizing: border-box;
+  }
+
+  .add-payment-modal {
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    padding: var(--spacing-md, 16px);
+  }
+}
+
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .add-payment-modal {
+    max-height: 82vh;
+  }
+}

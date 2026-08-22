@@ -31,7 +31,11 @@
 
 .chatbots-fab {
   position: fixed;
-  bottom: 32px;
+  /* => bottom changed from 32px to 22px so this button's vertical center
+        lines up with dashboard-menu-toggle's center (24px bottom + 52px
+        height / 2 = 50px from viewport bottom). At 56px height, this FAB
+        needs bottom:22px to hit that same 50px center (22 + 28 = 50) */
+  bottom: 22px;
   right: 32px;
   width: 56px;
   height: 56px;
@@ -54,6 +58,9 @@
 
 .chatbots-fab-icon {
   /* => Plain '+' text instead of an SVG icon, white on the green FAB background */
+  /* => matches .adm-fab-icon exactly (staff.css / payments.css) - that's the
+        working reference confirmed aligned with the X button, no reason for
+        this file's FAB icon to use different values */
   color: #ffffff;
   font-size: 26px;
   font-weight: 400;

@@ -152,6 +152,17 @@
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   width: 100%;
   box-sizing: border-box;
+  /* => Fixes the Ongoing table loading pre-scrolled to its far-right edge.
+        The browser's scroll anchoring feature was silently adjusting this
+        container's scrollLeft to compensate for a layout shift right after
+        first paint (most likely the header labels re-measuring once the
+        real web font swaps in for the fallback font). Since the Ongoing
+        table is the first one on the page, it gets measured before fonts
+        are ready; the Pending table below it doesn't, which is why only
+        one of the two identical tables showed this. overflow-anchor: none
+        tells the browser never to auto-adjust scroll position on this
+        element for any reason. */
+  overflow-anchor: none;
 }
 
 /* Table */
@@ -209,6 +220,11 @@
 
 .adm-table-wrap--batches th:nth-child(7),
 .adm-table-wrap--batches td:nth-child(7) {
+  width: 130px;
+}
+
+.adm-table-wrap--batches th:nth-child(8),
+.adm-table-wrap--batches td:nth-child(8) {
   width: 130px;
 }
 
@@ -971,22 +987,156 @@
 }
 
 /* Responsive */
-@media (max-width: 640px) {
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
   .adm-classes-page {
-    padding: 20px 16px;
+    padding: 32px 28px;
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .adm-classes-page {
+    padding: 26px 20px;
   }
 
   .adm-classes-title {
-    font-size: 1.375rem;
+    font-size: 1.6rem;
+  }
+
+  .adm-classes-count-num {
+    font-size: 2rem;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .adm-classes-page {
+    /* => bottom padding clears the floating hamburger button in Dashboard.css,
+          same reasoning as Enrollments.css */
+    padding: 20px 16px 88px;
+  }
+
+  .adm-classes-title {
+    font-size: 1.5rem;
+  }
+
+  .adm-classes-count-num {
+    font-size: 1.75rem;
+  }
+
+  /* => header stays side by side, count badge pinned top-right, matching
+     the desktop layout instead of stacking */
+  .adm-classes-header {
+    flex-direction: row;
+    flex-wrap: nowrap; /* => overrides the base rule's flex-wrap: wrap, which was
+                            pushing the count badge onto its own line below the title */
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  /* => title block shrinks and truncates instead of forcing the row to
+     wrap once both it and the count badge compete for the same line */
+  .adm-classes-header > div:first-child {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .adm-classes-count {
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+
+  /* => Main tabs (Classes/Batches/Facilities/Trainers) plus the Active/Deleted
+     toggle can outgrow a narrow screen together - this lets the tab row
+     scroll horizontally instead of wrapping into a cramped second line */
+  .adm-main-tabs-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .adm-main-tabs {
+    flex-shrink: 0;
+  }
+
+  .adm-main-tab-btn {
+    flex-shrink: 0;
+    padding: 10px 14px; /* => slightly tighter than desktop's 18px so more tabs fit before scrolling kicks in */
+  }
+
+  .view-toggle {
+    flex-shrink: 0;
+  }
+
+  /* => search input takes the full row instead of shrinking to min-width
+     220px and fighting the search/more/clear buttons for space */
+  .adm-search-input {
+    min-width: 100%;
+  }
+
+  /* => search/more/clear buttons share the row evenly instead of
+     wrapping into an uneven ragged line */
+  .adm-search-row > .adm-search-btn,
+  .adm-search-row > .adm-more-btn,
+  .adm-search-row > .adm-clear-btn {
+    flex: 1;
+  }
+
+  /* => Type and Status filter groups sit on one row instead of stacking -
+     the row scrolls horizontally if content ever gets too wide to fit,
+     rather than wrapping onto a second line */
+  .adm-filter-wrap {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 14px;
+    padding-bottom: 2px;
+  }
+
+  .adm-filter-group {
+    flex-shrink: 0;
+    flex-wrap: nowrap;
   }
 
   .adm-form-row {
     grid-template-columns: 1fr;
   }
 
+  /* => FAB tucked closer to the corner on small screens, same as before */
   .adm-fab {
     bottom: 24px;
     right: 20px;
+  }
+
+  /* => Modal shrinks its side padding and gets closer to full-width so it
+     doesn't feel cramped inside the 24px backdrop padding on a small screen */
+  .adm-modal-backdrop {
+    padding: 16px;
+  }
+
+  .adm-modal-box {
+    max-width: 100%;
+  }
+
+  .adm-modal-body {
+    padding: 18px;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used in Enrollments.css */
+@media (max-height: 500px) and (orientation: landscape) {
+  .adm-classes-page {
+    padding: 16px 20px 88px;
+  }
+
+  .adm-classes-header {
+    margin-bottom: 20px;
+  }
+
+  .adm-classes-state {
+    padding: 32px 0;
   }
 }
 

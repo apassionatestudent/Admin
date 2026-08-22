@@ -129,3 +129,63 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ════════════════════════════════════
+   RESPONSIVE
+   => Standard 4-breakpoint set. The adm-modal-box shell already caps its
+      own width via Classes.css, so this file only handles this modal's
+      own controls: the type toggle, day-of-week pills, and the danger
+      action row, which get cramped first on a narrow screen.
+   ════════════════════════════════════ */
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .asm-type-toggle {
+    gap: 10px;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .asm-type-toggle {
+    gap: 8px;
+  }
+
+  .asm-type-btn {
+    padding: 8px 10px;
+    font-size: 0.75rem;
+  }
+
+  .asm-day-btn {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+  }
+
+  /* => danger buttons (delete session / stop repeating) stack full-width
+     instead of squeezing side by side in the footer next to Cancel/Save */
+  .asm-danger-actions {
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    margin-right: 0;
+  }
+
+  .asm-danger-btn {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => short viewport height, tightens the day-pill row so it doesn't push
+     the rest of the form further down an already-cramped modal body */
+@media (max-height: 500px) and (orientation: landscape) {
+  .asm-day-toggle-row {
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  .asm-day-btn {
+    padding: 5px 9px;
+  }
+}

@@ -31,11 +31,15 @@
   left: 0;
   width: var(--sidebar-width);
   height: 100vh;
-  /* => lowered from 100 to 60 to match the student dashboard convention: */
-  /* => raised above the mobile overlay (which should sit at 55 in Dashboard.jsx) */
-  /* => so nav links stay clickable, but below modals like ConfirmModal */
-  /* => double check your modal z-index values are higher than 60 after this change */
-  z-index: 60;
+  /* => raised very high on purpose - FAB buttons across the app (chatbots-fab,
+        adm-fab, etc.) use z-index values up to 500, and on mobile the sidebar
+        slides in as an overlay on top of the page, so it needs to sit above
+        every FAB or the FAB stays clickable through the open sidebar, like
+        the "+" bleeding through under Payments in the screenshot */
+  /* => still keep this below actual modals (ConfirmModal, chatbot-modal-backdrop,
+        etc.) which use z-index 1000+ - double check that stays true if you
+        add new modals later */
+  z-index: 950;
 
   display: flex;
   flex-direction: column;

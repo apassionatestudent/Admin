@@ -63,10 +63,7 @@
   border: 1px solid #fca5a5;
 }
 
-.chatbot-detail-danger-icon {
-  width: 14px;
-  height: 14px;
-}
+
 
 .chatbot-detail-form {
   display: flex;
@@ -345,4 +342,100 @@
 .chatbot-detail-meta-line strong {
   font-weight: 700;
   color: var(--text-h);
+}
+
+
+/* => ════════════════════════════════════════════
+      RESPONSIVE - 4-TIER BREAKPOINT SYSTEM
+      1024px => 768px => 640px => landscape short-height
+      ════════════════════════════════════════════ */
+
+/* => TIER 1: 1024px - tablet / small laptop */
+@media (max-width: 1024px) {
+  .chatbot-detail-page {
+    padding: 24px;
+  }
+
+  .chatbot-detail-section {
+    padding: 20px 22px;
+  }
+}
+
+/* => TIER 2: 768px - tablet portrait
+      Header wraps instead of forcing the title and up to 4 action
+      buttons onto one row via space-between */
+@media (max-width: 768px) {
+  .chatbot-detail-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .chatbot-detail-header-actions {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .chatbot-detail-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+/* => TIER 3: 640px - mobile
+      Action buttons go full-width stacked instead of wrapped inline
+      chips, easier to tap accurately; meta attribution line no longer
+      pinned right since it has nowhere to breathe next to the left line */
+@media (max-width: 640px) {
+  .chatbot-detail-page {
+    padding: 16px;
+  }
+
+  .chatbot-detail-header h2 {
+    font-size: 1.35rem;
+  }
+
+  .chatbot-detail-header-actions {
+    flex-direction: column;
+  }
+
+  .chatbot-detail-btn-primary,
+  .chatbot-detail-btn-secondary,
+  .chatbot-detail-btn-danger,
+  .chatbot-detail-btn-test,
+  .chatbot-detail-btn-activate,
+  .chatbot-detail-btn-deactivate {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .chatbot-detail-section {
+    padding: 18px;
+  }
+
+  .chatbot-detail-meta {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .chatbot-detail-meta-line--right {
+    margin-left: 0; /* => cancel the auto push-right, stacks under the created-by line instead */
+  }
+}
+
+/* => TIER 4: max-height 500px landscape - short phone screens
+      Textareas (Instructions rows=6, Context rows=5) are the tallest
+      elements on this page and are the main risk on a short viewport */
+@media (max-height: 500px) and (orientation: landscape) {
+  .chatbot-detail-page {
+    padding: 14px;
+  }
+
+  .chatbot-detail-textarea {
+    max-height: 120px;
+  }
+
+  .chatbot-detail-section {
+    padding: 14px 18px;
+    margin-top: 16px;
+  }
 }

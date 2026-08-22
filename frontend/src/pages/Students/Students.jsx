@@ -360,6 +360,19 @@ export default function Students() {
         <>
           <div className="adm-table-wrap">
             <table className="adm-table">
+              {/* => Forces fixed column widths instead of letting the browser
+                     auto-size each <th> to its own text - auto-sizing is what
+                     let the header text overflow its cell and visually bleed
+                     into the next column on narrow screens. Same fix already
+                     applied on Enrollments.jsx's table. */}
+              <colgroup>
+                <col style={{ width: '6%' }} />   {/* # */}
+                <col style={{ width: '26%' }} />  {/* Full Name */}
+                <col style={{ width: '28%' }} />  {/* Email / Username */}
+                <col style={{ width: '16%' }} />  {/* Account Status */}
+                <col style={{ width: '16%' }} />  {/* Registered */}
+                <col style={{ width: '8%' }} />   {/* Arrow */}
+              </colgroup>
               <thead>
                 <tr>
                   <th>#</th>

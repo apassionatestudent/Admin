@@ -134,14 +134,29 @@
   color: #fff;
 }
 
-.courses-table {
-  width: 100%;
-  border-collapse: collapse;
+/* => The actual scroll container - was missing entirely before, which is
+   why the table couldn't scroll horizontally at all and just squeezed/
+   wrapped text on narrow screens instead. overflow-y: hidden keeps the
+   rounded corners clipped the same way the old .courses-table overflow:
+   hidden used to, while overflow-x: auto is what now lets it scroll. */
+.courses-table-wrap {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.courses-table {
+  width: 100%;
+  border-collapse: collapse;
   color: var(--text);
+  /* => uses the colgroup widths in Courses.jsx instead of auto-sizing to
+     each cell's own content - this is what was letting long titles wrap
+     into a tall stack of lines instead of truncating cleanly */
+  table-layout: fixed;
 }
 
 .courses-table th {
@@ -153,6 +168,9 @@
   letter-spacing: 0.03em;
   color: #fff;
   border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .courses-table td {
@@ -160,6 +178,20 @@
   border-bottom: 1px solid var(--border);
   color: var(--text);
   font-size: 0.875rem; /* => matches Enrollments.css's .adm-table body text exactly */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* => The empty-state message is a real sentence, not a data value - it
+   needs to wrap normally instead of inheriting the nowrap/ellipsis
+   truncation above. Higher specificity (table + td + class) so this
+   reliably wins over the .courses-table td rule regardless of source
+   order. */
+.courses-table td.courses-empty {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .courses-row {
@@ -357,4 +389,96 @@
 .adm-filter-select:focus {
   outline: none;
   border-color: var(--accent-hover, #8a0d17); /* => swapped from Classes.css's blue to this page's maroon accent */
+}
+
+/* ════════════════════════════════════
+   RESPONSIVE
+   => Standard 4-breakpoint set, matching the rest of the admin dashboard:
+      1024 (tablet/small laptop), 768 (tablet portrait), 640 (mobile), and
+      the max-height landscape pass for short viewports. This file had no
+      responsive rules at all before this pass - the table's horizontal
+      scroll fix above (.courses-table-wrap) is the real fix for the
+      squeezed/unreadable table, these breakpoints handle everything else.
+   ════════════════════════════════════ */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
+  .courses-page {
+    padding: 28px 24px;
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .courses-page {
+    padding: 22px 18px;
+  }
+
+  .courses-header {
+    flex-wrap: wrap;
+  }
+
+  .courses-header-actions {
+    width: 100%;
+    /* => Adds breathing room now that these buttons wrap onto their own
+       row directly under the subtitle text instead of sitting beside it */
+    margin-top: 14px;
+  }
+
+  .btn-outline-action,
+  .btn-create-course {
+    flex: 1;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .courses-page {
+    /* => bottom clearance for the floating hamburger button (bottom-left,
+       fixed position), same 96px used elsewhere in the campaign - this
+       page had no bottom padding at all before, which is why the last
+       table row was sitting directly underneath the button */
+    padding: 18px 16px 96px;
+  }
+
+  .courses-header h2 {
+    font-size: 1.4rem;
+  }
+
+  .courses-tabs-row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .adm-search-input {
+    min-width: 100%;
+  }
+
+  .adm-filter-group {
+    width: 100%;
+  }
+
+  .adm-filter-select {
+    flex: 1;
+  }
+
+  .courses-guidelines {
+    padding: 12px 14px;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .courses-page {
+    padding: 16px 20px 88px;
+  }
+
+  .courses-header {
+    margin-bottom: 14px;
+  }
+
+  .courses-guidelines {
+    margin-bottom: 14px;
+  }
 }

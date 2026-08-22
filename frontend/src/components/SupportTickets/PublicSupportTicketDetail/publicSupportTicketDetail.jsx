@@ -11,8 +11,7 @@ import pencilIcon from '../../../assets/icons/pencil.png';
 //    uses for its copy button, same relative depth from this file
 import clipboardIcon from '../../../assets/icons/clipboard.png';
 import checkMarkIcon from '../../../assets/icons/checkmark.png';
-// => Same chevron used by FacilityDetail/TrainerDetail's Activity Logs section
-import chevronDown from '../../../assets/icons/chevron-down.png';
+import LogComponent from '../../LogComponent/logComponent.jsx'; // => shared log table, chevron icon lives inside it now
 import './publicSupportTicketDetail.css';
 
 const ALLOWED_STATUSES = ['Open', 'In Progress', 'Resolved', 'Unresolved'];
@@ -85,8 +84,7 @@ export default function PublicSupportTicketDetail() {
   //    fetch everything at once, no pagination, chevron-expandable rows.
   const [logs, setLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
-  // => Which log row is currently expanded to show its full action_detail
-  const [expandedLogId, setExpandedLogId] = useState(null);
+
 
   useEffect(() => {
     fetchTicket();
@@ -107,6 +105,28 @@ export default function PublicSupportTicketDetail() {
       setLogsLoading(false);
     }
   };
+
+  // => Column defs handed to LogComponent, matches the Date/Actor/Action/
+  //    Details layout used on FacilityDetail/TrainerDetail
+  const logColumns = [
+    { key: 'date', header: 'Date', render: (log) => formatDateTime(log.created_at) },
+    {
+      key: 'actor',
+      header: 'Actor',
+      render: (log) => log.actor_type === 'System' ? (
+        <span className="adm-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>System</span>
+      ) : (
+        log.actor_name
+      ),
+    },
+    { key: 'action', header: 'Action', render: (log) => log.action },
+    {
+      key: 'details',
+      header: 'Details',
+      cellClassName: 'logc-log-detail-cell',
+      render: (log) => log.action_detail || '-',
+    },
+  ];
 
   useEffect(() => {
     fetchLogs();
@@ -267,71 +287,16 @@ export default function PublicSupportTicketDetail() {
           <span className="adm-section-count-inline">{logs.length}</span>
         </p>
 
-        {logsLoading && <p className="adm-empty-note">Loading logs…</p>}
-
-        {!logsLoading && logs.length === 0 && (
-          <p className="adm-empty-note">No activity recorded for this ticket yet.</p>
-        )}
-
-        {!logsLoading && logs.length > 0 && (
-          <div className="adm-sub-table-wrap">
-            <table className="adm-sub-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Actor</th>
-                  <th>Action</th>
-                  <th>Details</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map(log => {
-                  const isExpanded = expandedLogId === log.log_id;
-                  return (
-                    <React.Fragment key={log.log_id}>
-                      <tr
-                        className="adm-log-row"
-                        onClick={() => setExpandedLogId(isExpanded ? null : log.log_id)}
-                      >
-                        <td className="adm-td-date">{formatDateTime(log.created_at)}</td>
-                        <td>
-                          {log.actor_type === 'System' ? (
-                            <span className="adm-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>
-                              System
-                            </span>
-                          ) : (
-                            log.actor_name
-                          )}
-                        </td>
-                        <td>{log.action}</td>
-                        <td className="adm-log-detail-cell" title={log.action_detail || ''}>
-                          {log.action_detail || '-'}
-                        </td>
-                        <td>
-                          <img
-                            src={chevronDown}
-                            alt="Expand row"
-                            className={`adm-log-chevron ${isExpanded ? 'adm-log-chevron-open' : ''}`}
-                          />
-                        </td>
-                      </tr>
-                      {isExpanded && (
-                        <tr className="adm-log-detail-row">
-                          <td colSpan={5}>
-                            <div className="adm-log-detail-full">
-                              <p>{log.action_detail || '-'}</p>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <LogComponent
+          logs={logs}
+          columns={logColumns}
+          loading={logsLoading}
+          page={1}
+          totalPages={1}
+          onPageChange={() => {}}
+          emptyMessage="No activity recorded for this ticket yet."
+          renderDetail={(log) => <p>{log.action_detail || '-'}</p>}
+        />
       </div>
         </>
       )}

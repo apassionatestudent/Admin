@@ -342,3 +342,113 @@
 .adm-log-chevron-open {
   transform: rotate(180deg);
 }
+
+/* ════════════════════════════════════
+   RESPONSIVE
+   => Standard 4-breakpoint set, matching Enrollments.css and the
+      enrollment detail pages: 1024 (tablet/small laptop), 768 (tablet
+      portrait), 640 (mobile), and the max-height landscape pass for
+      short mobile viewports. This page had none before this pass.
+   ════════════════════════════════════ */
+
+/* --- TABLET / SMALL LAPTOP --- */
+@media (max-width: 1024px) {
+  .fd-page {
+    padding: 28px;
+  }
+
+  .fd-form-card {
+    padding: 28px;
+  }
+}
+
+/* --- TABLET PORTRAIT --- */
+@media (max-width: 768px) {
+  .fd-page {
+    padding: 24px 20px 48px;
+  }
+
+  .fd-title {
+    font-size: 1.5rem;
+  }
+
+  .fd-form-card {
+    padding: 24px 20px;
+  }
+
+  /* => Name/Capacity paired fields stack instead of squeezing into a
+     tablet-width row */
+  .fd-form-card .adm-form-row {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .fd-info-view-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .adm-batch-section {
+    padding: 20px;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .fd-page {
+    padding: 20px 16px 48px;
+  }
+
+  .fd-title {
+    font-size: 1.375rem;
+  }
+
+  .fd-form-card {
+    padding: 20px;
+  }
+
+  .fd-checklist {
+    max-height: 160px;
+  }
+
+  /* => Save/Cancel actions stack full-width instead of the default
+     space-between row, which left the buttons cramped side by side */
+  .fd-form-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .fd-form-actions button {
+    width: 100%;
+  }
+
+  .fd-section-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* => Activity Logs section ported from the batch detail pages, same
+     mobile padding reduction applied there */
+  .adm-batch-section {
+    padding: 18px 16px;
+  }
+}
+
+/* --- MOBILE LANDSCAPE --- */
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .fd-page {
+    padding: 16px 20px 48px;
+  }
+
+  .fd-form-card {
+    padding: 16px 20px;
+  }
+
+  .fd-checklist {
+    max-height: 110px;
+  }
+
+  .adm-batch-section {
+    padding: 16px 18px;
+  }
+}

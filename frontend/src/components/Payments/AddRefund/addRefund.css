@@ -285,3 +285,34 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ════════════════════════════════════
+   RESPONSIVE
+   => The fixed 480px modal width has nothing capping it on small
+      viewports, so it clips off-screen on mobile instead of shrinking.
+      Same fix as addPaymentModal.css.
+   ════════════════════════════════════ */
+@media (max-width: 640px) {
+  .add-refund-overlay {
+    padding: 16px;
+    box-sizing: border-box;
+  }
+
+  .add-refund-modal {
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    padding: var(--spacing-md, 16px);
+  }
+
+  .add-refund-type-toggle {
+    flex-direction: column;
+  }
+}
+
+/* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
+@media (max-height: 500px) and (orientation: landscape) {
+  .add-refund-modal {
+    max-height: 82vh;
+  }
+}

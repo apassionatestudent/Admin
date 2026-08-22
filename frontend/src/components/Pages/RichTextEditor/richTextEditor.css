@@ -164,7 +164,98 @@
   margin: 8px 0;
 }
 
-.rte-content p,
-.rte-content div {
-  margin: 0 0 8px;
+
+/* => ════════════════════════════════════════════
+      RESPONSIVE - 4-TIER BREAKPOINT SYSTEM
+      1024px => 768px => 640px => landscape short-height
+      ════════════════════════════════════════════ */
+
+/* => TIER 1: 1024px - tablet / small laptop
+      Toolbar stays single row but tightens spacing a bit */
+@media (max-width: 1024px) {
+  .rte-toolbar {
+    gap: 3px;
+    padding: 7px 8px;
+  }
+
+  .rte-content {
+    padding: 14px 16px;
+  }
+}
+
+/* => TIER 2: 768px - tablet portrait
+      Toolbar now allowed to wrap instead of squeezing buttons;
+      this is the main structural fix since the toolbar has no
+      wrap or scroll fallback at all right now */
+@media (max-width: 768px) {
+  .rte-toolbar {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .rte-toolbar-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .rte-content {
+    min-height: 200px;
+    max-height: 440px;
+  }
+
+  .rte-image-toolbar-label {
+    width: 100%; /* => forces preset buttons/input/delete onto their own row under the label on wrap */
+    margin-right: 0;
+    margin-bottom: 4px;
+  }
+}
+
+/* => TIER 3: 640px - mobile
+      Toolbar dividers removed to save space, buttons shrink further,
+      image toolbar controls stack cleanly */
+@media (max-width: 640px) {
+  .rte-toolbar-divider {
+    display: none;
+  }
+
+  .rte-toolbar-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .rte-toolbar-btn img {
+    width: 14px;
+    height: 14px;
+  }
+
+  .rte-content {
+    min-height: 180px;
+    max-height: 360px;
+    padding: 12px 14px;
+    font-size: 0.95rem;
+  }
+
+  .rte-image-delete-btn {
+    margin-left: 0; /* => cancel the auto push-right, let it wrap to its own line naturally */
+    width: 100%;
+    text-align: center;
+  }
+
+  .rte-image-width-input {
+    width: 56px;
+  }
+}
+
+/* => TIER 4: max-height 500px landscape - short phone screens
+      Content area is the main risk here since it has a fixed
+      max-height that can dominate a short viewport */
+@media (max-height: 500px) and (orientation: landscape) {
+  .rte-content {
+    min-height: 140px;
+    max-height: 220px;
+  }
+
+  .rte-toolbar {
+    padding: 5px 8px;
+  }
 }

@@ -47,7 +47,8 @@
     border-radius: 8px;
     padding: 9px 14px;
     background: #fff;
-    min-width: 280px;
+    flex: 1; /* => stretches the search bar to fill the rest of the toolbar row */
+    min-width: 0; /* => required alongside flex:1 so it can actually shrink below its content size on narrow screens */
     transition: border-color 0.15s;
 }
 
@@ -76,15 +77,21 @@
 }
 
 /* ── Table ── */
+/* => overflow-x:auto lets the table scroll horizontally on narrow
+      screens instead of squeezing columns; overflow-y:hidden kept
+      explicit so the border-radius corner clipping stays clean,
+      same pattern as sdaw-table-wrap / faqw-table-wrap / logs-table-wrap */
 .adm-admins-table-wrap {
     background: #fff;
     border: 1px solid var(--border);
     border-radius: 10px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 .adm-admins-table {
     width: 100%;
+    min-width: 620px; /* => forces the scrollbar to actually trigger instead of columns just squeezing */
     border-collapse: collapse;
     background: #fff;
 }
@@ -232,4 +239,83 @@
         bottom: 24px;
         right: 20px;
     }
+}
+
+
+/* => ════════════════════════════════════════════
+      RESPONSIVE - 4-TIER BREAKPOINT SYSTEM
+      1024px => 768px => 640px => landscape short-height
+      Note: a narrower @media(max-width:768px) block already exists
+      above, scoped only to .adm-fab - left untouched, this section
+      covers everything else
+      ════════════════════════════════════════════ */
+
+/* => TIER 1: 1024px - tablet / small laptop */
+@media (max-width: 1024px) {
+  .adm-admins-page {
+    padding: 24px;
+  }
+
+  .adm-admins-header h2 {
+    font-size: 1.5rem;
+  }
+}
+
+/* => TIER 2: 768px - tablet portrait
+      Search bar already flexes full-width via the flex:1 change above,
+      so mainly tightening spacing here */
+@media (max-width: 768px) {
+  .adm-admins-page {
+    padding: 20px;
+  }
+
+  .adm-admins-toolbar {
+    margin-bottom: 12px;
+  }
+}
+
+/* => TIER 3: 640px - mobile
+      Pagination stacks and buttons go full-width, easier to tap */
+@media (max-width: 640px) {
+  .adm-admins-page {
+    padding: 16px;
+  }
+
+  .adm-admins-search {
+    padding: 8px 12px;
+  }
+
+  .adm-admins-table th,
+  .adm-admins-table td {
+    padding: 10px 12px;
+    font-size: 0.8125rem;
+  }
+
+  .adm-admins-pagination {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .adm-admins-pagination button {
+    width: 100%;
+  }
+
+  .adm-fab {
+    width: 50px;
+    height: 50px;
+  }
+}
+
+/* => TIER 4: max-height 500px landscape - short phone screens */
+@media (max-height: 500px) and (orientation: landscape) {
+  .adm-admins-page {
+    padding: 14px;
+  }
+
+  .adm-fab {
+    bottom: 14px;
+    right: 14px;
+    width: 44px;
+    height: 44px;
+  }
 }

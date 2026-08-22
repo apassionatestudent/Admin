@@ -4,8 +4,6 @@ import toast from 'react-hot-toast';
 import axiosAdmin from '../../../utils/axiosAdmin.js';
 import LoadingState from '../../../components/LoadingState/loadingState.jsx';
 import TestChatbotWidget from './../TestChatbotWidget/testChatbotWidget.jsx';
-import trashIcon from '../../../assets/icons/trash.png';
-import chatIcon from '../../../assets/icons/chat.png';
 import BackButton from '../../BackButton/BackButton.jsx';
 import ConfirmModal from '../../ConfirmModal/ConfirmModal.jsx';
 import './chatbotDetail.css';
@@ -180,7 +178,6 @@ export default function ChatbotDetail() {
           ) : (
             <>
               <button className="chatbot-detail-btn-test" onClick={() => setShowTestWidget(true)}>
-                <img src={chatIcon} alt="" className="chatbot-detail-test-icon" />
                 Test
               </button>
               <button
@@ -193,7 +190,6 @@ export default function ChatbotDetail() {
                 Edit
               </button>
               <button className="chatbot-detail-btn-danger" onClick={() => setConfirmAction('delete')}>
-                <img src={trashIcon} alt="" className="chatbot-detail-danger-icon" />
                 Delete
               </button>
             </>

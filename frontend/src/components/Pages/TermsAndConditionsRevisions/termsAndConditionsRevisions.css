@@ -109,3 +109,75 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+
+/* => ════════════════════════════════════════════
+      RESPONSIVE - 4-TIER BREAKPOINT SYSTEM
+      1024px => 768px => 640px => landscape short-height
+      Mirrors privacyPolicyRevisions.css exactly, tcr- prefix only
+      ════════════════════════════════════════════ */
+
+/* => TIER 1: 1024px - tablet / small laptop */
+@media (max-width: 1024px) {
+  .tcr-item-content {
+    padding: 12px 16px;
+  }
+}
+
+/* => TIER 2: 768px - tablet portrait
+      Meta row (name + date) can get long - truncate instead of
+      pushing the chevron off-row or wrapping into two lines */
+@media (max-width: 768px) {
+  .tcr-item-header {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .tcr-item-meta {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0; /* => required alongside white-space:nowrap for ellipsis to work inside a flex child */
+  }
+
+  .tcr-chevron {
+    flex-shrink: 0; /* => keeps chevron from getting squeezed as the meta text truncates */
+  }
+}
+
+/* => TIER 3: 640px - mobile
+      Rich-text content rendered via dangerouslySetInnerHTML can contain
+      images/tables from the RichTextEditor - guard against horizontal
+      overflow since we don't control that markup's inline widths here */
+@media (max-width: 640px) {
+  .tcr-header-title {
+    font-size: 1rem;
+  }
+
+  .tcr-item-content {
+    padding: 12px 14px;
+    font-size: 0.85rem;
+    overflow-x: hidden; /* => matches the overflow-x guard already applied in privacyPolicyRevisions.css */
+    word-break: break-word;
+  }
+
+  .tcr-item-content img {
+    max-width: 100%;
+    height: auto; /* => keeps aspect ratio if a saved revision had a fixed px width from richTextEditor.jsx */
+  }
+
+  .tcr-load-more {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* => TIER 4: max-height 500px landscape - short phone screens
+      Expanded revision content can be long; cap it so one open item
+      doesn't push the load-more button off a short viewport */
+@media (max-height: 500px) and (orientation: landscape) {
+  .tcr-item-content {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+}

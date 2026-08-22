@@ -84,6 +84,132 @@
     color: #92400e;
 }
 
+/* ── Profile edit mode (Full Name / Email), matches StudentDetail's
+     pencil -> Save/Cancel pattern, page has its own copy of these
+     classes by project convention ── */
+.adm-admin-detail-edit-fields {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+    width: 100%;
+    max-width: 640px;
+}
+
+.adm-admin-detail-edit-field {
+    display: flex;
+    flex-direction: column;
+    /* => Each field takes equal width on the shared line */
+    flex: 1;
+    min-width: 0;
+}
+
+.adm-admin-detail-edit-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #9ca3af;
+    margin: 0 0 4px;
+}
+
+.adm-admin-detail-edit-actions {
+    display: flex;
+    gap: 8px;
+    /* => Offsets past the FULL NAME / EMAIL label height above the inputs,
+         so the buttons line up with the input boxes, not the labels */
+    margin-top: 20px;
+    flex-shrink: 0;
+}
+
+.adm-req-asterisk {
+    color: #c0392b;
+    font-weight: 700;
+}
+
+.adm-section-edit-btn {
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 8px;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+}
+
+.adm-section-edit-btn:hover {
+    background: #f3f4f6;
+    border-color: var(--accent-hover, #8a0d17);
+}
+
+.adm-pencil-icon {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
+.adm-section-save-btn {
+    padding: 6px 16px;
+    background: var(--accent-hover, #8a0d17);
+    color: #fff;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.adm-section-save-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.adm-section-cancel-btn {
+    padding: 6px 14px;
+    background: #f3f4f6;
+    color: #4b5563;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 7px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.adm-section-error {
+    font-size: 0.8125rem;
+    color: #b91c1c;
+    margin: 0 0 4px;
+}
+
+.adm-edit-input {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    color: #111827;
+    font-family: inherit;
+    box-sizing: border-box;
+    background: #fff;
+}
+
+.adm-edit-input:focus {
+    outline: none;
+    border-color: var(--accent-hover, #8a0d17);
+}
+
+.adm-edit-input--error {
+    border-color: #dc2626;
+}
+
+.adm-edit-error {
+    display: block;
+    font-size: 0.72rem;
+    color: #dc2626;
+    margin-top: 4px;
+}
+
 /* ── Action buttons ── */
 .adm-admin-detail-actions {
     display: flex;
@@ -254,160 +380,115 @@
     font-weight: 700;
 }
 
-.adm-admin-detail-logs-empty {
-    font-size: 0.875rem;
-    color: #9ca3af;
-    margin: 0;
-}
-
-.adm-admin-detail-logs-table-wrap {
-    overflow-x: auto;
-    border-radius: 8px;
-    border: 1px solid #e5e7eb;
-}
-
-.adm-admin-detail-logs-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.8375rem;
-    color: #374151;
-    min-width: 640px;
-}
-
-.adm-admin-detail-logs-table thead tr {
-    background: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.adm-admin-detail-logs-table th {
-    padding: 10px 14px;
-    text-align: left;
-    font-size: 0.72rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #6b7280;
-    white-space: nowrap;
-}
-
-.adm-admin-detail-logs-table td {
-    padding: 11px 14px;
-    border-bottom: 1px solid #f3f4f6;
-    vertical-align: middle;
-    color: #374151;
-}
-
-.adm-admin-detail-logs-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.adm-admin-detail-logs-date {
-    white-space: nowrap;
-    color: #6b7280;
-}
-
-.adm-admin-detail-logs-action {
-    white-space: nowrap;
-    font-weight: 600;
-    color: #111827;
-}
-
-.adm-admin-detail-logs-detail {
-    color: #6b7280;
-    max-width: 260px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* => System actor badge, same purple treatment as StudentDetail */
-.adm-admin-detail-logs-badge-system {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: #ede9fe;
-    color: #5b21b6;
-}
-
-/* => Row hover and expand behavior */
-.adm-admin-detail-logs-row {
-    cursor: pointer;
-    transition: background 0.12s ease;
-}
-
-.adm-admin-detail-logs-row:hover {
-    background: #f0f4ff;
-}
-
-.adm-admin-detail-logs-chevron {
-    width: 14px;
-    height: 14px;
-    transition: transform 0.15s ease;
-}
-
-.adm-admin-detail-logs-chevron-open {
-    transform: rotate(180deg);
-}
-
-.adm-admin-detail-logs-detail-row td {
-    background: #f9fafb;
-    padding: 14px 16px;
-}
-
-.adm-admin-detail-logs-detail-full p {
-    margin: 0;
-    font-size: 0.8375rem;
-    color: #374151;
-    line-height: 1.5;
-    white-space: pre-wrap;
-}
-
-/* => Centered pagination, ghost disabled state, matches StudentDetail's
-      final resolved .adm-log-pagination / .adm-log-page-btn rules */
-.adm-admin-detail-logs-pagination {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid #e5e7eb;
-}
-
-.adm-admin-detail-logs-page-btn {
-    padding: 6px 16px;
-    border: 1.5px solid #e5e7eb;
-    border-radius: 8px;
-    background: #fff;
-    color: #374151;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-    transition: background 0.12s, border-color 0.12s, color 0.12s;
-}
-
-.adm-admin-detail-logs-page-btn:hover:not(:disabled) {
-    background: #f0f4ff;
-    border-color: #1a56db;
-    color: #1a56db;
-}
-
-.adm-admin-detail-logs-page-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.adm-admin-detail-logs-page-indicator {
-    font-size: 0.8125rem;
-    color: #6b7280;
-}
+/* => .adm-admin-detail-logs-empty/-table/-date/-action/-detail/-row/
+      -chevron/-detail-row/-detail-full/-pagination/-page-btn/
+      -page-indicator were removed here - they only ever styled this
+      page's own hand-rolled log table, which now renders through
+      LogComponent (styles live in logComponent.css instead).
+      .adm-admin-detail-logs-badge-system is kept above the sections
+      header, still used for the "System" actor badge in logColumns. */
 
 @media (max-width: 640px) {
     .adm-admin-detail-checkbox-grid {
         grid-template-columns: 1fr;
     }
+
+    /* => Full Name / Email stack vertically only on mobile */
+    .adm-admin-detail-edit-fields {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    /* => On mobile the actions row comes after both stacked fields, so
+         the desktop-only top offset needs to reset back to 0 */
+    .adm-admin-detail-edit-actions {
+        margin-top: 0;
+    }
 }
 
+
+/* => ════════════════════════════════════════════
+      RESPONSIVE - 4-TIER BREAKPOINT SYSTEM
+      1024px => 768px => 640px => landscape short-height
+      Note: a partial 640px block already exists above (checkbox grid,
+      edit-fields stacking) - left untouched, this section fills in
+      1024px/768px and adds the landscape tier
+      ════════════════════════════════════════════ */
+
+/* => TIER 1: 1024px - tablet / small laptop */
+@media (max-width: 1024px) {
+  .adm-admin-detail {
+    padding: 24px;
+  }
+
+  .adm-admin-detail-card {
+    padding: 20px;
+  }
+}
+
+/* => TIER 2: 768px - tablet portrait
+      Header wraps so avatar+name and the status pill don't force
+      overflow; action buttons row wraps instead of squeezing */
+@media (max-width: 768px) {
+  .adm-admin-detail-header {
+    flex-wrap: wrap;
+  }
+
+  .adm-admin-detail-name-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .adm-admin-detail-actions {
+    flex-wrap: wrap;
+  }
+
+  .adm-admin-detail-sections-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+/* => TIER 3: 640px - mobile
+      Extends the existing 640px block above with the rest of the page's
+      elements - avatar shrinks, action buttons go full-width stacked */
+@media (max-width: 640px) {
+  .adm-admin-detail {
+    padding: 16px;
+  }
+
+  .adm-admin-detail-card {
+    padding: 16px;
+  }
+
+  .adm-admin-detail-avatar {
+    width: 44px;
+    height: 44px;
+    font-size: 1.1rem;
+  }
+
+  .adm-admin-detail-name-row h2 {
+    font-size: 1.15rem;
+  }
+
+  .adm-admin-detail-actions {
+    flex-direction: column;
+  }
+
+  .adm-admin-detail-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* => TIER 4: max-height 500px landscape - short phone screens */
+@media (max-height: 500px) and (orientation: landscape) {
+  .adm-admin-detail {
+    padding: 14px;
+  }
+
+  .adm-admin-detail-card {
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+}
