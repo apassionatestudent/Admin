@@ -173,12 +173,14 @@ export async function createRefund({ enrollmentType, enrollmentId, refundType, p
       createdBy: admin.adminId
     });
 
+    // => action must match activity_logs_action_check's allowed enum values.
+    // => 'refund_created' is not in that list, CREATE is the correct value.
     await refundsModel.insertActivityLog(client, {
       entityType: 'refund',
       entityId: refund.refund_id,
       actorId: admin.adminId,
       actorName: admin.fullName,
-      action: 'refund_created',
+      action: 'CREATE',
       actionDetail: `Recorded ${enrollmentType} refund ${refund.refund_number} for enrollment #${enrollmentId}, amount ${amount}.`
     });
 
@@ -302,12 +304,14 @@ export async function voidRefund({ publicId, voidReason, admin }) {
       voidedBy: admin.adminId
     });
 
+    // => action must match activity_logs_action_check's allowed enum values.
+    // => 'refund_voided' is not in that list, VOID is the correct value.
     await refundsModel.insertActivityLog(client, {
       entityType: 'refund',
       entityId: existing.refund_id,
       actorId: admin.adminId,
       actorName: admin.fullName,
-      action: 'refund_voided',
+      action: 'VOID',
       actionDetail: `Voided refund ${voided.refund_number}. Reason: ${voidReason}`
     });
 

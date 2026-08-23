@@ -219,9 +219,11 @@ export async function insertPayment(client, { enrollmentType, enrollmentId, amou
 }
 
 export async function insertActivityLog(client, { entityType, entityId, actorId, actorName, action, actionDetail }) {
+  // => activity_logs_actor_type_check only allows 'Staff', 'Student', 'System'.
+  // => An admin acting in the system is logged as 'Staff', not 'Admin'.
   await client.query(
     `INSERT INTO activity_logs (entity_type, entity_id, actor_type, actor_id, actor_name, action, action_detail)
-     VALUES ($1, $2, 'Admin', $3, $4, $5, $6)`,
+     VALUES ($1, $2, 'Staff', $3, $4, $5, $6)`,
     [entityType, entityId, actorId, actorName, action, actionDetail]
   );
 }
