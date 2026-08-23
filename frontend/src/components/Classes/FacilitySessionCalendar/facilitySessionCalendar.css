@@ -8,6 +8,13 @@
   padding: 32px;
   color: var(--text);
   font-family: var(--font-body), sans-serif;
+  /* => missing background entirely, same gap already fixed on tickets-page,
+     => courses-page, adm-classes-page, and both ticket detail pages - falls
+     => through to a light background instead of the dark page background,
+     => which is why the title text was reading as near-invisible against it */
+  background: var(--bg-secondary);
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 .fsc-header {
@@ -65,6 +72,27 @@
 
 .fsc-calendar-wrap .rbc-today {
   background-color: rgba(138, 13, 23, 0.06);
+}
+
+/* => react-big-calendar's default grid border color is a flat light gray
+   => meant for a white background - was never overridden, so it read as
+   => harsh bright lines against the dark cells. Dampened to the theme's
+   => own --border token, which resolves to a much dimmer value in dark
+   => mode, across every grid line the library draws (time gutter rows,
+   => day columns, header row, and the header/gutter dividers). */
+.fsc-calendar-wrap .rbc-time-view,
+.fsc-calendar-wrap .rbc-time-header,
+.fsc-calendar-wrap .rbc-time-header-content,
+.fsc-calendar-wrap .rbc-time-content,
+.fsc-calendar-wrap .rbc-time-content > * + * > *,
+.fsc-calendar-wrap .rbc-timeslot-group,
+.fsc-calendar-wrap .rbc-day-slot .rbc-time-slot,
+.fsc-calendar-wrap .rbc-header,
+.fsc-calendar-wrap .rbc-header + .rbc-header,
+.fsc-calendar-wrap .rbc-month-view,
+.fsc-calendar-wrap .rbc-month-row + .rbc-month-row,
+.fsc-calendar-wrap .rbc-day-bg + .rbc-day-bg {
+  border-color: var(--border);
 }
 
 /* => Past-date cells - grayed out and non-interactive looking, applied via

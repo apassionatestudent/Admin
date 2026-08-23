@@ -2,9 +2,26 @@ import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import axiosAdmin from '../../utils/axiosAdmin.js';
 import pencilIcon from '../../assets/icons/pencil.png';
+// => Same eye/eye-off + checklist icons setAdminPassword.jsx already uses
+import eyeIcon from '../../assets/icons/eye.png';
+import eyeOffIcon from '../../assets/icons/eye-off.png';
+import checkMarkIcon from '../../assets/icons/checkmark.png';
+import circleIcon from '../../assets/icons/circle.png';
+// => Shared theme switch, persistence now lives in ThemeContext instead of this page
+import ThemeToggle from '../../components/ThemeToggle/themeToggle.jsx';
 // => Shared log table + pagination component, chevron icon lives inside it now
 import LogComponent from '../../components/LogComponent/logComponent.jsx';
 import './account.css';
+
+// => Same 4 rules enforced server-side in adminAccountService.js
+// => validatePasswordStrength - keep both lists in sync if the rule set
+// => ever changes
+const PASSWORD_RULES = [
+    { label: 'At least 8 characters', test: (v) => v.length >= 8 },
+    { label: 'One uppercase letter', test: (v) => /[A-Z]/.test(v) },
+    { label: 'One number', test: (v) => /[0-9]/.test(v) },
+    { label: 'One special character', test: (v) => /[^A-Za-z0-9]/.test(v) },
+];
 
 function Account() {
     const [account, setAccount] = useState(null);
@@ -21,8 +38,15 @@ function Account() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [changingPassword, setChangingPassword] = useState(false);
 
-    // => Theme toggle busy state, prevents double clicks while request is in flight
-    const [togglingTheme, setTogglingTheme] = useState(false);
+    // => Independent toggle per field, matches student Account.jsx's pattern
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    const passwordRulesMet = PASSWORD_RULES.every(rule => rule.test(newPassword));
+    const newPasswordsMatch = newPassword && newPassword === confirmPassword;
+
+
 
     // => Activity logs state, 10 rows per page via Prev/Next
     const [logs, setLogs] = useState([]);
@@ -120,29 +144,19 @@ function Account() {
         }
     }
 
-    // => Flip the is_night_mode boolean
-    async function handleToggleTheme() {
-        try {
-            setTogglingTheme(true);
-            const res = await axiosAdmin.patch('/api/admin/account/theme', {
-                is_night_mode: !account.is_night_mode,
-            });
-            setAccount(res.data.account);
-            toast.success(res.data.account.is_night_mode ? 'Night mode enabled' : 'Day mode enabled');
-            fetchLogs(1);
-            setLogsPage(1);
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to update theme');
-        } finally {
-            setTogglingTheme(false);
-        }
-    }
+
 
     // => Submit password change form
     async function handleChangePassword(e) {
         e.preventDefault();
 
-        if (newPassword !== confirmPassword) {
+        // => Mirrors the full rule set enforced server-side in
+        // => adminAccountService.js validatePasswordStrength
+        if (!passwordRulesMet) {
+            toast.error('New password does not meet the requirements below.');
+            return;
+        }
+        if (!newPasswordsMatch) {
             toast.error('New password and confirmation do not match');
             return;
         }
@@ -302,7 +316,8 @@ function Account() {
                 )}
             </section>
 
-            {/* => Theme preference section, actual day/night switching logic deferred */}
+            {/* => Theme preference section, toggle + persistence now live in ThemeContext,
+                => same pattern as the student dashboard's Display Preferences card */}
             <section className="adm-account-card">
                 <h2 className="adm-account-card-title">
                     {/* <img src={paletteIcon} alt="" className="adm-account-icon" /> */}
@@ -310,15 +325,13 @@ function Account() {
                 </h2>
 
                 <div className="adm-account-appearance-row">
-                    <span>{account.is_night_mode ? 'Night Mode' : 'Day Mode'}</span>
-                    <button
-                        className="adm-account-btn"
-                        disabled={togglingTheme}
-                        onClick={handleToggleTheme}
-                    >
-                        {/* <img src={account.is_night_mode ? sunIcon : moonIcon} alt="" /> */}
-                        Switch to {account.is_night_mode ? 'Day' : 'Night'}
-                    </button>
+                    <div>
+                        <span>Day / Night Mode</span>
+                        <p className="adm-account-card-desc" style={{ margin: '4px 0 0' }}>
+                            This applies across the dashboard and is saved to your account.
+                        </p>
+                    </div>
+                    <ThemeToggle />
                 </div>
             </section>
 
@@ -333,35 +346,93 @@ function Account() {
                     <div className="adm-account-grid adm-account-g3">
                         <div className="adm-account-field-group">
                             <span className="adm-account-label">Current Password</span>
-                            <input
-                                type="password"
-                                className="adm-account-input"
-                                value={currentPassword}
-                                onChange={(e) => setCurrentPassword(e.target.value)}
-                                required
-                            />
+                            <div className="adm-account-password-wrapper">
+                                <input
+                                    type={showCurrentPassword ? 'text' : 'password'}
+                                    className="adm-account-input"
+                                    value={currentPassword}
+                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    className="adm-account-password-toggle"
+                                    onClick={() => setShowCurrentPassword(v => !v)}
+                                    tabIndex={-1}
+                                >
+                                    <img
+                                        src={showCurrentPassword ? eyeOffIcon : eyeIcon}
+                                        alt={showCurrentPassword ? 'Hide password' : 'Show password'}
+                                        className="adm-account-password-icon"
+                                    />
+                                </button>
+                            </div>
                         </div>
 
                         <div className="adm-account-field-group">
                             <span className="adm-account-label">New Password</span>
-                            <input
-                                type="password"
-                                className="adm-account-input"
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                required
-                            />
+                            <div className="adm-account-password-wrapper">
+                                <input
+                                    type={showNewPassword ? 'text' : 'password'}
+                                    className="adm-account-input"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    className="adm-account-password-toggle"
+                                    onClick={() => setShowNewPassword(v => !v)}
+                                    tabIndex={-1}
+                                >
+                                    <img
+                                        src={showNewPassword ? eyeOffIcon : eyeIcon}
+                                        alt={showNewPassword ? 'Hide password' : 'Show password'}
+                                        className="adm-account-password-icon"
+                                    />
+                                </button>
+                            </div>
+                            {/* => Live checklist, ticks off each rule in real time as the admin types */}
+                            <ul className="adm-account-password-rules">
+                                {PASSWORD_RULES.map(rule => {
+                                    const met = rule.test(newPassword);
+                                    return (
+                                        <li key={rule.label} className={met ? 'adm-account-rule-met' : ''}>
+                                            <img
+                                                src={met ? checkMarkIcon : circleIcon}
+                                                alt=""
+                                                className="adm-account-rule-icon"
+                                            />
+                                            {rule.label}
+                                        </li>
+                                    );
+                                })}
+                            </ul>
                         </div>
 
                         <div className="adm-account-field-group">
                             <span className="adm-account-label">Confirm New Password</span>
-                            <input
-                                type="password"
-                                className="adm-account-input"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                required
-                            />
+                            <div className="adm-account-password-wrapper">
+                                <input
+                                    type={showConfirmPassword ? 'text' : 'password'}
+                                    className="adm-account-input"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    className="adm-account-password-toggle"
+                                    onClick={() => setShowConfirmPassword(v => !v)}
+                                    tabIndex={-1}
+                                >
+                                    <img
+                                        src={showConfirmPassword ? eyeOffIcon : eyeIcon}
+                                        alt={showConfirmPassword ? 'Hide password' : 'Show password'}
+                                        className="adm-account-password-icon"
+                                    />
+                                </button>
+                            </div>
                         </div>
                     </div>
 

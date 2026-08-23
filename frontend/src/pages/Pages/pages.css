@@ -2,6 +2,9 @@
 
 .adm-pages-page {
   padding: 24px 32px 48px;
+  min-height: 100vh; /* => fills the full viewport height, same fix already applied to staff.css and staffDetail.css */
+  box-sizing: border-box; /* => keeps padding from pushing the box taller than 100vh */
+  background: var(--bg-secondary); /* => was missing entirely before, same root cause as the white gap fixed on Staff/StaffDetail */
   color: var(--text);
   font-family: var(--font-body), sans-serif; /* => matches Courses.css's base page font */
 }
@@ -67,6 +70,14 @@
   font-size: 0.875rem;
   cursor: pointer;
   font-family: var(--font-body), sans-serif;
+}
+
+/* => "+ Add Section" outline button matches the same lighter maroon tone
+   => used on the tab labels in dark mode, instead of the darker
+   => --accent-hover which reads too dim against the dark background */
+:root[data-theme="dark"] .adm-pages-btn-outline {
+  color: var(--accent-text);
+  border-color: var(--accent-text);
 }
 
 .adm-pages-btn-outline:hover {
@@ -140,6 +151,13 @@
   cursor: pointer;
   border-bottom: 2px solid transparent;
   font-family: var(--font-body), sans-serif;
+}
+
+/* => Inactive tab labels (Announcements/Privacy Policy/Terms and
+   => Conditions when not the active tab) same dim-in-dark-mode issue as
+   => the subtitle above, same --accent-text fix */
+:root[data-theme="dark"] .adm-main-tab-btn {
+  color: var(--accent-text);
 }
 
 .adm-main-tab-btn--active {

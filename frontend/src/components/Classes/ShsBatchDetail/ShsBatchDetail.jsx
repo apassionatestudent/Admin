@@ -595,8 +595,8 @@ export default function ShsBatchDetail() {
         </div>
 
         {/* STATUS CHANGER */}
-        <div className="adm-batch-section">
-          <p className="adm-section-title">Update Status</p>
+        <div className="sbd-section">
+          <p className="sbd-section-title">Update Status</p>
           <div className="adm-status-changer">
             <select
               className="adm-status-select"
@@ -629,9 +629,9 @@ export default function ShsBatchDetail() {
 
         {/* BATCH INFO - one editable section covering both trainer slots.
                cluster is always plain text, never part of the draft. */}
-        <div className="adm-batch-section">
+        <div className="sbd-section">
           <div className="adm-section-header">
-            <p className="adm-section-title">Batch Information</p>
+            <p className="sbd-section-title">Batch Information</p>
             <SectionEditControls
               sectionKey="batchInfo"
               editingSection={editingSection}
@@ -777,7 +777,7 @@ export default function ShsBatchDetail() {
               <div className="adm-form-group adm-course-trainers-group">
                 <label className="adm-form-label">Course Trainers</label>
                 {loadingTrainers ? (
-                  <p className="adm-empty-note">Loading trainers…</p>
+                  <p className="sbd-empty-note">Loading trainers…</p>
                 ) : (
                   ['Grade 11', 'Grade 12'].map(grade => {
                     const coursesForGrade = courseTrainers.filter(c => c.grade_level === grade);
@@ -785,14 +785,15 @@ export default function ShsBatchDetail() {
                       return (
                         <div key={grade} className="adm-course-trainer-grade-group">
                           <span className="adm-cluster-courses-grade">{grade}</span>
-                          <p className="adm-empty-note">No courses set up for {grade} yet.</p>
+                          <p className="sbd-empty-note">No courses set up for {grade} yet.</p>
                         </div>
                       );
                     }
                     return (
                       <div key={grade} className="adm-course-trainer-grade-group">
                         <span className="adm-cluster-courses-grade">{grade}</span>
-                        {coursesForGrade.map(c => (
+                                <span className="adm-cluster-courses-grade">{grade}</span>
+                          <p className="sbd-empty-note">No courses set up for {grade} yet.</p>                  {coursesForGrade.map(c => (
                           <div key={c.course_id} className="adm-course-trainer-row">
                             <label className="adm-form-label adm-form-label--sub">{c.course_title}</label>
                             <select
@@ -887,21 +888,21 @@ export default function ShsBatchDetail() {
         </div>
 
         {/* MISCELLANEOUS FEES */}
-        <div className="adm-batch-section">
-          <p className="adm-section-title">
+        <div className="sbd-section">
+          <p className="sbd-section-title">
             Miscellaneous Fees
-            <span className="adm-section-count-inline">{miscFees.length}</span>
+            <span className="sbd-section-count-inline">{miscFees.length}</span>
           </p>
 
-          {miscFeesLoading && <p className="adm-empty-note">Loading fees…</p>}
+          {miscFeesLoading && <p className="sbd-empty-note">Loading fees…</p>}
 
           {!miscFeesLoading && miscFees.length === 0 && (
-            <p className="adm-empty-note">No miscellaneous fees added yet.</p>
+            <p className="sbd-empty-note">No miscellaneous fees added yet.</p>
           )}
 
           {!miscFeesLoading && miscFees.length > 0 && (
-            <div className="adm-sub-table-wrap">
-              <table className="adm-sub-table">
+            <div className="sbd-sub-table-wrap">
+              <table className="sbd-sub-table">
                 <thead>
                   <tr>
                     <th>Fee</th>
@@ -961,11 +962,11 @@ export default function ShsBatchDetail() {
         </div>
 
         {/* ENROLLED STUDENTS TABLE */}
-        <div className="adm-batch-section">
+        <div className="sbd-section">
           <div className="adm-section-header">
-            <p className="adm-section-title">
+            <p className="sbd-section-title">
               Enrolled Students
-              <span className="adm-section-count-inline">{enrolledStudents?.length ?? 0}</span>
+              <span className="sbd-section-count-inline">{enrolledStudents?.length ?? 0}</span>
             </p>
             {/* => Only shows once the batch has actually reached max_students
                    on Approved count, and only if there's overflow left to
@@ -980,10 +981,10 @@ export default function ShsBatchDetail() {
           </div>
 
           {!enrolledStudents || enrolledStudents.length === 0 ? (
-            <p className="adm-empty-note">No students enrolled in this batch yet.</p>
+            <p className="sbd-empty-note">No students enrolled in this batch yet.</p>
           ) : (
-            <div className="adm-sub-table-wrap">
-              <table className="adm-sub-table">
+            <div className="sbd-sub-table-wrap">
+              <table className="sbd-sub-table">
                 <thead>
                   <tr>
                     <th>Student</th>
@@ -997,7 +998,7 @@ export default function ShsBatchDetail() {
                   {enrolledStudents.map((s) => (
                     <tr
                       key={s.enrollment_public_id}
-                      className="adm-sub-table-row"
+                      className="sbd-sub-table-row"
                       // => Route must match App.jsx: /dashboard/enrollments/shs/:publicId -
                       //    hardcoded 'shs' since this page only ever lists SHS enrollments
                       onClick={() => navigate(`/dashboard/enrollments/shs/${s.enrollment_public_id}`)}
@@ -1028,21 +1029,21 @@ export default function ShsBatchDetail() {
 
         {/* CLASS SESSIONS - every booked session for this batch, across
                all facilities and types */}
-        <div className="adm-batch-section">
-          <p className="adm-section-title">
+        <div className="sbd-section">
+          <p className="sbd-section-title">
             Class Sessions
-            <span className="adm-section-count-inline">{classSessions.length}</span>
+            <span className="sbd-section-count-inline">{classSessions.length}</span>
           </p>
 
-          {classSessionsLoading && <p className="adm-empty-note">Loading sessions…</p>}
+          {classSessionsLoading && <p className="sbd-empty-note">Loading sessions…</p>}
 
           {!classSessionsLoading && classSessions.length === 0 && (
-            <p className="adm-empty-note">No sessions scheduled yet.</p>
+            <p className="sbd-empty-note">No sessions scheduled yet.</p>
           )}
 
           {!classSessionsLoading && classSessions.length > 0 && (
-            <div className="adm-sub-table-wrap">
-              <table className="adm-sub-table">
+            <div className="sbd-sub-table-wrap">
+              <table className="sbd-sub-table">
                 <thead>
                   <tr>
                     <th>Type</th>
@@ -1056,7 +1057,7 @@ export default function ShsBatchDetail() {
                   {classSessions.map((s) => (
                     <tr
                       key={s.public_id}
-                      className="adm-sub-table-row"
+                      className="sbd-sub-table-row"
                       style={{ cursor: s.session_type === 'Local' && s.facility_public_id ? 'pointer' : 'default' }}
                       onClick={
                         s.session_type === 'Local' && s.facility_public_id
@@ -1088,10 +1089,10 @@ export default function ShsBatchDetail() {
                System-actor entries (e.g. the automatic Pending -> Ongoing
                promotion) get a distinct badge so they read differently
                from admin-initiated changes at a glance. */}
-        <div className="adm-batch-section">
-          <p className="adm-section-title">
+        <div className="sbd-section">
+          <p className="sbd-section-title">
             Activity Logs
-            <span className="adm-section-count-inline">{logs.length}</span>
+            <span className="sbd-section-count-inline">{logs.length}</span>
           </p>
 
           <LogComponent

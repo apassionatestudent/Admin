@@ -132,6 +132,13 @@
   cursor: pointer;
 }
 
+/* => Dark mode: same --accent-text token used across the campaign,
+      so "+ Add Job Opportunity Row" stays readable against the dark
+      modal background instead of the dim --accent-hover red */
+:root[data-theme="dark"] .btn-add-row {
+  color: var(--accent-text);
+}
+
 .btn-add-row:hover {
   color: var(--accent-hover, #8a0d17);
 }

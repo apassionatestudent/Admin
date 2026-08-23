@@ -2,6 +2,12 @@
   padding: 32px;
   color: var(--text);
   font-family: var(--font-body), sans-serif;
+  /* => missing background entirely, same gap already fixed on
+     => std-ticket-detail-page - falls through to a light background
+     => instead of the dark page background without this */
+  background: var(--bg-secondary);
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 .ticket-detail-header {
@@ -72,7 +78,7 @@
   border: none;
   padding: 2px 4px;
   cursor: pointer;
-  color: #9ca3af;
+  color: var(--text-muted);
   border-radius: 4px;
   line-height: 1;
   transition: color 0.12s, background 0.12s;
@@ -85,8 +91,8 @@
 }
 
 .ticket-detail-copy-btn:hover {
-  color: #374151;
-  background: #f3f4f6;
+  color: var(--text-h);
+  background: var(--bg-secondary);
 }
 
 .ticket-detail-copy-btn--copied {
@@ -127,6 +133,8 @@
   font-size: 0.875rem;
   font-family: var(--font-body), sans-serif;
   width: fit-content;
+  background: var(--bg);
+  color: var(--text-h);
 }
 
 .ticket-detail-remarks-text {
@@ -144,6 +152,8 @@
   font-family: var(--font-body), sans-serif;
   resize: vertical;
   width: 100%;
+  background: var(--bg);
+  color: var(--text-h);
 }
 
 .ticket-detail-edit-actions {
@@ -179,6 +189,10 @@
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
+:root[data-theme="dark"] .ticket-detail-section {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
 .ticket-detail-section-title {
   font-size: 0.8125rem;
   font-weight: 700;
@@ -199,8 +213,8 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background: #e5e7eb;
-  color: #374151;
+  background: var(--border);
+  color: var(--text-h);
   font-size: 0.75rem;
 }
 
@@ -225,7 +239,7 @@
 }
 
 .ticket-detail-sub-table thead tr {
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
 }
 
@@ -242,7 +256,7 @@
 
 .ticket-detail-sub-table td {
   padding: 11px 14px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
 
@@ -272,7 +286,7 @@
 }
 
 .ticket-detail-log-page-btn:hover:not(:disabled) {
-  background: #f3f4f6;
+  background: var(--row-hover-bg);
 }
 
 .ticket-detail-log-page-btn:disabled {

@@ -5,9 +5,9 @@
 }
 
 .faqw-guidelines {
-  background: #faf7f5;
+  background: var(--bg-secondary); /* => was hardcoded #faf7f5, now follows theme */
   border: 1px solid var(--border, #e0d8d0);
-  border-left: 4px solid #660911;
+  border-left: 4px solid var(--accent-hover); /* => was hardcoded #660911, now follows theme */
   border-radius: 8px;
   padding: 14px 18px;
   font-size: 0.875rem;
@@ -28,7 +28,7 @@
   border: 1px solid var(--border, #e0d8d0);
   border-radius: 12px;
   padding: 18px;
-  background: #fff;
+  background: var(--bg); /* => was hardcoded #fff, now follows theme */
 }
 
 .faqw-section-header {
@@ -57,7 +57,7 @@
   padding: 6px 14px;
   border: none;
   border-radius: 6px;
-  background: #8a0d17;
+  background: var(--accent-hover); /* => was hardcoded #8a0d17, now follows theme */
   color: #fff;
   font-size: 0.8125rem;
   font-weight: 600;
@@ -65,7 +65,7 @@
 }
 
 .faqw-add-faq-btn:hover {
-  background: #6f0a12;
+  background: var(--accent); /* => was hardcoded #6f0a12 - swapped to the resting --accent token so hover still reads as a state change from --accent-hover */
 }
 
 .faqw-delete-section-btn {
@@ -112,7 +112,7 @@
 .faqw-table th {
   text-align: left;
   padding: 10px 14px;
-  background: #faf7f5;
+  background: var(--bg-secondary); /* => was hardcoded #faf7f5, now follows theme */
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -159,14 +159,14 @@
   align-items: center;
   justify-content: center;
   padding: 6px;
-  border: 1px solid #8a0d17;
+  border: 1px solid var(--accent-hover); /* => was hardcoded #8a0d17, now follows theme */
   border-radius: 6px;
   background: none;
   cursor: pointer;
 }
 
 .faqw-edit-btn:hover {
-  background: #8a0d17;
+  background: var(--accent-hover); /* => was hardcoded #8a0d17, now follows theme */
 }
 
 .faqw-edit-btn img {

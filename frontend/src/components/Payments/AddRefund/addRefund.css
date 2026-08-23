@@ -9,7 +9,7 @@
 }
 
 .add-refund-modal {
-  background: var(--color-surface, #fff);
+  background: var(--bg);
   border-radius: var(--radius-lg, 12px);
   width: 480px;
   max-height: 90vh;
@@ -48,7 +48,7 @@
   border: none;
   background: transparent;
   cursor: pointer;
-  color: var(--color-text-muted, #666);
+  color: var(--text-muted);
 }
 
 .add-refund-field {
@@ -68,7 +68,7 @@
 }
 
 .add-refund-optional {
-  color: var(--color-text-muted, #999);
+  color: var(--text-muted);
   font-weight: 400;
   font-size: 12px;
 }
@@ -76,11 +76,12 @@
 .add-refund-field input,
 .add-refund-field textarea {
   width: 100%;
-  border: 1px solid var(--color-border, #ddd);
+  border: 1px solid var(--border);
   border-radius: 0;
   padding: 8px 12px;
   box-sizing: border-box;
   font-family: inherit;
+  background: var(--bg);
 }
 
 .add-refund-search-box,
@@ -88,7 +89,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--color-border, #ddd);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md, 8px);
   padding: 8px 12px;
   box-sizing: border-box;
@@ -114,7 +115,7 @@
 
 .add-refund-hint {
   font-size: 13px;
-  color: var(--color-text-muted, #999);
+  color: var(--text-muted);
   margin-top: 8px;
 }
 
@@ -122,7 +123,7 @@
   list-style: none;
   margin: 8px 0 0;
   padding: 0;
-  border: 1px solid var(--color-border, #ddd);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md, 8px);
   max-height: 220px;
   overflow-y: auto;
@@ -134,7 +135,7 @@
   flex-direction: column;
   gap: 2px;
   cursor: pointer;
-  border-bottom: 1px solid var(--color-border, #eee);
+  border-bottom: 1px solid var(--border);
 }
 
 .add-refund-results li:last-child {
@@ -142,7 +143,7 @@
 }
 
 .add-refund-results li:hover {
-  background: var(--color-surface-alt, #f7f7f7);
+  background: var(--row-hover-bg);
 }
 
 .add-refund-result-name {
@@ -171,7 +172,7 @@
 
 .add-refund-result-course {
   font-size: 13px;
-  color: var(--color-text-muted, #666);
+  color: var(--text-muted);
 }
 
 .add-refund-result-balance {
@@ -183,7 +184,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  border: 1px solid var(--color-border, #ddd);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md, 8px);
   padding: 12px;
   margin-bottom: var(--spacing-md, 16px);
@@ -192,7 +193,7 @@
 .add-refund-selected-card p {
   margin: 4px 0 0;
   font-size: 13px;
-  color: var(--color-text-muted, #666);
+  color: var(--text-muted);
 }
 
 .add-refund-change-btn {
@@ -214,7 +215,7 @@
 
 .add-refund-balance-remaining {
   font-weight: 700;
-  border-top: 1px solid var(--color-border, #eee);
+  border-top: 1px solid var(--border);
   margin-top: 4px;
   padding-top: 8px;
   margin-bottom: var(--spacing-md, 16px);
@@ -228,11 +229,11 @@
 .add-refund-type-btn {
   flex: 1;
   padding: 9px 14px;
-  background: #fff;
-  color: #374151 !important;
+  background: var(--bg);
+  color: var(--text-h) !important;
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border);
   border-radius: 999px;
   cursor: pointer;
   font-family: inherit;
@@ -250,8 +251,8 @@
   justify-content: space-between;
   font-size: 14px;
   font-weight: 700;
-  border-top: 1px solid var(--color-border, #eee);
-  border-bottom: 1px solid var(--color-border, #eee);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   padding: 10px 0;
   margin-bottom: var(--spacing-md, 16px);
 }
@@ -264,8 +265,8 @@
 }
 
 .add-refund-cancel-btn {
-  border: 1px solid var(--color-border, #ddd);
-  background: var(--color-surface, #fff);
+  border: 1px solid var(--border);
+  background: var(--bg);
   border-radius: var(--radius-md, 8px);
   padding: 10px 16px;
   cursor: pointer;

@@ -4,7 +4,7 @@
   right: 32px;
   width: 380px;
   max-height: 560px;
-  background: var(--bg, #fff);
+  background: var(--bg);
   border-radius: 14px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
   display: flex;
@@ -15,7 +15,9 @@
 }
 
 .test-widget-header {
-  background: linear-gradient(135deg, var(--sidebar-bg, #660911), var(--accent-hover, #8a0d17));
+  /* => sidebar-bg/accent-hover stay fixed maroon accent surfaces in both
+     => themes, white text on top stays readable either way */
+  background: linear-gradient(135deg, var(--sidebar-bg), var(--accent-hover));
   color: #fff;
   padding: 14px 16px;
   display: flex;
@@ -56,7 +58,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: var(--code-bg, #f8f4f4);
+  background: var(--code-bg);
   min-height: 280px;
 }
 
@@ -80,14 +82,17 @@
 
 .test-widget-bubble-bot {
   align-self: flex-start;
-  background: #fff;
+  /* => --bg rather than a flat white, so the bubble reads as a distinct
+     => surface against --code-bg's message-area background in both themes */
+  background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text);
 }
 
 .test-widget-bubble-user {
   align-self: flex-end;
-  background: var(--sidebar-bg, #660911);
+  /* => sidebar-bg stays a fixed maroon accent surface in both themes */
+  background: var(--sidebar-bg);
   color: #fff;
 }
 
@@ -95,6 +100,7 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
+/* => Semantic error color, kept constant across both themes on purpose */
 .test-widget-bubble-error {
   border-color: #fca5a5;
   background: #fee2e2;
@@ -126,7 +132,10 @@
 }
 
 .test-widget-bubble-bot a {
-  color: var(--accent-hover, #8a0d17);
+  /* => accent-text instead of accent-hover - accent-hover's dark value
+     => (#8a0d17) is too low-contrast to read as text against the bot
+     => bubble's dark background, same fix already applied on Account/Staff */
+  color: var(--accent-text);
   text-decoration: underline;
 }
 
@@ -135,25 +144,28 @@
   gap: 8px;
   padding: 12px;
   border-top: 1px solid var(--border);
-  background: var(--bg, #fff);
+  background: var(--bg);
 }
 
 .test-widget-input {
   flex: 1;
   padding: 9px 12px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border);
   border-radius: 20px;
   font-size: 0.875rem;
   font-family: var(--font-body), sans-serif;
+  background: var(--bg);
+  color: var(--text-h);
 }
 
 .test-widget-input:focus {
   outline: none;
-  border-color: var(--accent-hover, #8a0d17);
+  border-color: var(--accent-hover);
 }
 
 .test-widget-send-btn {
-  background: var(--sidebar-bg, #660911);
+  /* => sidebar-bg stays a fixed maroon accent surface in both themes */
+  background: var(--sidebar-bg);
   color: #fff;
   border: none;
   border-radius: 20px;
@@ -165,7 +177,7 @@
 }
 
 .test-widget-send-btn:hover:not(:disabled) {
-  background: var(--accent-hover, #8a0d17);
+  background: var(--accent-hover);
 }
 
 .test-widget-send-btn:disabled {

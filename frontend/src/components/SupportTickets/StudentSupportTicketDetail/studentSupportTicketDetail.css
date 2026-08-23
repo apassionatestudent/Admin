@@ -7,6 +7,12 @@
   padding: 32px;
   color: var(--text);
   font-family: var(--font-body), sans-serif;
+  /* => missing background entirely - was falling through to whatever the
+     => parent rendered instead of the dark page background, matching
+     => tickets-page's explicit --bg-secondary declaration */
+  background: var(--bg-secondary);
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 .std-ticket-detail-header {
@@ -72,7 +78,9 @@
   border: none;
   padding: 2px 4px;
   cursor: pointer;
-  color: #9ca3af;
+  /* => was a hardcoded light-only hex, swapped for the real token so this
+     => icon stays visible in dark mode */
+  color: var(--text-muted);
   border-radius: 4px;
   line-height: 1;
   transition: color 0.12s, background 0.12s;
@@ -85,8 +93,9 @@
 }
 
 .std-ticket-detail-copy-btn:hover {
-  color: #374151;
-  background: #f3f4f6;
+  /* => was hardcoded light-only hex */
+  color: var(--text-h);
+  background: var(--bg-secondary);
 }
 
 .std-ticket-detail-copy-btn--copied {
@@ -127,6 +136,10 @@
   font-size: 0.875rem;
   font-family: var(--font-body), sans-serif;
   width: fit-content;
+  /* => was missing background/color entirely, same white-on-white risk
+     => in dark mode already found on the payment/refund modal inputs */
+  background: var(--bg);
+  color: var(--text-h);
 }
 
 .std-ticket-detail-remarks-text {
@@ -144,6 +157,10 @@
   font-family: var(--font-body), sans-serif;
   resize: vertical;
   width: 100%;
+  /* => same missing background/color fix as the status select above,
+     => this textarea would otherwise show dark text on a dark background */
+  background: var(--bg);
+  color: var(--text-h);
 }
 
 .std-ticket-detail-edit-actions {
@@ -172,6 +189,13 @@
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
+/* => Stronger shadow in dark mode so the section still reads as raised
+   => against the darker page background, same override already applied
+   => to publicSupportTicketDetail.css's equivalent block */
+:root[data-theme="dark"] .std-ticket-detail-section {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
 .std-ticket-detail-section-title {
   font-size: 0.8125rem;
   font-weight: 700;
@@ -192,8 +216,9 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background: #e5e7eb;
-  color: #374151;
+  /* => was hardcoded light-only hex */
+  background: var(--border);
+  color: var(--text-h);
   font-size: 0.75rem;
 }
 
@@ -218,7 +243,8 @@
 }
 
 .std-ticket-detail-sub-table thead tr {
-  background: #f9fafb;
+  /* => was hardcoded light-only hex */
+  background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
 }
 
@@ -235,7 +261,8 @@
 
 .std-ticket-detail-sub-table td {
   padding: 11px 14px;
-  border-bottom: 1px solid #f3f4f6;
+  /* => was hardcoded light-only hex */
+  border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
 
@@ -265,7 +292,9 @@
 }
 
 .std-ticket-detail-log-page-btn:hover:not(:disabled) {
-  background: #f3f4f6;
+  /* => was hardcoded light-only hex, swapped for the same row-hover token
+     => publicSupportTicketDetail.css's pagination buttons already use */
+  background: var(--row-hover-bg);
 }
 
 .std-ticket-detail-log-page-btn:disabled {

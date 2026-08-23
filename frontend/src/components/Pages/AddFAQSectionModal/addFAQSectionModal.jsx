@@ -35,7 +35,7 @@ export default function AddFAQSectionModal({ onClose, onCreated }) {
 
   return (
     <div className="adm-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget && !saving) onClose(); }}>
-      <div className="adm-modal-box adm-modal-box--form">
+      <div className="adm-modal-box adm-modal-box--form afsm-modal-box">
 
         <div className="adm-modal-header">
           <span className="adm-modal-title">Add FAQ Section</span>

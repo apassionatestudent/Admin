@@ -2,8 +2,8 @@
 .dashboard {
     display: flex;
     min-height: 100vh;
-    background-color: #0f0f0f;
-    color: #fff;
+    background-color: var(--bg-secondary); /* => was #0f0f0f, hardcoded dark, ignored the theme toggle entirely */
+    color: var(--text); /* => was #fff, same issue */
     font-family: 'Segoe UI', sans-serif;
     position: relative; /* => anchors the overlay so it covers the whole dashboard, not just the viewport */
 }

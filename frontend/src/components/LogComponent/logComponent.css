@@ -51,7 +51,7 @@
 }
 
 .logc-log-row:hover {
-  background: rgba(138, 13, 23, 0.05);
+  background: var(--row-hover-bg); /* => was hardcoded light-theme-only maroon tint, now uses the shared token so dark mode gets its own hover shade */
 }
 
 .logc-log-detail-cell {
@@ -75,8 +75,15 @@
 .logc-log-chevron {
   width: 12px;
   height: 12px;
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, filter 0.15s ease;
   opacity: 0.6;
+}
+
+/* => Dark mode: chevron is a flat monochrome dark icon, invisible against
+   => the dark table background without this, same icon filter rule
+   => already applied elsewhere in the campaign */
+:root[data-theme="dark"] .logc-log-chevron {
+  filter: brightness(0) invert(1);
 }
 
 .logc-log-chevron-open {
@@ -126,8 +133,8 @@
 }
 
 .logc-log-page-btn--active {
-  background: #8a0d17;
-  border-color: #8a0d17;
+  background: var(--accent-hover, #8a0d17); /* => was hardcoded to light theme's accent-hover value, now token-based so dark theme gets its own shade */
+  border-color: var(--accent-hover, #8a0d17);
   color: #fff;
 }
 

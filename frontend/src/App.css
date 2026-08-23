@@ -17,6 +17,5 @@ body,
 
 body {
   margin: 0;
-
-  background: #f8f4f4;
+  background: var(--bg);
 }

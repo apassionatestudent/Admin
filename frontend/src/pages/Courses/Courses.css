@@ -6,6 +6,9 @@
 
 .courses-page {
   padding: 32px;
+  min-height: 100vh; /* => fills the full viewport height, same fix already applied to staff.css, staffDetail.css, and pages.css */
+  box-sizing: border-box; /* => keeps padding from pushing the box taller than 100vh */
+  background: var(--bg-secondary); /* => was missing entirely - this is the actual root cause of the mismatched light background showing through against the dark sidebar/table */
   color: var(--text);
   font-family: var(--font-body), sans-serif; /* => matches sidebar's font-family */
 }
@@ -22,17 +25,25 @@
   font-size: 1.75rem; /* => matches Enrollments.css's .adm-enroll-title exactly */
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--text-h); /* => kept as your token instead of Enrollments.css's hardcoded #0f1724, since Courses.css deliberately stays token-based - swap to #0f1724 directly if you want a byte-for-byte match instead */
+  color: var(--text-h);
+}
+
+/* => Explicit dark-mode override, same pattern as pages.css's
+   => .adm-pages-title / .adm-pages-subtitle fixes - forces the color in
+   => dark mode directly instead of relying only on the base var(--text-h)
+   => token resolving correctly on its own */
+:root[data-theme="dark"] .courses-header h2 {
+  color: #f3f4f6;
 }
 
 .courses-subtitle {
   font-size: 0.875rem; /* => matches Enrollments.css's .adm-enroll-subtitle exactly */
-  color: var(--text-muted, var(--text));
+  color: var(--text-muted, var(--text)); /* => stays plain/dim in both themes, no dark override - matches pages.css's .adm-pages-subtitle which has no override either */
   margin: 0;
 }
 
 .courses-subtitle strong {
-  color: var(--text);
+  color: var(--text); /* => the numbers keep their own accent color from --text, untouched */
 }
 
 .btn-create-course {
@@ -77,8 +88,18 @@
 }
 
 .tab-btn.tab-active {
-  color: var(--accent-hover, #8a0d17); /* => was violet var(--accent) */
-  border-bottom: 2px solid var(--accent-hover, #8a0d17); /* => was violet var(--accent) */
+  color: var(--accent-hover, #8a0d17); /* => was violet var(--accent), stays as the light-mode value */
+  border-bottom: 2px solid var(--accent-hover, #8a0d17); /* => was violet var(--accent), stays as the light-mode value */
+}
+
+/* => Dark mode: matches the same --accent-text token used on
+      Pages.jsx's .adm-main-tab-btn and .adm-pages-btn-outline, so the
+      active tab label/underline reads the same light maroon/pink as
+      the rest of the admin dashboard's dark mode instead of the
+      brighter --accent-hover red */
+:root[data-theme="dark"] .tab-btn.tab-active {
+  color: var(--accent-text);
+  border-bottom: 2px solid var(--accent-text);
 }
 
 /* => Active/Deleted toggle - sits to the right of the TESDA/SHS tabs */
@@ -199,7 +220,7 @@
 }
 
 .courses-row:hover {
-  background: rgba(102, 9, 17, 0.08); /* => light maroon tint (sidebar's #660911 at low opacity) so row text stays legible - bump the opacity up if you want a bolder hover */
+  background: var(--row-hover-bg); /* => was hardcoded rgba(102,9,17,0.08), light theme's value only - now uses the token already defined in index.css for both themes, same pattern as adm-admins-table's row hover */
 }
 
 .courses-empty {
@@ -256,6 +277,14 @@
   font-family: var(--font-body), sans-serif;
 }
 
+/* => Dark mode: same --accent-text token as .adm-pages-btn-outline in
+      pages.css, so "Manage Sectors" matches the tabs above and stays
+      consistent with the rest of the admin dashboard's dark mode */
+:root[data-theme="dark"] .btn-outline-action {
+  color: var(--accent-text);
+  border-color: var(--accent-text);
+}
+
 .btn-outline-action:hover {
   background: var(--sidebar-hover-bg, #262626);
   color: #fff;
@@ -302,6 +331,14 @@
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
+/* => Dark mode: same --accent-text token as the tabs and Manage Sectors
+      button above, so these pill links stay readable against the dark
+      background instead of the dim --accent-hover red */
+:root[data-theme="dark"] .guideline-link {
+  color: var(--accent-text);
+  border-color: var(--accent-text);
+}
+
 .guideline-link:hover {
   background: var(--sidebar-hover-bg, #262626);
   border-color: var(--sidebar-hover-bg, #262626);
@@ -337,10 +374,11 @@
   flex: 1;
   min-width: 220px;
   padding: 9px 14px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border); /* => was hardcoded #d1d5db, now follows theme */
   border-radius: 8px;
   font-size: 0.875rem; /* => matches Enrollments.css's search input sizing */
-  color: #111827;
+  color: var(--text-h); /* => was hardcoded #111827, now follows theme */
+  background: var(--bg); /* => was missing entirely, input defaulted to browser white regardless of theme */
   font-family: var(--font-body), sans-serif;
   transition: border-color 0.15s;
 }

@@ -68,6 +68,12 @@ export default function Pages() {
   const [savingPrivacy, setSavingPrivacy] = useState(false);
   const [savingTerms, setSavingTerms] = useState(false);
 
+  // => Tracks whether each editor currently has unsaved edits - reported
+  //    up via the onDirtyChange callback passed to each WYSIWYG component,
+  //    used to disable Save Changes when there's nothing to save
+  const [privacyDirty, setPrivacyDirty] = useState(false);
+  const [termsDirty, setTermsDirty] = useState(false);
+
   const handleSavePrivacyPolicy = async () => {
     if (!privacyRef.current) return;
     setSavingPrivacy(true);
@@ -115,7 +121,7 @@ export default function Pages() {
             <button
               className="adm-pages-btn-solid"
               onClick={handleSavePrivacyPolicy}
-              disabled={savingPrivacy}
+              disabled={savingPrivacy || !privacyDirty}
             >
               {savingPrivacy ? 'Saving…' : 'Save Changes'}
             </button>
@@ -124,7 +130,7 @@ export default function Pages() {
             <button
               className="adm-pages-btn-solid"
               onClick={handleSaveTermsAndConditions}
-              disabled={savingTerms}
+              disabled={savingTerms || !termsDirty}
             >
               {savingTerms ? 'Saving…' : 'Save Changes'}
             </button>
@@ -182,10 +188,10 @@ export default function Pages() {
           <StudentDashboardAnnouncementsWYSIWYG ref={announcementsRef} viewMode={announcementViewMode} />
         )}
         {mainTab === 'privacyPolicy' && (
-          <PrivacyPolicyWYSIWYG ref={privacyRef} />
+          <PrivacyPolicyWYSIWYG ref={privacyRef} onDirtyChange={setPrivacyDirty} />
         )}
         {mainTab === 'termsAndConditions' && (
-          <TermsAndConditionsWYSIWYG ref={termsRef} />
+          <TermsAndConditionsWYSIWYG ref={termsRef} onDirtyChange={setTermsDirty} />
         )}
         {mainTab === 'faqs' && (
           <FAQsWYSIWYG ref={faqsRef} />

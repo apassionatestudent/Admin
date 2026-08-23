@@ -7,3 +7,45 @@
   vertical-align: -2px;
   margin-right: 4px;
 }
+
+/* => Same compound-selector fix already applied to addAnnouncementModal.css's
+   => .aam-modal-box.adm-modal-box - the shared shell's adm-modal-box class
+   => was staying white in dark mode, this always wins on specificity
+   => regardless of stylesheet load order */
+.afsm-modal-box.adm-modal-box {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.afsm-modal-box .adm-modal-title {
+  color: var(--text-h);
+}
+
+.afsm-modal-box .adm-form-label {
+  color: var(--text-h);
+}
+
+.afsm-modal-box .adm-form-input {
+  background: var(--bg);
+  color: var(--text-h);
+  border: 1px solid var(--border);
+}
+
+.afsm-modal-box .adm-form-input::placeholder {
+  color: var(--text-muted, var(--text));
+}
+
+.afsm-modal-box .adm-modal-footer {
+  border-top: 1px solid var(--border);
+}
+
+.afsm-modal-box .adm-modal-cancel-btn {
+  background: var(--bg-secondary);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.afsm-modal-box .adm-modal-save-btn {
+  background: var(--accent-hover);
+  color: #fff;
+}

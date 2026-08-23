@@ -6,7 +6,13 @@
 .logs-page {
   padding: 32px;
   color: var(--text);
+  /* => was missing entirely - happened to look fine only because it
+     => inherited body's dark background by coincidence, not because
+     => it was actually set, same gap Chatbots/Staff had before their fix */
+  background: var(--bg-secondary);
   font-family: var(--font-body), sans-serif;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 .logs-header {
@@ -26,7 +32,7 @@
 
 .logs-subtitle {
   font-size: 0.875rem;
-  color: var(--text-muted, var(--text));
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -56,14 +62,17 @@
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.04em;
-  color: var(--accent-hover, #8a0d17);
+  /* => accent-text instead of accent-hover - accent-hover's dark value
+     => is too low-contrast to read as large text against the dark page,
+     => same fix already applied on Account/Staff/TestChatbotWidget */
+  color: var(--accent-text);
 }
 
 .logs-count-label {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-muted, #9ca3af);
+  color: var(--text-muted);
 }
 
 /* ════════════════════════════════════
@@ -89,17 +98,24 @@
   flex: 1;
   min-width: 220px;
   padding: 9px 14px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border);
   border-radius: 8px;
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--text-h);
+  /* => was missing entirely - this is what made the search bar stay
+     => bright white regardless of theme */
+  background: var(--bg);
   font-family: var(--font-body), sans-serif;
   transition: border-color 0.15s;
 }
 
+.adm-search-input::placeholder {
+  color: var(--text-muted);
+}
+
 .adm-search-input:focus {
   outline: none;
-  border-color: var(--accent-hover, #8a0d17);
+  border-color: var(--accent-hover);
 }
 
 .adm-filter-wrap {
@@ -121,26 +137,35 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-muted, #6b7280);
+  color: var(--text-muted);
   margin-right: 2px;
 }
 
 .adm-filter-select {
   padding: 6px 12px;
-  background: var(--bg, #fff);
-  color: var(--text, #374151);
+  background: var(--bg);
+  color: var(--text);
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid var(--border, #e5e7eb);
+  border: 1.5px solid var(--border);
   border-radius: 999px;
   cursor: pointer;
   font-family: var(--font-body), sans-serif;
   transition: border-color 0.15s;
+  /* => strips native OS/browser select chrome, same fix applied on
+     => ChatbotDetail's Scope/Course dropdowns - without this the browser
+     => can repaint its own background over ours in some Chromium builds */
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
 }
 
 .adm-filter-select:focus {
   outline: none;
-  border-color: var(--accent-hover, #8a0d17);
+  border-color: var(--accent-hover);
 }
 
 /* ════════════════════════════════════
@@ -170,7 +195,8 @@
 .logs-table th {
   text-align: left;
   padding: 12px 16px;
-  background: var(--sidebar-bg, #660911);
+  /* => sidebar-bg stays a fixed maroon accent surface in both themes */
+  background: var(--sidebar-bg);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -191,7 +217,7 @@
 }
 
 .logs-row:hover {
-  background: rgba(102, 9, 17, 0.08);
+  background: var(--row-hover-bg);
 }
 
 /* => Truncates a long action_detail with an ellipsis, full text still
@@ -207,20 +233,21 @@
 .logs-empty {
   text-align: center;
   padding: 32px !important;
-  color: var(--text-muted, var(--text));
+  color: var(--text-muted);
 }
 
 /* ════════════════════════════════════
    EXPANDABLE DETAIL ROW
    ════════════════════════════════════ */
 .logs-detail-row td {
-  background: var(--code-bg, #f4f3ec);
+  background: var(--code-bg);
   padding: 16px 24px;
 }
 
 .logs-detail-full p {
   margin-bottom: 6px;
   font-size: 0.875rem;
+  color: var(--text);
 }
 
 .logs-chevron {
@@ -236,7 +263,8 @@
 /* ════════════════════════════════════
    ACTION BADGE
    => Three-tier color grouping, same spirit as .status-badge, so admins
-      can scan the table by rough category at a glance
+      can scan the table by rough category at a glance. Semantic colors,
+      kept constant across both themes on purpose.
    ════════════════════════════════════ */
 .logs-action-badge {
   display: inline-block;
@@ -284,24 +312,24 @@
   padding: 7px 4px;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--text-muted, #9ca3af);
+  color: var(--text-muted);
 }
 
 .logs-page-btn {
   min-width: 34px;
   padding: 7px 12px;
-  background: var(--bg, #fff);
-  color: var(--text, #374151);
+  background: var(--bg);
+  color: var(--text);
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid var(--border, #e5e7eb);
+  border: 1.5px solid var(--border);
   border-radius: 7px;
   cursor: pointer;
   font-family: var(--font-body), sans-serif;
 }
 
 .logs-page-btn:hover:not(:disabled) {
-  background: #f3f4f6;
+  background: var(--border);
 }
 
 .logs-page-btn:disabled {
@@ -310,8 +338,9 @@
 }
 
 .logs-page-btn--active {
-  background: var(--sidebar-bg, #660911);
-  border-color: var(--sidebar-bg, #660911);
+  /* => sidebar-bg stays a fixed maroon accent surface in both themes */
+  background: var(--sidebar-bg);
+  border-color: var(--sidebar-bg);
   color: #fff;
 }
 

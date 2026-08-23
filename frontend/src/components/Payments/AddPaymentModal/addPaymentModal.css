@@ -9,7 +9,7 @@
 }
 
 .add-payment-modal {
-  background: var(--color-surface, #fff);
+  background: var(--bg);
   border-radius: var(--radius-lg, 12px);
   width: 480px;
   max-height: 90vh;
@@ -47,7 +47,7 @@
   border: none;
   background: transparent;
   cursor: pointer;
-  color: var(--color-text-muted, #666);
+  color: var(--text-muted);
 }
 
 .add-payment-field {
@@ -65,10 +65,11 @@
 .add-payment-field input,
 .add-payment-field textarea {
   width: 100%;
-  border: 1px solid var(--color-border, #ddd);
+  border: 1px solid var(--border);
   border-radius: 0;
   padding: 8px 12px;
   box-sizing: border-box;
+  background: var(--bg);
 }
 
 .add-payment-search-box,
@@ -76,7 +77,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--color-border, #ddd);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md, 8px);
   padding: 8px 12px;
   /* => Keeps the icon from stretching to fill the row's height */
@@ -93,7 +94,7 @@
 
 .add-payment-hint {
   font-size: 13px;
-  color: var(--color-text-muted, #999);
+  color: var(--text-muted);
   margin-top: 8px;
 }
 
@@ -101,9 +102,9 @@
       still read as a field rather than a floating label value */
 .add-payment-static-date {
   font-size: 14px;
-  color: var(--text-h, #08060d);
-  background: #f7f7f7;
-  border: 1px solid var(--color-border, #ddd);
+  color: var(--text-h);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md, 8px);
   padding: 8px 12px;
   margin: 0;
@@ -113,7 +114,7 @@
   list-style: none;
   margin: 8px 0 0;
   padding: 0;
-  border: 1px solid var(--color-border, #ddd);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md, 8px);
   max-height: 220px;
   overflow-y: auto;
@@ -125,7 +126,7 @@
   flex-direction: column;
   gap: 2px;
   cursor: pointer;
-  border-bottom: 1px solid var(--color-border, #eee);
+  border-bottom: 1px solid var(--border);
 }
 
 .add-payment-results li:last-child {
@@ -133,7 +134,7 @@
 }
 
 .add-payment-results li:hover {
-  background: var(--color-surface-alt, #f7f7f7);
+  background: var(--row-hover-bg);
 }
 
 .add-payment-result-name {
@@ -161,7 +162,7 @@
 
 .add-payment-result-course {
   font-size: 13px;
-  color: var(--color-text-muted, #666);
+  color: var(--text-muted);
 }
 
 .add-payment-result-balance {
@@ -173,7 +174,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  border: 1px solid var(--color-border, #ddd);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md, 8px);
   padding: 12px;
   margin-bottom: var(--spacing-md, 16px);
@@ -182,7 +183,7 @@
 .add-payment-selected-card p {
   margin: 4px 0 0;
   font-size: 13px;
-  color: var(--color-text-muted, #666);
+  color: var(--text-muted);
 }
 
 .add-payment-change-btn {
@@ -204,7 +205,7 @@
 
 .add-payment-balance-remaining {
   font-weight: 700;
-  border-top: 1px solid var(--color-border, #eee);
+  border-top: 1px solid var(--border);
   margin-top: 4px;
   padding-top: 8px;
   margin-bottom: var(--spacing-md, 16px);
@@ -218,8 +219,8 @@
 }
 
 .add-payment-cancel-btn {
-  border: 1px solid var(--color-border, #ddd);
-  background: var(--color-surface, #fff);
+  border: 1px solid var(--border);
+  background: var(--bg);
   border-radius: var(--radius-md, 8px);
   padding: 10px 16px;
   cursor: pointer;

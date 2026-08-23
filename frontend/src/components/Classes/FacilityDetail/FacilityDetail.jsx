@@ -545,10 +545,10 @@ export default function FacilityDetail() {
              ShsBatchDetail's Activity Logs section exactly for visual
              consistency - entity_type = 'facility', entity_id = facility_id
              directly (no join needed, unlike the facility session calendar). */}
-      <div className="adm-batch-section">
-        <p className="adm-section-title">
+      <div className="fd-log-section">
+        <p className="fd-log-section-title">
           Activity Logs
-          <span className="adm-section-count-inline">{logs.length}</span>
+          <span className="fd-log-count-inline">{logs.length}</span>
         </p>
 
         <LogComponent

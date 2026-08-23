@@ -281,10 +281,10 @@ export default function PublicSupportTicketDetail() {
              detail pages - entity_type = 'public_support_ticket', entity_id
              = ticket_id directly.
           ════════════════════════════════════ */}
-      <div className="adm-batch-section">
-        <p className="adm-section-title">
+      <div className="ticket-detail-section">
+        <p className="ticket-detail-section-title">
           Activity Logs
-          <span className="adm-section-count-inline">{logs.length}</span>
+          <span className="ticket-detail-section-count-inline">{logs.length}</span>
         </p>
 
         <LogComponent

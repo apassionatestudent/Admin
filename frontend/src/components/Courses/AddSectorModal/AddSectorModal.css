@@ -212,6 +212,15 @@
   font-family: var(--font-body), sans-serif;
 }
 
+/* => Dark mode: same --accent-text token used across the campaign
+      (Courses.css's tabs/guideline links, AddClusterModal.css's
+      Restore button), so this stays readable against the dark modal
+      background instead of the dim --accent-hover red */
+:root[data-theme="dark"] .btn-restore {
+  color: var(--accent-text);
+  border-color: var(--accent-text);
+}
+
 .btn-restore:hover {
   background: var(--accent-hover, #8a0d17);
   color: #fff;

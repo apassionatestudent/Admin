@@ -12,10 +12,13 @@ import axiosAdmin from '../../../utils/axiosAdmin.js';
 import RichTextEditor from '../RichTextEditor/richTextEditor.jsx';
 import LoadingState from '../../LoadingState/loadingState.jsx';
 import TermsAndConditionsRevisions from '../TermsAndConditionsRevisions/termsAndConditionsRevisions.jsx';
+import ConfirmModal from '../../ConfirmModal/ConfirmModal.jsx';
 import './termsAndConditionsWYSIWYG.css';
 
-const TermsAndConditionsWYSIWYG = forwardRef(function TermsAndConditionsWYSIWYG(_props, ref) {
+const TermsAndConditionsWYSIWYG = forwardRef(function TermsAndConditionsWYSIWYG({ onDirtyChange }, ref) {
   const [content, setContent] = useState('');
+  // => Same dirty-tracking pattern as privacyPolicyWYSIWYG.jsx
+  const [savedContent, setSavedContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
   // => Bumped after a successful save so TermsAndConditionsRevisions
@@ -28,6 +31,7 @@ const TermsAndConditionsWYSIWYG = forwardRef(function TermsAndConditionsWYSIWYG(
     try {
       const res = await axiosAdmin.get('/api/admin/pages/terms-and-conditions');
       setContent(res.data.page.content || '');
+      setSavedContent(res.data.page.content || '');
     } catch (err) {
       console.error('Failed to fetch terms and conditions:', err);
       setFetchError('Failed to load the terms and conditions. Please try again.');
@@ -40,10 +44,13 @@ const TermsAndConditionsWYSIWYG = forwardRef(function TermsAndConditionsWYSIWYG(
     fetchTermsAndConditions();
   }, []);
 
-  const save = async () => {
+  // => The actual PUT request - only runs after the admin confirms via
+  //    ConfirmModal, same pattern as privacyPolicyWYSIWYG.jsx
+  const performSave = async () => {
     try {
       const res = await axiosAdmin.put('/api/admin/pages/terms-and-conditions', { content });
       setContent(res.data.page.content || '');
+      setSavedContent(res.data.page.content || ''); // => resets the dirty check baseline to the freshly-saved value
       toast.success('Terms and Conditions saved.');
       setRevisionsRefreshKey((prev) => prev + 1);
     } catch (err) {
@@ -52,8 +59,27 @@ const TermsAndConditionsWYSIWYG = forwardRef(function TermsAndConditionsWYSIWYG(
     }
   };
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // => save() now just opens the confirmation dialog - pages.jsx's header
+  //    button calls this via ref, same wiring as before
+  const save = () => {
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmSave = async () => {
+    setConfirmOpen(false);
+    await performSave();
+  };
+
   // => Exposes save() to pages.jsx's header button via ref
   useImperativeHandle(ref, () => ({ save }));
+
+  // => Reports dirty state up to pages.jsx, same pattern as
+  //    privacyPolicyWYSIWYG.jsx
+  useEffect(() => {
+    onDirtyChange?.(content !== savedContent);
+  }, [content, savedContent, onDirtyChange]);
 
   return (
     <div className="tcw-wrap">
@@ -70,6 +96,13 @@ const TermsAndConditionsWYSIWYG = forwardRef(function TermsAndConditionsWYSIWYG(
       )}
 
       <TermsAndConditionsRevisions refreshKey={revisionsRefreshKey} />
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        message="Save changes to the Terms and Conditions? This updates the live public page immediately."
+        onConfirm={handleConfirmSave}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 });

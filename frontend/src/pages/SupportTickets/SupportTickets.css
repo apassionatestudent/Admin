@@ -6,6 +6,9 @@
 .tickets-page {
   padding: 32px;
   color: var(--text);
+  background: var(--bg-secondary);
+  min-height: 100vh;
+  box-sizing: border-box;
   font-family: var(--font-body), sans-serif;
 }
 
@@ -105,6 +108,14 @@
   border-bottom: 2px solid var(--accent-hover, #8a0d17);
 }
 
+/* => Dark mode: same --accent-text token Courses.css's .tab-btn.tab-active
+   => already uses, so the active tab label/underline reads the same
+   => light maroon/pink in dark mode instead of the dim --accent-hover red */
+:root[data-theme="dark"] .tickets-tab-btn.tickets-tab-btn--active {
+  color: var(--accent-text);
+  border-bottom: 2px solid var(--accent-text);
+}
+
 .tickets-table {
   width: 100%;
   border-collapse: collapse;
@@ -150,7 +161,7 @@
 }
 
 .tickets-row:hover {
-  background: rgba(102, 9, 17, 0.08);
+  background: var(--row-hover-bg);
 }
 
 /* => Truncates a long concern with an ellipsis, full text still available
@@ -249,10 +260,11 @@
   flex: 1;
   min-width: 220px;
   padding: 9px 14px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border);
   border-radius: 8px;
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--text-h);
+  background: var(--bg);
   font-family: var(--font-body), sans-serif;
   transition: border-color 0.15s;
 }
@@ -345,7 +357,7 @@
 }
 
 .tickets-page-btn:hover:not(:disabled) {
-  background: #f3f4f6;
+  background: var(--bg-secondary);
 }
 
 .tickets-page-btn:disabled {

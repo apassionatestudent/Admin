@@ -55,7 +55,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 14px;
-  background: #faf7f5;
+  background: var(--bg-secondary); /* => was hardcoded #faf7f5 (light-only off-white), now follows theme, same fix already applied to privacyPolicyRevisions.css's ppr-item-header */
   border: none;
   cursor: pointer;
   text-align: left;

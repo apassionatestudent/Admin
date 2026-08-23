@@ -1045,8 +1045,8 @@ export default function StudentDetail() {
           {!enrollments || enrollments.length === 0 ? (
             <p className="adm-empty-note">No enrollment records found for this student.</p>
           ) : (
-            <div className="adm-sub-table-wrap">
-              <table className="adm-sub-table">
+            <div className="student-detail-sub-table-wrap">
+              <table className="student-detail-sub-table">
                 <thead>
                   <tr>
                     <th>Course</th>
@@ -1061,12 +1061,12 @@ export default function StudentDetail() {
                   {enrollments.map((e) => (
                     <tr
                       key={e.enrollment_public_id}
-                      className="adm-sub-table-row"
+                      className="student-detail-sub-table-row"
                       onClick={() => navigate(`/dashboard/enrollments/${e.enrollment_public_id}`)}
                       title="View enrollment detail"
                     >
-                      <td className="adm-td-course">{e.course_name ?? '-'}</td>
-                      <td className="adm-td-dates">
+                      <td className="student-detail-td-course">{e.course_name ?? '-'}</td>
+                      <td className="student-detail-td-dates">
                         {e.start_date
                           ? `${String(e.start_date).slice(0,10)} - ${String(e.end_date).slice(0,10)}`
                           : '-'
@@ -1082,7 +1082,7 @@ export default function StudentDetail() {
                           {e.enrollment_status}
                         </span>
                       </td>
-                      <td className="adm-td-date">
+                      <td className="student-detail-td-date">
                         {e.submitted_at
                           ? new Date(e.submitted_at).toLocaleDateString('en-PH', {
                               year: 'numeric', month: 'short', day: 'numeric',
@@ -1090,7 +1090,7 @@ export default function StudentDetail() {
                           : '-'
                         }
                       </td>
-                      <td className="adm-td-arrow">›</td>
+                      <td className="student-detail-td-arrow">›</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1114,8 +1114,8 @@ export default function StudentDetail() {
           {paymentHistory.length === 0 ? (
             <p className="adm-empty-note">No payments or refunds recorded for this student.</p>
           ) : (
-            <div className="adm-sub-table-wrap">
-              <table className="adm-sub-table">
+            <div className="student-detail-sub-table-wrap">
+              <table className="student-detail-sub-table">
                 <thead>
                   <tr>
                     <th>Program</th>
@@ -1130,7 +1130,7 @@ export default function StudentDetail() {
                   {paymentHistory.map(record => (
                     <tr
                       key={record.public_id}
-                      className="adm-sub-table-row"
+                      className="student-detail-sub-table-row"
                       onClick={() => navigate(
                         record.record_type === 'Payment'
                           ? `/dashboard/payments/${record.public_id}`
@@ -1139,18 +1139,18 @@ export default function StudentDetail() {
                       title={`View ${record.record_type.toLowerCase()} detail`}
                     >
                       <td>
-                        <span className={`adm-type-badge adm-type-badge--${record.program_type.toLowerCase()}`}>
+                        <span className={`student-detail-type-badge student-detail-type-badge--${record.program_type.toLowerCase()}`}>
                           {record.program_type}
                         </span>
                       </td>
                       <td>
-                        <span className={`adm-type-badge adm-type-badge--${record.record_type.toLowerCase()}`}>
+                        <span className={`student-detail-type-badge student-detail-type-badge--${record.record_type.toLowerCase()}`}>
                           {record.record_type}
                         </span>
                       </td>
-                      <td className="adm-td-or-number">{record.reference_number}</td>
+                      <td className="student-detail-td-or-number">{record.reference_number}</td>
                       <td>{formatCurrency(record.amount)}</td>
-                      <td className="adm-td-date">{formatDate(record.record_date)}</td>
+                      <td className="student-detail-td-date">{formatDate(record.record_date)}</td>
                       <td>
                         <span className={`adm-badge adm-badge--payment-${record.status.toLowerCase()}`}>
                           {record.status}

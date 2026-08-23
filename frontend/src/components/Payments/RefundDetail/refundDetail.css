@@ -8,9 +8,9 @@
 .refund-detail-page {
   padding: 36px 40px;
   min-height: 100vh;
-  background: #f4f5f8;
+  background: var(--bg-secondary);
   font-family: var(--font-body), sans-serif;
-  color: #374151;
+  color: var(--text);
   box-sizing: border-box;
   width: 100%;
   /* => Same defensive fix as paymentDetail.css - see that file's comment */
@@ -45,7 +45,7 @@
   font-weight: 800;
   font-size: 2rem;
   letter-spacing: 0.03em;
-  color: #0f1724;
+  color: var(--text-h);
 }
 
 .refund-detail-header-actions {
@@ -66,13 +66,13 @@
   font-family: inherit;
   transition: opacity 0.15s, background 0.15s;
   white-space: nowrap;
-  border: 1.5px solid #e5e7eb;
-  background: #fff;
-  color: #374151;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
 }
 
 .refund-detail-download-btn:hover:not(:disabled) {
-  background: #f3f4f6;
+  background: var(--bg-secondary);
 }
 
 .refund-detail-download-btn:disabled {
@@ -131,12 +131,16 @@
 }
 
 .refund-detail-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   padding: 22px 24px;
   margin-bottom: 18px;
+}
+
+:root[data-theme="dark"] .refund-detail-card {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 .refund-detail-card h2 {
@@ -146,7 +150,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .refund-detail-grid {
@@ -161,7 +165,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9ca3af;
+  color: var(--text-muted);
   margin-bottom: 4px;
 }
 
@@ -169,25 +173,25 @@
   display: block;
   font-weight: 600;
   font-size: 0.9375rem;
-  color: #111827;
+  color: var(--text-h);
   word-break: break-word;
 }
 
 .refund-detail-remarks {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--border);
 }
 
 .refund-detail-remarks p {
-  color: #374151;
+  color: var(--text);
   font-size: 0.875rem;
   margin-top: 4px;
 }
 
 .refund-detail-void-card {
   border-color: #fca5a5;
-  background: #fff7f7;
+  background: var(--bg);
 }
 
 .refund-detail-void-overlay {
@@ -202,7 +206,7 @@
 }
 
 .refund-detail-void-form {
-  background: #fff;
+  background: var(--bg);
   border-radius: 14px;
   padding: 24px;
   width: 100%;
@@ -211,29 +215,34 @@
   font-family: var(--font-body), sans-serif;
 }
 
+:root[data-theme="dark"] .refund-detail-void-form {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
 .refund-detail-void-form h3 {
   margin: 0 0 8px;
   font-family: var(--font-body), sans-serif;
   font-size: 1.05rem;
-  color: #0f1724;
+  color: var(--text-h);
 }
 
 .refund-detail-void-form p {
   font-size: 0.8125rem;
-  color: #6b7280;
+  color: var(--text-muted);
   margin: 0 0 14px;
 }
 
 .refund-detail-void-form textarea {
   width: 100%;
   box-sizing: border-box;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border);
   border-radius: 8px;
   padding: 10px 12px;
   margin: 0 0 14px;
   font-family: inherit;
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--text-h);
+  background: var(--bg);
   resize: vertical;
   transition: border-color 0.15s;
 }
@@ -267,9 +276,9 @@
 }
 
 .refund-detail-void-actions button[type="button"] {
-  border: 1.5px solid #e5e7eb;
-  background: #fff;
-  color: #374151;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
   border-radius: 8px;
   padding: 9px 16px;
   cursor: pointer;
@@ -280,7 +289,7 @@
 }
 
 .refund-detail-void-actions button[type="button"]:hover {
-  background: #f3f4f6;
+  background: var(--bg-secondary);
 }
 
 .refund-detail-void-actions button:disabled {
@@ -295,8 +304,8 @@
   margin-left: 6px;
   padding: 1px 8px;
   border-radius: 999px;
-  background: #f3f4f6;
-  color: #4b5563;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
   font-size: 0.72rem;
   font-weight: 700;
   vertical-align: middle;

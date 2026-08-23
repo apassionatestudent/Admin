@@ -554,8 +554,8 @@ export default function TesdaBatchDetail() {
         </div>
 
         {/* STATUS CHANGER */}
-        <div className="adm-batch-section">
-          <p className="adm-section-title">Update Status</p>
+        <div className="tbd-section">
+          <p className="tbd-section-title">Update Status</p>
           <div className="adm-status-changer">
             <select
               className="adm-status-select"
@@ -589,9 +589,9 @@ export default function TesdaBatchDetail() {
         {/* BATCH INFO + TRAINER - one editable section, since both save
                through the same PATCH endpoint. Course is always plain
                text, never part of the draft - permanently locked. */}
-        <div className="adm-batch-section">
+        <div className="tbd-section">
           <div className="adm-section-header">
-            <p className="adm-section-title">Batch Information</p>
+            <p className="tbd-section-title">Batch Information</p>
             <SectionEditControls
               sectionKey="batchInfo"
               editingSection={editingSection}
@@ -746,7 +746,7 @@ export default function TesdaBatchDetail() {
               <div className="adm-form-group">
                 <label className="adm-form-label">Trainer</label>
                 {loadingTrainers ? (
-                  <p className="adm-empty-note">Loading trainers…</p>
+                  <p className="tbd-empty-note">Loading trainers…</p>
                 ) : (
                   <select
                     className="adm-form-select"
@@ -848,21 +848,21 @@ export default function TesdaBatchDetail() {
         </div>
 
         {/* MISCELLANEOUS FEES */}
-        <div className="adm-batch-section">
-          <p className="adm-section-title">
+        <div className="tbd-section">
+          <p className="tbd-section-title">
             Miscellaneous Fees
-            <span className="adm-section-count-inline">{miscFees.length}</span>
+            <span className="tbd-section-count-inline">{miscFees.length}</span>
           </p>
 
-          {miscFeesLoading && <p className="adm-empty-note">Loading fees…</p>}
+          {miscFeesLoading && <p className="tbd-empty-note">Loading fees…</p>}
 
           {!miscFeesLoading && miscFees.length === 0 && (
-            <p className="adm-empty-note">No miscellaneous fees added yet.</p>
+            <p className="tbd-empty-note">No miscellaneous fees added yet.</p>
           )}
 
           {!miscFeesLoading && miscFees.length > 0 && (
-            <div className="adm-sub-table-wrap">
-              <table className="adm-sub-table">
+            <div className="tbd-sub-table-wrap">
+              <table className="tbd-sub-table">
                 <thead>
                   <tr>
                     <th>Fee</th>
@@ -922,11 +922,11 @@ export default function TesdaBatchDetail() {
         </div>
 
         {/* ENROLLED STUDENTS TABLE */}
-        <div className="adm-batch-section">
+        <div className="tbd-section">
           <div className="adm-section-header">
-            <p className="adm-section-title">
+            <p className="tbd-section-title">
               Enrolled Students
-              <span className="adm-section-count-inline">{enrolledStudents?.length ?? 0}</span>
+              <span className="tbd-section-count-inline">{enrolledStudents?.length ?? 0}</span>
             </p>
             {/* => Only shows once the batch has actually reached max_students
                    on Approved count, and only if there's overflow left to
@@ -942,10 +942,10 @@ export default function TesdaBatchDetail() {
           </div>
 
           {!enrolledStudents || enrolledStudents.length === 0 ? (
-            <p className="adm-empty-note">No students enrolled in this batch yet.</p>
+            <p className="tbd-empty-note">No students enrolled in this batch yet.</p>
           ) : (
-            <div className="adm-sub-table-wrap">
-              <table className="adm-sub-table">
+            <div className="tbd-sub-table-wrap">
+              <table className="tbd-sub-table">
                 <thead>
                   <tr>
                     <th>Student</th>
@@ -959,7 +959,7 @@ export default function TesdaBatchDetail() {
                   {enrolledStudents.map((s) => (
                     <tr
                       key={s.enrollment_public_id}
-                      className="adm-sub-table-row"
+                      className="tbd-sub-table-row"
                       // => Route must match App.jsx: /dashboard/enrollments/tesda/:publicId -
                       //    hardcoded 'tesda' since this page only ever lists TESDA enrollments
                       onClick={() => navigate(`/dashboard/enrollments/tesda/${s.enrollment_public_id}`)}
@@ -991,21 +991,21 @@ export default function TesdaBatchDetail() {
 
         {/* CLASS SESSIONS - every booked session for this batch, across
                all facilities and types */}
-        <div className="adm-batch-section">
-          <p className="adm-section-title">
+        <div className="tbd-section">
+          <p className="tbd-section-title">
             Class Sessions
-            <span className="adm-section-count-inline">{classSessions.length}</span>
+            <span className="tbd-section-count-inline">{classSessions.length}</span>
           </p>
 
-          {classSessionsLoading && <p className="adm-empty-note">Loading sessions…</p>}
+          {classSessionsLoading && <p className="tbd-empty-note">Loading sessions…</p>}
 
           {!classSessionsLoading && classSessions.length === 0 && (
-            <p className="adm-empty-note">No sessions scheduled yet.</p>
+            <p className="tbd-empty-note">No sessions scheduled yet.</p>
           )}
 
           {!classSessionsLoading && classSessions.length > 0 && (
-            <div className="adm-sub-table-wrap">
-              <table className="adm-sub-table">
+            <div className="tbd-sub-table-wrap">
+              <table className="tbd-sub-table">
                 <thead>
                   <tr>
                     <th>Type</th>
@@ -1019,7 +1019,7 @@ export default function TesdaBatchDetail() {
                   {classSessions.map((s) => (
                     <tr
                       key={s.public_id}
-                      className="adm-sub-table-row"
+                      className="tbd-sub-table-row"
                       style={{ cursor: s.session_type === 'Local' && s.facility_public_id ? 'pointer' : 'default' }}
                       onClick={
                         s.session_type === 'Local' && s.facility_public_id
@@ -1051,10 +1051,10 @@ export default function TesdaBatchDetail() {
                System-actor entries (e.g. the automatic Pending -> Ongoing
                promotion) get a distinct badge so they read differently
                from admin-initiated changes at a glance. */}
-        <div className="adm-batch-section">
-          <p className="adm-section-title">
+        <div className="tbd-section">
+          <p className="tbd-section-title">
             Activity Logs
-            <span className="adm-section-count-inline">{logs.length}</span>
+            <span className="tbd-section-count-inline">{logs.length}</span>
           </p>
 
           <LogComponent

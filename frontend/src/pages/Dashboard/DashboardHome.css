@@ -2,6 +2,8 @@
 
 .dashboard-home {
     padding: 32px;
+    background: var(--bg-secondary); /* => new, page shell now self-contained instead of relying on the parent .dashboard wrapper's background */
+    color: var(--text); /* => new, matches the page-shell convention used elsewhere in the campaign */
 }
 
 /* => Cards page-wide, so long stat values or long labels never force
@@ -16,7 +18,7 @@
 .dashboard-home__title {
     font-size: 1.75rem;
     font-weight: 700;
-    color: #0f1724;
+    color: var(--text); /* => was var(--text-h), which is tuned for contrast against --bg (card surfaces) not the page-level background this title sits directly on - var(--text) is what the subtitle already uses successfully at this same level */
     letter-spacing: -0.02em;
     margin: 0 0 4px;
 }
@@ -24,7 +26,7 @@
 /* => Subtitle style matched to Enrollments.css's .adm-enroll-subtitle */
 .dashboard-home__subtitle {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--text-muted, var(--text)); /* => was #6b7280 hardcoded */
     margin: 0 0 24px;
 }
 
@@ -37,7 +39,7 @@
 }
 
 .dashboard-home__card {
-    background: #fff;
+    background: var(--bg); /* => was #fff hardcoded, card stayed white even in dark mode */
     border: 1px solid var(--border, #e0d8d0);
     border-radius: 10px;
     padding: 20px;
@@ -96,7 +98,7 @@
 .dashboard-home__stat-value {
     font-weight: 600;
     font-size: 1.1rem;
-    color: var(--text-primary, #1a0305);
+    color: var(--text-h); /* => was var(--text-primary, #1a0305), --text-primary isn't a defined token anywhere else in the app so this was silently always falling back to the hardcoded color */
 }
 
 /* => Class Sessions Today card shows one big number instead of a list */

@@ -1137,11 +1137,15 @@ export default function TesdaCourseDetail() {
       </section>
 
       {/* ACTIVITY LOGS - now rendered through the shared LogComponent
-          instead of a copy-pasted table, same visual pattern as before */}
-      <div className="adm-batch-section">
-        <p className="adm-section-title">
+          instead of a copy-pasted table, same visual pattern as before.
+          Wrapper classes renamed to course-detail-batch-section /
+          course-detail-section-title / course-detail-section-count-inline,
+          page-specific now so they can't be overridden by another
+          page's identically-named .adm-batch-section rule */}
+      <div className="course-detail-batch-section">
+        <p className="course-detail-section-title">
           Activity Logs
-          <span className="adm-section-count-inline">{logs.length}</span>
+          <span className="course-detail-section-count-inline">{logs.length}</span>
         </p>
 
         <LogComponent
