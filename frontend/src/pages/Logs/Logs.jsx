@@ -5,7 +5,6 @@
 import React, { useEffect, useState } from 'react';
 import axiosAdmin from '../../utils/axiosAdmin.js';
 import LoadingState from '../../components/LoadingState/loadingState.jsx';
-import { ACTIVITY_ACTIONS } from '../../constants/activityActions.js';
 import chevronDown from '../../assets/icons/chevron-down.png';
 import './logs.css';
 
@@ -39,6 +38,10 @@ export default function Logs() {
   const [logsToday, setLogsToday] = useState(0);
   const [entityTypeOptions, setEntityTypeOptions] = useState([]);
   const [actorTypeOptions, setActorTypeOptions] = useState([]);
+  // => Action options now come from the API (actual distinct values in
+  //    activity_logs), not the ACTIVITY_ACTIONS frontend constant, so the
+  //    dropdown can never miss an action that is actually being logged
+  const [actionOptions, setActionOptions] = useState([]);
 
   // => Which row is expanded to show its full action_detail, null when none
   const [expandedLogId, setExpandedLogId] = useState(null);
@@ -70,6 +73,7 @@ export default function Logs() {
       setLogsToday(res.data.logsToday);
       setEntityTypeOptions(res.data.entityTypes);
       setActorTypeOptions(res.data.actorTypes);
+      setActionOptions(res.data.actions);
     } catch (error) {
       console.error('Failed to fetch logs:', error);
       setFetchError('Failed to load logs. Please try again.');
@@ -216,7 +220,7 @@ export default function Logs() {
             onChange={(e) => handleActionChange(e.target.value)}
           >
             <option value="ALL">All</option>
-            {Object.values(ACTIVITY_ACTIONS).map((value) => (
+            {actionOptions.map((value) => (
               <option key={value} value={value}>{formatActionLabel(value)}</option>
             ))}
           </select>
