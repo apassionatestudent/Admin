@@ -18,7 +18,7 @@
 .dashboard-home__title {
     font-size: 1.75rem;
     font-weight: 700;
-    color: var(--text); /* => was var(--text-h), which is tuned for contrast against --bg (card surfaces) not the page-level background this title sits directly on - var(--text) is what the subtitle already uses successfully at this same level */
+    color: var(--text-h); /* => was var(--text-h), which is tuned for contrast against --bg (card surfaces) not the page-level background this title sits directly on - var(--text) is what the subtitle already uses successfully at this same level */
     letter-spacing: -0.02em;
     margin: 0 0 4px;
 }
