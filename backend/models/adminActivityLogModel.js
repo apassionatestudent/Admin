@@ -173,6 +173,21 @@ export const getDistinctActorTypes = async (pool) => {
   return result.rows.map(row => row.actor_type);
 };
 
+// => Distinct action values actually present in the table, same reasoning
+//    as getDistinctEntityTypes/getDistinctActorTypes above.
+// => This replaces relying on the frontend ACTIVITY_ACTIONS constant for
+//    the filter dropdown - that constant can drift out of sync with what
+//    is actually written to the table, which meant some real actions could
+//    never be selected as a filter even though matching rows existed.
+export const getDistinctActions = async (pool) => {
+  const result = await pool.query(
+    `SELECT DISTINCT action
+       FROM activity_logs
+      ORDER BY action`
+  );
+  return result.rows.map(row => row.action);
+};
+
 // => Count of logs created today (server/DB timezone), feeds the "Logs Today" stat card
 export const getActivityLogsTodayCount = async (pool) => {
   const result = await pool.query(

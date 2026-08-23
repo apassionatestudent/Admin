@@ -7,16 +7,20 @@ import {
   getAllActivityLogsPaginated,
   getDistinctEntityTypes,
   getDistinctActorTypes,
+  getDistinctActions,
   getActivityLogsTodayCount,
 } from '../../models/adminActivityLogModel.js';
 
 // => Single call that gathers everything the Logs page needs on initial load or filter change.
-//    Bundled together so the frontend makes one request instead of four separate round trips.
+//    Bundled together so the frontend makes one request instead of five separate round trips.
 export const fetchLogsPageData = async ({ page, pageSize, entityType, actorType, action, search }) => {
-  const [{ logs, total }, entityTypes, actorTypes, logsToday] = await Promise.all([
+  const [{ logs, total }, entityTypes, actorTypes, actions, logsToday] = await Promise.all([
     getAllActivityLogsPaginated(pool, { page, pageSize, entityType, actorType, action, search }),
     getDistinctEntityTypes(pool),
     getDistinctActorTypes(pool),
+    // => Pulled from the actual table now instead of the frontend constant,
+    //    so every action that has ever been logged shows up as a filter option
+    getDistinctActions(pool),
     getActivityLogsTodayCount(pool),
   ]);
 
@@ -25,6 +29,7 @@ export const fetchLogsPageData = async ({ page, pageSize, entityType, actorType,
     total,
     entityTypes,
     actorTypes,
+    actions,
     logsToday,
   };
 };
