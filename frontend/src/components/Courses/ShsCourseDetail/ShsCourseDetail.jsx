@@ -552,11 +552,15 @@ export default function ShsCourseDetail() {
       </section>
 
       {/* ACTIVITY LOGS - now rendered through the shared LogComponent
-          instead of a copy-pasted table, same visual pattern as before */}
-      <div className="adm-batch-section">
-        <p className="adm-section-title">
+          instead of a copy-pasted table, same visual pattern as before.
+          Wrapper classes renamed to course-detail-batch-section /
+          course-detail-section-title / course-detail-section-count-inline,
+          matches the rename in TesdaCourseDetail.jsx - this page shares
+          TesdaCourseDetail.css via @import so the class names must match */}
+      <div className="course-detail-batch-section">
+        <p className="course-detail-section-title">
           Activity Logs
-          <span className="adm-section-count-inline">{logs.length}</span>
+          <span className="course-detail-section-count-inline">{logs.length}</span>
         </p>
 
         <LogComponent

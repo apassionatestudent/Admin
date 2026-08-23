@@ -52,7 +52,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 14px;
-  background: #faf7f5;
+  background: var(--bg-secondary); /* => was hardcoded #faf7f5 (light-only off-white), now follows theme */
   border: none;
   cursor: pointer;
   text-align: left;

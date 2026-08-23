@@ -1,0 +1,67 @@
+.theme-switch {
+  /* reset button styles */
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.theme-switch:focus-visible {
+  outline: 2px solid var(--sidebar-bg);
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+
+.theme-switch-track {
+  width: 3.4rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  padding: 0.12rem 0.25rem;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  transition: background 0.25s ease;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background-clip: padding-box;
+}
+
+.theme-switch-track.is-light {
+  background: #f6ff00;
+}
+
+/* => Maroon-tinted dark track instead of the student site's navy (#032162),
+   => matches the admin dashboard's own accent instead of borrowing theirs */
+.theme-switch-track.is-dark {
+  background: #1a0305;
+}
+
+/* thumb always animated */
+.theme-switch-thumb {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transform: translateX(0);
+  transition: transform 0.25s ease;
+}
+
+/* slide thumb to the right when in dark mode */
+.theme-switch-track.is-dark .theme-switch-thumb {
+  transform: translateX(1.45rem);
+}
+
+/* => actual picture icon sizing, replaces the emoji font-size the
+   => student dashboard's version used */
+.theme-switch-icon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}

@@ -1,8 +1,12 @@
 .chatbot-detail-page {
   padding: 32px;
   color: var(--text);
+  /* => was missing entirely, same gap Staff/StaffDetail had before that fix */
+  background: var(--bg-secondary);
   font-family: var(--font-body), sans-serif;
   width: 100%;
+  /* => fills the full viewport height so the background doesn't cut off when content is short */
+  min-height: 100vh;
   box-sizing: border-box;
 }
 
@@ -40,20 +44,28 @@
 }
 
 .chatbot-detail-btn-primary {
-  background: var(--sidebar-bg, #660911);
+  /* => sidebar-bg stays a fixed maroon accent surface in both themes,
+     => white text on top stays readable either way */
+  background: var(--sidebar-bg);
   color: #fff;
 }
 
 .chatbot-detail-btn-primary:hover {
-  background: var(--accent-hover, #8a0d17);
+  background: var(--accent-hover);
 }
 
 .chatbot-detail-btn-secondary {
-  background: var(--code-bg, #f4f3ec);
+  /* => was var(--code-bg), which in dark mode is the exact same value
+     => as the page's --bg-secondary background, making this button
+     => nearly invisible except for its border. --bg is the card-surface
+     => token instead, distinct from the page behind it in both themes */
+  background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text);
 }
 
+/* => Semantic danger color, kept constant across both themes on purpose,
+   => same rule as the status pills and Staff page's danger buttons */
 .chatbot-detail-btn-danger {
   display: flex;
   align-items: center;
@@ -93,19 +105,36 @@
 .chatbot-detail-textarea,
 .chatbot-detail-select {
   padding: 9px 12px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border);
   border-radius: 8px;
   font-size: 0.875rem;
   font-family: var(--font-body), sans-serif;
-  color: #111827;
+  color: var(--text-h);
+  background: var(--bg);
   resize: vertical;
+}
+
+/* => Strips native OS/browser chrome from the select so it stops
+   => painting its own disabled-state gray over our background -
+   => that's what was making the Scope/Course boxes look pale
+   => instead of matching --code-bg in dark mode */
+.chatbot-detail-select {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
 }
 
 .chatbot-detail-input:disabled,
 .chatbot-detail-textarea:disabled,
 .chatbot-detail-select:disabled {
-  background: var(--code-bg, #f9fafb);
-  color: var(--text);
+  /* => !important fights the browser's own disabled-control repaint,
+     => which some Chromium builds apply even with appearance:none set */
+  background: var(--code-bg) !important;
+  color: var(--text) !important;
+  opacity: 1;
   cursor: default;
 }
 
@@ -113,11 +142,12 @@
 .chatbot-detail-textarea:focus,
 .chatbot-detail-select:focus {
   outline: none;
-  border-color: var(--accent-hover, #8a0d17);
+  border-color: var(--accent-hover);
 }
 
 /* => Own copy of the status-badge classes, same colors as chatbots.css,
-   => per the no-shared-abstraction convention */
+   => per the no-shared-abstraction convention. Semantic status colors,
+   => kept constant across both themes on purpose. */
 .status-badge {
   display: inline-block;
   padding: 4px 12px;
@@ -140,6 +170,7 @@
   border-color: #fca5a5;
 }
 
+/* => Semantic info-blue, kept constant across both themes on purpose */
 .chatbot-detail-btn-test {
   display: flex;
   align-items: center;
@@ -170,6 +201,8 @@
   font-family: var(--font-body), sans-serif;
 }
 
+/* => Semantic activate/deactivate colors below, kept constant across
+   => both themes on purpose, same rule as the status pills above */
 .chatbot-detail-btn-activate {
   background: #dcfce7;
   color: #166534;
@@ -196,9 +229,9 @@
       chatbot-detail-* rather than the shared adm-* classes
    ════════════════════════════════════ */
 .chatbot-detail-section {
-  background: #ffffff;
+  background: var(--bg);
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   padding: 24px 28px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   margin-top: 24px;
@@ -209,7 +242,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #6b7280;
+  color: var(--text-muted);
   margin: 0 0 20px;
   display: flex;
   align-items: center;
@@ -224,35 +257,35 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background: #e5e7eb;
-  color: #374151;
+  background: var(--border);
+  color: var(--text);
   font-size: 0.75rem;
   font-weight: 700;
 }
 
 .chatbot-detail-empty-note {
   font-size: 0.875rem;
-  color: #9ca3af;
+  color: var(--text-muted);
   margin: 0;
 }
 
 .chatbot-detail-log-table-wrap {
   overflow-x: auto;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
 }
 
 .chatbot-detail-log-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.8375rem;
-  color: #374151;
+  color: var(--text);
   min-width: 600px;
 }
 
 .chatbot-detail-log-table thead tr {
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
 }
 
 .chatbot-detail-log-table th {
@@ -262,13 +295,13 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6b7280;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
 .chatbot-detail-log-table td {
   padding: 11px 14px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
 
@@ -277,7 +310,7 @@
 }
 
 .chatbot-detail-log-table tbody tr:hover {
-  background: #f9fafb;
+  background: var(--bg-secondary);
 }
 
 .chatbot-detail-log-pagination {
@@ -291,11 +324,11 @@
 .chatbot-detail-log-page-btn {
   min-width: 32px;
   padding: 6px 10px;
-  background: #fff;
-  color: #374151;
+  background: var(--bg);
+  color: var(--text);
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border);
   border-radius: 7px;
   cursor: pointer;
   font-family: var(--font-body), sans-serif;
@@ -303,7 +336,7 @@
 }
 
 .chatbot-detail-log-page-btn:hover:not(:disabled) {
-  background: #f3f4f6;
+  background: var(--border);
 }
 
 .chatbot-detail-log-page-btn:disabled {
@@ -312,8 +345,9 @@
 }
 
 .chatbot-detail-log-page-btn--active {
-  background: var(--sidebar-bg, #660911);
-  border-color: var(--sidebar-bg, #660911);
+  /* => sidebar-bg stays a fixed maroon accent surface in both themes */
+  background: var(--sidebar-bg);
+  border-color: var(--sidebar-bg);
   color: #fff;
 }
 

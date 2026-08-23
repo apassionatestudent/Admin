@@ -8,7 +8,7 @@
 .adm-enroll-page {
   padding: 36px 40px;
   min-height: 100vh;
-  background: #f4f5f8;
+  background: var(--bg-secondary); /* => was #f4f5f8, now theme-aware */
   font-family: var(--font-body), sans-serif;
   width: 100%;
   box-sizing: border-box;
@@ -28,19 +28,19 @@
 .adm-enroll-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #0f1724;
+  color: var(--text-h); /* => was #0f1724 */
   letter-spacing: -0.02em;
   margin: 0 0 4px;
 }
 
 .adm-enroll-subtitle {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was #6b7280 */
   margin: 0;
 }
 
 .adm-enroll-subtitle strong {
-  color: #374151;
+  color: var(--text); /* => was #374151 */
 }
 
 /*  Count badge top-right  */
@@ -63,7 +63,7 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9ca3af;
+  color: var(--text-muted, #9ca3af); /* => was #9ca3af */
 }
 
 /*  Loading / Error / Empty states  */
@@ -73,10 +73,9 @@
   align-items: center;
   gap: 12px;
   padding: 64px 0;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was #6b7280 */
   font-size: 0.9375rem;
 }
-
 .adm-enroll-state--error {
   color: #b91c1c;
 }
@@ -90,7 +89,7 @@
 .adm-spinner {
   width: 36px;
   height: 36px;
-  border: 3px solid #e5e7eb;
+  border: 3px solid var(--border); /* => was #e5e7eb */
   border-top-color: var(--accent-hover, #8a0d17); /* => was #1a56db blue */
   border-radius: 50%;
   animation: adm-spin 0.8s linear infinite;
@@ -151,9 +150,9 @@
 
 /*  Table wrapper (horizontal scroll on small screens) => Table wrapper should also stretch full width */
 .adm-table-wrap {
-  background: #ffffff;
+  background: var(--bg); /* => was #ffffff */
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border); /* => was #e5e7eb */
   overflow-x: auto;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   width: 100%;
@@ -165,14 +164,14 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--text); /* => was #374151 */
   min-width: 760px;
   table-layout: fixed; /* => uses the colgroup widths instead of auto-sizing to each table's own content, which is what caused Pending and Needs Clarification to misalign */
 }
 
 .adm-table thead tr {
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--bg-secondary); /* => was #f9fafb */
+  border-bottom: 1px solid var(--border); /* => was #e5e7eb */
 }
 
 .adm-table th {
@@ -182,13 +181,13 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was #6b7280 */
   white-space: nowrap;
 }
 
 /*  Table row  */
 .adm-table-row {
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border); /* => was #f3f4f6 */
   cursor: pointer;
   transition: background 0.12s ease;
   animation: adm-row-in 0.28s ease both;
@@ -204,7 +203,7 @@
 }
 
 .adm-table-row:hover {
-  background: #f0f4ff; /* => default hover kept for any table NOT using the maroon variant below */
+  background: var(--row-hover-bg); /* => was #f0f4ff, now theme-aware default hover for non-maroon tables */
 }
 
 .adm-table td {
@@ -225,32 +224,32 @@
 .adm-student-name {
   display: block;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-h); /* => was #111827 */
 }
 
 .adm-student-email {
   display: block;
   font-size: 0.78rem;
-  color: #9ca3af;
+  color: var(--text-muted, #9ca3af); /* => was #9ca3af */
   margin-top: 2px;
 }
 
 /*  Date cell  */
 .adm-td-date {
   white-space: nowrap;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was #6b7280 */
 }
 
 /*  Arrow cell  */
 .adm-td-arrow {
-  color: #d1d5db;
+  color: var(--border); /* => was #d1d5db */
   font-size: 1.25rem;
   text-align: right;
   padding-right: 20px;
 }
 
 .adm-table-row:hover .adm-td-arrow {
-  color: #1a56db; /* => default hover kept for any table NOT using the maroon variant below */
+  color: var(--accent-hover, #8a0d17); /* => was #1a56db blue */
 }
 
 /*  Status badge  */
@@ -295,11 +294,12 @@
   flex: 1;
   min-width: 220px;
   padding: 9px 14px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border); /* => was #d1d5db */
   border-radius: 8px;
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--text-h); /* => was #111827 */
   font-family: inherit;
+  background: var(--bg); /* => new, was undefined before so it fell through to white in dark mode */
   transition: border-color 0.15s;
 }
 
@@ -333,11 +333,11 @@
 
 .adm-more-btn {
   padding: 9px 16px;
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--bg-secondary); /* => was #f3f4f6 */
+  color: var(--text-h); /* => was #374151 */
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border); /* => was #e5e7eb */
   border-radius: 8px;
   cursor: pointer;
   font-family: inherit;
@@ -346,9 +346,8 @@
 }
 
 .adm-more-btn:hover {
-  background: #e5e7eb;
+  background: var(--row-hover-bg); /* => was #e5e7eb */
 }
-
 .adm-more-btn--open {
   border-color: var(--accent-hover, #8a0d17); /* => was #1a56db blue */
   color: var(--accent-hover, #8a0d17);
@@ -374,8 +373,8 @@
 
 /* => Collapsible More Options panel */
 .adm-more-panel {
-  background: #f9fafb;
-  border: 1.5px solid #e5e7eb;
+  background: var(--bg-secondary); /* => was #f9fafb */
+  border: 1.5px solid var(--border); /* => was #e5e7eb */
   border-radius: 10px;
   padding: 18px 20px;
 }
@@ -397,17 +396,17 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was #6b7280 */
 }
 
 .adm-more-input {
   padding: 8px 12px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border); /* => was #d1d5db */
   border-radius: 7px;
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--text-h); /* => was #111827 */
   font-family: inherit;
-  background: #fff;
+  background: var(--bg); /* => was #fff */
   transition: border-color 0.15s;
 }
 
@@ -444,17 +443,17 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was #6b7280 */
   margin-right: 2px;
 }
 
 .adm-filter-btn {
   padding: 6px 14px;
-  background: #fff;
-  color: #374151;
+  background: var(--bg); /* => was #fff */
+  color: var(--text-h); /* => was #374151 */
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border); /* => was #e5e7eb */
   border-radius: 999px; /* => pill shape distinguishes filters from the square search/more buttons */
   cursor: pointer;
   font-family: inherit;
@@ -463,7 +462,7 @@
 }
 
 .adm-filter-btn:hover {
-  background: #f3f4f6;
+  background: var(--bg-secondary); /* => was #f3f4f6 */
 }
 
 .adm-filter-btn--active {
@@ -474,11 +473,11 @@
 
 .adm-filter-select {
   padding: 6px 12px;
-  background: #fff;
-  color: #374151;
+  background: var(--bg); /* => was #fff */
+  color: var(--text-h); /* => was #374151 */
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border); /* => was #e5e7eb */
   border-radius: 999px; /* => matches the pill radius of .adm-filter-btn for visual consistency */
   cursor: pointer;
   font-family: inherit;
@@ -514,9 +513,8 @@
 }
 
 .adm-table-row:hover .adm-td-arrow {
-  color: #1a56db; /* => default hover kept for any table NOT using the maroon variant below */
-}/* ════════════════════════════════════
-   MAROON TABLE VARIANT
+  color: var(--accent-hover, #8a0d17); /* => was #1a56db blue */
+}/* ════════════════════════════════════   MAROON TABLE VARIANT
    => Matches Classes.css's .adm-table-wrap--maroon exactly, for visual
       consistency between Enrollments and Classes admin tables
    ════════════════════════════════════ */
@@ -554,11 +552,11 @@
   align-items: center;
   justify-content: center;
   padding: 7px 16px;
-  background: #fff;
-  color: #374151;
+  background: var(--bg); /* => was #fff */
+  color: var(--text); /* => was #374151 */
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border); /* => was #e5e7eb */
   border-radius: 8px;
   cursor: pointer;
   font-family: inherit;
@@ -566,7 +564,7 @@
 }
 
 .adm-page-btn:hover:not(:disabled) {
-  background: #f3f4f6;
+  background: var(--bg-secondary); /* => was #f3f4f6 */
   border-color: var(--accent-hover, #8a0d17);
 }
 
@@ -578,10 +576,9 @@
 .adm-page-label {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--text); /* => was #374151 */
   white-space: nowrap;
 }
-
 /*  Responsive  */
 
 /* --- TABLET / SMALL LAPTOP --- */

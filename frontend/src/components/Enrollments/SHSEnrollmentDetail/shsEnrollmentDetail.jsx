@@ -288,18 +288,18 @@ function EditableField({ label, value, onChange, type = 'text', options = null, 
 function SectionEditControls({ sectionKey, editingSection, saving, onEdit, onSave, onCancel }) {
   const isEditing = editingSection === sectionKey;
   return (
-    <div className="adm-section-actions">
+    <div className="adm-shs-section-actions">
       {isEditing ? (
         <>
-          <button className="adm-section-save-btn" onClick={onSave} disabled={saving}>
+          <button className="adm-shs-section-save-btn" onClick={onSave} disabled={saving}>
             {saving ? 'Saving…' : 'Save'}
           </button>
-          <button className="adm-section-cancel-btn" onClick={onCancel} disabled={saving}>
+          <button className="adm-shs-section-cancel-btn" onClick={onCancel} disabled={saving}>
             Cancel
           </button>
         </>
       ) : (
-        <button className="adm-section-edit-btn" onClick={onEdit} title="Edit section">
+        <button className="adm-shs-section-edit-btn" onClick={onEdit} title="Edit section">
           <img src={pencilIcon} alt="Edit" className="adm-pencil-icon" />
         </button>
       )}
@@ -493,8 +493,8 @@ function DocPreview({ documentKey, documentType, docPublicId, onOpenModal, onRep
   const inputId = `replace-doc-${docPublicId}`;
 
   return (
-    <div className="adm-doc-preview">
-      <p className="adm-doc-type">{documentType}</p>
+    <div className="adm-shs-doc-preview">
+      <p className="adm-shs-doc-type">{documentType}</p>
 
       {loading && (
         <div className="adm-doc-preview-state">
@@ -536,7 +536,7 @@ function DocPreview({ documentKey, documentType, docPublicId, onOpenModal, onRep
         </div>
       )}
 
-      <div className="adm-doc-replace-row">
+      <div className="adm-shs-doc-replace-row">
         <input
           id={inputId}
           type="file"
@@ -548,7 +548,7 @@ function DocPreview({ documentKey, documentType, docPublicId, onOpenModal, onRep
             e.target.value = '';
           }}
         />
-        <label htmlFor={inputId} className="adm-doc-replace-btn">
+        <label htmlFor={inputId} className="adm-shs-doc-replace-btn">
           {replacing ? 'Uploading…' : 'Replace File'}
         </label>
         {/* => Original submissions can only be replaced, never deleted, for
@@ -1178,7 +1178,7 @@ export default function SHSEnrollmentDetail() {
   ) : classPeriodDisplay;  
 
   return (
-    <div className="adm-detail-page">
+    <div className="adm-shs-enrollment-detail-page">
 
       <BackButton destination="Enrollments" onClick={() => navigate('/dashboard/enrollments')} />
 
@@ -1229,8 +1229,8 @@ export default function SHSEnrollmentDetail() {
           {/* ════════════════════════════════════
               STATUS CHANGER
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <h3 className="adm-section-title">Update Status</h3>
+          <section className="adm-shs-section">
+            <h3 className="adm-shs-section-title">Update Status</h3>
             <div className="adm-status-changer">
               <select
                 className="adm-status-select"
@@ -1302,16 +1302,18 @@ export default function SHSEnrollmentDetail() {
               {/* => External Remarks: shown/emailed to the student. No Save
                    button - clears when status is changed, restores when
                    switched back, only persists to DB on Save Status confirm */}
-              <div className="adm-remarks-group adm-remarks-group--external">
-                <label className="adm-remarks-label adm-remarks-label--external" htmlFor="shs-external-remarks">
+              <div className="adm-shs-remarks-group adm-shs-remarks-group--external">
+                <div className="adm-shs-remarks-header">
+                <label className="adm-shs-remarks-label adm-shs-remarks-label--external" htmlFor="shs-external-remarks">
                   External Remarks
                   {selectedStatus === 'Needs Clarification' && (
-                    <span className="adm-remarks-required"> (required)</span>
+                    <span className="adm-shs-remarks-required"> (required)</span>
                   )}
                 </label>
+                </div>
                 <textarea
                   id="shs-external-remarks"
-                  className="adm-remarks-input adm-remarks-input--external"
+                  className="adm-shs-remarks-input adm-shs-remarks-input--external"
                   placeholder="Note shown to the student when this status is saved…"
                   value={externalRemarksDraft}
                   onChange={e => setExternalRemarksDraft(e.target.value)}
@@ -1319,13 +1321,13 @@ export default function SHSEnrollmentDetail() {
               </div>
 
               {/* => Internal Remarks: staff-only, own Save button, not tied to status */}
-              <div className="adm-remarks-group adm-remarks-group--internal">
-                <div className="adm-remarks-header">
-                  <label className="adm-remarks-label adm-remarks-label--internal" htmlFor="shs-internal-remarks">
+              <div className="adm-shs-remarks-group adm-shs-remarks-group--internal">
+                <div className="adm-shs-remarks-header">
+                  <label className="adm-shs-remarks-label adm-shs-remarks-label--internal" htmlFor="shs-internal-remarks">
                     Internal Remarks
                   </label>
                   <button
-                    className="adm-remarks-save-btn adm-remarks-save-btn--internal"
+                    className="adm-shs-remarks-save-btn adm-shs-remarks-save-btn--internal"
                     onClick={handleSaveInternalRemarks}
                     disabled={savingInternalRemarks}
                   >
@@ -1334,7 +1336,7 @@ export default function SHSEnrollmentDetail() {
                 </div>
                 <textarea
                   id="shs-internal-remarks"
-                  className="adm-remarks-input adm-remarks-input--internal"
+                  className="adm-shs-remarks-input adm-shs-remarks-input--internal"
                   placeholder="Staff-only note (not visible to the student)…"
                   value={internalRemarksDraft}
                   onChange={e => setInternalRemarksDraft(e.target.value)}
@@ -1348,9 +1350,9 @@ export default function SHSEnrollmentDetail() {
               => Date Submitted stays read-only. LRN/Track/Cluster/Electives
                  are direct columns, fully editable.
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <div className="adm-section-header-row">
-              <h3 className="adm-section-title">Enrollment Information</h3>
+          <section className="adm-shs-section">
+            <div className="adm-shs-section-header-row">
+              <h3 className="adm-shs-section-title">Enrollment Information</h3>
               <SectionEditControls
                 sectionKey="enrollmentInfo"
                 editingSection={editingSection}
@@ -1365,7 +1367,7 @@ export default function SHSEnrollmentDetail() {
               />
             </div>
             {editingSection === 'enrollmentInfo' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
+              <p className="adm-shs-section-error">{sectionError}</p>
             )}
             <div className="adm-info-grid">
               {editingSection === 'enrollmentInfo' ? (
@@ -1437,9 +1439,9 @@ export default function SHSEnrollmentDetail() {
           {/* ════════════════════════════════════
               ACADEMIC INFORMATION
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <div className="adm-section-header-row">
-              <h3 className="adm-section-title">Academic Information</h3>
+          <section className="adm-shs-section">
+            <div className="adm-shs-section-header-row">
+              <h3 className="adm-shs-section-title">Academic Information</h3>
               <SectionEditControls
                 sectionKey="academic"
                 editingSection={editingSection}
@@ -1455,7 +1457,7 @@ export default function SHSEnrollmentDetail() {
               />
             </div>
             {editingSection === 'academic' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
+              <p className="adm-shs-section-error">{sectionError}</p>
             )}
             <div className="adm-info-grid">
               {editingSection === 'academic' ? (
@@ -1481,10 +1483,10 @@ export default function SHSEnrollmentDetail() {
               => No reservation-fee gate here, DepEd covers tuition. This
                  only ever tracks batch-assigned misc fees.
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <h3 className="adm-section-title">
+          <section className="adm-shs-section">
+            <h3 className="adm-shs-section-title">
               Miscellaneous Fee Payments
-              <span className="adm-section-count-inline">{paymentHistory.length}</span>
+              <span className="adm-shs-section-count-inline">{paymentHistory.length}</span>
             </h3>
 
             {paymentHistory.length === 0 ? (
@@ -1542,9 +1544,9 @@ export default function SHSEnrollmentDetail() {
               CLASS / BATCH
               => Read-only: comes from the joined shs_classes row. Deferred.
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <div className="adm-section-header-row">
-              <h3 className="adm-section-title">Class / Batch</h3>
+          <section className="adm-shs-section">
+            <div className="adm-shs-section-header-row">
+              <h3 className="adm-shs-section-title">Class / Batch</h3>
               <SectionEditControls
                 sectionKey="classAssign"
                 editingSection={editingSection}
@@ -1555,7 +1557,7 @@ export default function SHSEnrollmentDetail() {
               />
             </div>
             {editingSection === 'classAssign' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
+              <p className="adm-shs-section-error">{sectionError}</p>
             )}
             {editingSection === 'classAssign' ? (
               <div className="adm-info-grid">
@@ -1598,9 +1600,9 @@ export default function SHSEnrollmentDetail() {
               => civil_status / employment_status / highest_educ_attainment
                  are TESDA-only concepts and intentionally omitted here.
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <div className="adm-section-header-row">
-              <h3 className="adm-section-title">Student Profile</h3>
+          <section className="adm-shs-section">
+            <div className="adm-shs-section-header-row">
+              <h3 className="adm-shs-section-title">Student Profile</h3>
               <SectionEditControls
                 sectionKey="profile"
                 editingSection={editingSection}
@@ -1624,7 +1626,7 @@ export default function SHSEnrollmentDetail() {
               />
             </div>
             {editingSection === 'profile' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
+              <p className="adm-shs-section-error">{sectionError}</p>
             )}
 
             <div className="adm-info-grid">
@@ -1701,7 +1703,7 @@ export default function SHSEnrollmentDetail() {
             </div>
 
             {/* => Address is a separate table/endpoint - its own edit toggle */}
-            <div className="adm-section-header-row" style={{ marginTop: '18px' }}>
+            <div className="adm-shs-section-header-row" style={{ marginTop: '18px' }}>
               <p className="adm-info-label" style={{ margin: 0 }}>Address</p>
               <SectionEditControls
                 sectionKey="address"
@@ -1719,7 +1721,7 @@ export default function SHSEnrollmentDetail() {
               />
             </div>
             {editingSection === 'address' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
+              <p className="adm-shs-section-error">{sectionError}</p>
             )}
             {editingSection === 'address' ? (
               <div className="adm-info-grid" style={{ marginTop: '12px' }}>
@@ -1751,11 +1753,11 @@ export default function SHSEnrollmentDetail() {
                  trigger). Each existing row gets its own inline inputs when
                  the section is in edit mode.
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <div className="adm-section-header-row">
-              <h3 className="adm-section-title">
+          <section className="adm-shs-section">
+            <div className="adm-shs-section-header-row">
+              <h3 className="adm-shs-section-title">
                 Family Members
-                <span className="adm-section-count-inline">{sortedFamily.length}</span>
+                <span className="adm-shs-section-count-inline">{sortedFamily.length}</span>
               </h3>
               {sortedFamily.length > 0 && (
                 <SectionEditControls
@@ -1778,7 +1780,7 @@ export default function SHSEnrollmentDetail() {
               )}
             </div>
             {editingSection === 'family' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
+              <p className="adm-shs-section-error">{sectionError}</p>
             )}
 
             {sortedFamily.length === 0 ? (
@@ -1839,9 +1841,9 @@ export default function SHSEnrollmentDetail() {
           {/* ════════════════════════════════════
               EMERGENCY CONTACT
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <div className="adm-section-header-row">
-              <h3 className="adm-section-title">Emergency Contact</h3>
+          <section className="adm-shs-section">
+            <div className="adm-shs-section-header-row">
+              <h3 className="adm-shs-section-title">Emergency Contact</h3>
               <SectionEditControls
                 sectionKey="emergency"
                 editingSection={editingSection}
@@ -1857,7 +1859,7 @@ export default function SHSEnrollmentDetail() {
               />
             </div>
             {editingSection === 'emergency' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
+              <p className="adm-shs-section-error">{sectionError}</p>
             )}
             <div className="adm-info-grid">
               {editingSection === 'emergency' ? (
@@ -1890,9 +1892,9 @@ export default function SHSEnrollmentDetail() {
           {/* ════════════════════════════════════
               HEALTH INFORMATION
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <div className="adm-section-header-row">
-              <h3 className="adm-section-title">Health Information</h3>
+          <section className="adm-shs-section">
+            <div className="adm-shs-section-header-row">
+              <h3 className="adm-shs-section-title">Health Information</h3>
               <SectionEditControls
                 sectionKey="health"
                 editingSection={editingSection}
@@ -1908,7 +1910,7 @@ export default function SHSEnrollmentDetail() {
               />
             </div>
             {editingSection === 'health' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
+              <p className="adm-shs-section-error">{sectionError}</p>
             )}
             <div className="adm-info-grid">
               {editingSection === 'health' ? (
@@ -1950,12 +1952,12 @@ export default function SHSEnrollmentDetail() {
           {/* ════════════════════════════════════
               SUBMITTED DOCUMENTS
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <h3 className="adm-section-title">
+          <section className="adm-shs-section">
+            <h3 className="adm-shs-section-title">
               Submitted Documents
-              <span className="adm-section-count-inline">{docs.length}</span>
+              <span className="adm-shs-section-count-inline">{docs.length}</span>
             </h3>
-            {docError && <p className="adm-section-error">{docError}</p>}
+            {docError && <p className="adm-shs-section-error">{docError}</p>}
 
             {docs.length === 0 ? (
               <p className="adm-empty-note">No documents uploaded.</p>
@@ -1993,7 +1995,7 @@ export default function SHSEnrollmentDetail() {
                 style={{ display: 'none' }}
                 onChange={e => setAddDocFile(e.target.files?.[0] ?? null)}
               />
-              <label htmlFor="add-doc-file-input" className="adm-doc-replace-btn">
+              <label htmlFor="add-doc-file-input" className="adm-shs-doc-replace-btn">
                 {addDocFile ? addDocFile.name : 'Choose File'}
               </label>
               <button className="adm-status-btn" onClick={handleAddDoc} disabled={addingDoc}>
@@ -2005,10 +2007,10 @@ export default function SHSEnrollmentDetail() {
           {/* ════════════════════════════════════
               ACTIVITY LOGS
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <h3 className="adm-section-title">
+          <section className="adm-shs-section">
+            <h3 className="adm-shs-section-title">
               Activity Logs
-              <span className="adm-section-count-inline">{logs.length}</span>
+              <span className="adm-shs-section-count-inline">{logs.length}</span>
             </h3>
 
             {logs.length === 0 ? (

@@ -25,7 +25,7 @@
 .sdaw-table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
+  background: var(--bg); /* => was hardcoded #fff, now follows theme like adm-admins-table does */
   min-width: 560px; /* => forces horizontal scroll on mobile instead of
                          squeezing Title/Status/Date/Actions into unreadable columns */
 }
@@ -33,7 +33,10 @@
 .sdaw-table th {
   text-align: left;
   padding: 12px 16px;
-  background: #660911;
+  /* => sidebar-bg stays a fixed maroon accent surface in both themes,
+     => was hardcoded #660911 (light theme's exact value) before -
+     => same fix pattern as adm-admins-table th */
+  background: var(--sidebar-bg);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -105,14 +108,14 @@
   align-items: center;
   justify-content: center;
   padding: 6px;
-  border: 1px solid #8a0d17;
+  border: 1px solid var(--accent-hover); /* => was hardcoded #8a0d17 (dark theme's exact value), now follows theme */
   border-radius: 6px;
   background: none;
   cursor: pointer;
 }
 
 .sdaw-edit-btn:hover {
-  background: #8a0d17;
+  background: var(--accent-hover); /* => was hardcoded #8a0d17, now follows theme */
 }
 
 /* => pencil.png stays its natural color on hover since PNGs aren't

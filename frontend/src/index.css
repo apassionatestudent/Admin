@@ -29,30 +29,10 @@ html, body {
   --text-xl: 2.4rem;     /* => h1 / display headings */
 }
 
+/* => Base font-size / letter-spacing that doesn't change between themes */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --text-muted: #666;
-  --border: #e0d8d0;
-  --accent-hover: #8a0d17;
-  --text-primary: #1a0305;
-
-
-
   letter-spacing: 0.18px;
   color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -63,21 +43,95 @@ html, body {
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+/* => Light theme - default, matches admin maroon accent used across adm- components */
+:root[data-theme="light"] {
+  --text: #6b6375;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e0d8d0;
+  --code-bg: #f4f3ec;
 
+  /* => maroon accent, not violet, per project convention */
+  --accent: #660911;
+  --accent-bg: rgba(102, 9, 17, 0.08);
+  --accent-border: rgba(102, 9, 17, 0.5);
+  --accent-hover: #8a0d17;
+
+  /* => Dedicated foreground/text-on-dark variant, distinct from --accent
+     => and --sidebar-bg which are meant for solid background surfaces.
+     => Same value both themes here since maroon-on-white already reads fine */
+  --accent-text: #660911;
+
+  /* => dedicated low-alpha token for table row hover, distinct from
+     => --accent-bg's tag-pill tint since the alpha value is tuned differently */
+  --row-hover-bg: rgba(102, 9, 17, 0.06);
+
+  --social-bg: rgba(244, 243, 236, 0.5);
+  --shadow:
+    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+
+  --text-muted: #666;
+  --text-primary: #1a0305;
+
+  /* => secondary/off-white surface, used for input-like boxes, badges,
+     => and other slightly-recessed surfaces that shouldn't be pure --bg */
+  --bg-secondary: #f9fafb;
+
+  /* => sidebar-bg exposed here so components no longer rely on the hardcoded fallback */
+  --sidebar-bg: #660911;
+
+  color: var(--text);
+  background: var(--bg);
+}
+
+/* => Dark theme - resting accent stays dimmer than hover, same fix already applied
+   => on the student dashboard reference file, kept consistent here */
+:root[data-theme="dark"] {
+  --text: #9ca3af;
+  --text-h: #f3f4f6;
+  --bg: #16171d;
+  --border: #2e303a;
+  --code-bg: #1f2028;
+
+  --accent: #8a0d17;
+  /* => was a leftover violet rgba from before the maroon rebrand, now fixed */
+  --accent-bg: rgba(138, 13, 23, 0.15);
+  --accent-border: rgba(102, 9, 17, 0.5);
+  --accent-hover: #ab0916;
+
+  /* => Brighter red for text/foreground use against the dark background -
+     => matches the student dashboard's --accent-span dark value exactly,
+     => since --sidebar-bg's dark maroon (#8a0d17) is too low-contrast to
+     => read as text on top of --bg's dark background */
+  --accent-text: #ff6b7a;
+
+  /* => same purpose as light theme's row-hover-bg, slightly higher alpha
+     => since a faint tint reads less visibly against a dark background */
+  --row-hover-bg: rgba(138, 13, 23, 0.12);
+
+  --social-bg: rgba(47, 48, 58, 0.5);
+  --shadow:
+    rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+
+  /* => these three were missing dark counterparts entirely before this change */
+  --text-muted: #888;
+  --text-primary: #f3f4f6;
+
+  /* => dark counterpart of --bg-secondary above */
+  --bg-secondary: #1f2028;
+
+  --sidebar-bg: #8a0d17;
+
+  color: var(--text);
+  background: var(--bg);
+}
+
+/* => transition matches the reference file's body rule, so theme swap doesn't flash */
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+@media (prefers-color-scheme: dark) {
   #social .button-icon {
     filter: invert(1) brightness(2);
   }

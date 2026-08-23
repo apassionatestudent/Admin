@@ -28,7 +28,7 @@
 .ls-spinner {
   width: 36px;
   height: 36px;
-  border: 3px solid #e5e7eb;
+  border: 3px solid var(--border, #e5e7eb); /* => was hardcoded #e5e7eb, now follows theme so the ring is visible against a dark background too */
   border-top-color: var(--accent-hover, #8a0d17);
   border-radius: 50%;
   animation: ls-spin 0.8s linear infinite;

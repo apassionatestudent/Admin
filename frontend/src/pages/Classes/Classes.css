@@ -8,7 +8,9 @@
 .adm-classes-page {
   padding: 36px 40px;
   min-height: 100vh;
-  background: #f4f5f8;
+  /* => was hardcoded light-only hex, this page was never on the token
+     => system - swapped for the real background token used elsewhere */
+  background: var(--bg-secondary);
   font-family: var(--font-body), sans-serif;
   width: 100%;
   box-sizing: border-box;
@@ -28,19 +30,20 @@
 .adm-classes-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #0f1724;
+  /* => was hardcoded light-only hex */
+  color: var(--text-h);
   letter-spacing: -0.02em;
   margin: 0 0 4px;
 }
 
 .adm-classes-subtitle {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--text-muted, var(--text));
   margin: 0;
 }
 
 .adm-classes-subtitle strong {
-  color: #374151;
+  color: var(--text);
 }
 
 /* Count badge top-right */
@@ -54,7 +57,9 @@
 .adm-classes-count-num {
   font-size: 2.25rem;
   font-weight: 800;
-  color: #1a56db;
+  /* => was blue #1a56db from the old palette, swapped for this project's
+     => real maroon accent to match every other page's count/accent color */
+  color: var(--accent-hover, #8a0d17);
   line-height: 1;
   letter-spacing: -0.04em;
 }
@@ -63,7 +68,7 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9ca3af;
+  color: var(--text-muted, #9ca3af);
 }
 
 /* Loading / Error / Empty states */
@@ -73,7 +78,7 @@
   align-items: center;
   gap: 12px;
   padding: 64px 0;
-  color: #6b7280;
+  color: var(--text-muted, var(--text));
   font-size: 0.9375rem;
 }
 
@@ -145,9 +150,10 @@
 
 /* Table wrapper */
 .adm-table-wrap {
-  background: #ffffff;
+  /* => was hardcoded light-only hex, both here and the border below */
+  background: var(--bg);
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   overflow-x: auto;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   width: 100%;
@@ -170,8 +176,15 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--text);
   min-width: 820px;
+}
+
+/* => Stronger shadow in dark mode so the table wrap still reads as raised
+   => against the darker page background, same override pattern already
+   => applied to ticket-detail-section and other card surfaces */
+:root[data-theme="dark"] .adm-table-wrap {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 
 /* => New: fixed widths for Batch Name / Sector-Cluster, scoped only to the
@@ -225,12 +238,13 @@
 
 .adm-table-wrap--batches th:nth-child(8),
 .adm-table-wrap--batches td:nth-child(8) {
-  width: 130px;
+  width: 100px;
 }
 
 .adm-table thead tr {
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  /* => was hardcoded light-only hex */
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
 }
 
 .adm-table th {
@@ -240,13 +254,13 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6b7280;
+  color: var(--text-muted, var(--text));
   white-space: nowrap;
 }
 
 /* Table row */
 .adm-table-row {
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: background 0.12s ease;
   animation: adm-row-in 0.28s ease both;
@@ -262,7 +276,9 @@
 }
 
 .adm-table-row:hover {
-  background: #f0f4ff;
+  /* => was a light-blue tint from the old palette, swapped for the same
+     => maroon-tinted row-hover token every other table already uses */
+  background: var(--row-hover-bg);
 }
 
 .adm-table td {
@@ -278,43 +294,46 @@
 .adm-course-name {
   display: block;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-h);
 }
 
 
 /* Date cell */
 .adm-td-date {
   white-space: nowrap;
-  color: #6b7280;
+  color: var(--text-muted, var(--text));
 }
 
 /* Slots cell */
 .adm-td-slots {
   white-space: nowrap;
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--text);
 }
 
+/* => "Full" state stays semantic red in both themes, not converted */
 .adm-slots-full {
   color: #b91c1c;
   font-weight: 700;
 }
 
 .adm-slots-sep {
-  color: #d1d5db;
+  color: var(--border);
   margin: 0 1px;
 }
 
 /* Arrow cell */
 .adm-td-arrow {
-  color: #d1d5db;
+  color: var(--text-muted, #d1d5db);
   font-size: 1.25rem;
   text-align: right;
   padding-right: 20px;
 }
 
 .adm-table-row:hover .adm-td-arrow {
-  color: #1a56db;
+  /* => was blue #1a56db from the old palette, matches the maroon fix
+     => already applied to the maroon table variant's arrow hover */
+  color: var(--accent-hover, #8a0d17);
 }
 
 /* ════════════════════════════════════
@@ -390,17 +409,20 @@
   flex: 1;
   min-width: 220px;
   padding: 9px 14px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border);
   border-radius: 8px;
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--text-h);
+  /* => was missing background entirely - with the page background now
+     => dark, this text color would sit unreadably dark-on-dark without it */
+  background: var(--bg);
   font-family: inherit;
   transition: border-color 0.15s;
 }
 
 .adm-search-input:focus {
   outline: none;
-  border-color: #1a56db;
+  border-color: var(--accent-hover, #8a0d17);
 }
 
 /* => New: shown next to the search input while the debounced autosearch
@@ -408,7 +430,7 @@
 .adm-search-loading {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--text-muted, var(--text));
   white-space: nowrap;
 }
 
@@ -437,11 +459,11 @@
 
 .adm-more-btn {
   padding: 9px 16px;
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--code-bg, var(--bg));
+  color: var(--text);
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border);
   border-radius: 8px;
   cursor: pointer;
   font-family: inherit;
@@ -450,12 +472,12 @@
 }
 
 .adm-more-btn:hover {
-  background: #e5e7eb;
+  background: var(--border);
 }
 
 .adm-more-btn--open {
-  border-color: #1a56db;
-  color: #1a56db;
+  border-color: var(--accent-hover, #8a0d17);
+  color: var(--accent-hover, #8a0d17);
 }
 
 .adm-clear-btn {
@@ -521,8 +543,8 @@
 
 /* Collapsible More Options panel */
 .adm-more-panel {
-  background: #f9fafb;
-  border: 1.5px solid #e5e7eb;
+  background: var(--bg-secondary);
+  border: 1.5px solid var(--border);
   border-radius: 10px;
   padding: 18px 20px;
 }
@@ -532,8 +554,19 @@
 .adm-more-empty-note {
   margin: 0;
   font-size: 0.8125rem;
-  color: #9ca3af;
+  color: var(--text-muted, #9ca3af);
   text-align: center;
+}
+
+/* => New: was referenced in addBatchModal.jsx (loading state, "no courses
+   => set up for {grade}" message) but never actually defined anywhere in
+   => this file - rendering with unset browser default color, which reads
+   => fine in light mode by accident but is invisible-ish in dark mode.
+   => Reuses the same muted-text treatment as adm-more-empty-note above. */
+.adm-empty-note {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted, var(--text));
 }
 
 .adm-more-grid {
@@ -553,23 +586,23 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6b7280;
+  color: var(--text-muted, var(--text));
 }
 
 .adm-more-input {
   padding: 8px 12px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border);
   border-radius: 7px;
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--text-h);
   font-family: inherit;
-  background: #fff;
+  background: var(--bg);
   transition: border-color 0.15s;
 }
 
 .adm-more-input:focus {
   outline: none;
-  border-color: #1a56db;
+  border-color: var(--accent-hover, #8a0d17);
 }
 
 .adm-search-error {
@@ -602,7 +635,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6b7280;
+  color: var(--text-muted, var(--text));
   margin-right: 2px;
 }
 
@@ -616,11 +649,11 @@
 
 .adm-filter-btn {
   padding: 6px 14px;
-  background: #fff;
-  color: #374151;
+  background: var(--bg);
+  color: var(--text);
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border);
   border-radius: 999px; /* => pill shape distinguishes filters from the square search/more buttons */
   cursor: pointer;
   font-family: inherit;
@@ -629,7 +662,7 @@
 }
 
 .adm-filter-btn:hover {
-  background: #f3f4f6;
+  background: var(--bg-secondary);
 }
 
 .adm-filter-btn--active {
@@ -640,11 +673,11 @@
 
 .adm-filter-select {
   padding: 6px 12px;
-  background: #fff;
-  color: #374151;
+  background: var(--bg);
+  color: var(--text);
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border);
   border-radius: 999px; /* => matches the pill radius of .adm-filter-btn for visual consistency */
   cursor: pointer;
   font-family: inherit;
@@ -653,7 +686,7 @@
 
 .adm-filter-select:focus {
   outline: none;
-  border-color: #1a56db;
+  border-color: var(--accent-hover, #8a0d17);
 }
 
 /* => New: date inputs moved into the filter row from the old More Options
@@ -661,11 +694,11 @@
       a full pill shape clips the native date-picker icon awkwardly */
 .adm-filter-date {
   padding: 5px 10px;
-  background: #fff;
-  color: #374151;
+  background: var(--bg);
+  color: var(--text);
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border);
   border-radius: 8px;
   font-family: inherit;
   transition: border-color 0.15s;
@@ -673,7 +706,7 @@
 
 .adm-filter-date:focus {
   outline: none;
-  border-color: #1a56db;
+  border-color: var(--accent-hover, #8a0d17);
 }
 
 /* ════════════════════════════════════
@@ -778,7 +811,7 @@
 }
 
 .adm-modal-box {
-  background: #fff;
+  background: var(--bg);
   border-radius: 14px;
   overflow: hidden;
   display: flex;
@@ -805,14 +838,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 22px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
 .adm-modal-title {
   font-size: 0.9375rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-h);
   letter-spacing: -0.01em;
 }
 
@@ -820,7 +853,7 @@
   background: none;
   border: none;
   font-size: 1rem;
-  color: #6b7280;
+  color: var(--text-muted, var(--text));
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 6px;
@@ -829,8 +862,8 @@
 }
 
 .adm-modal-close:hover:not(:disabled) {
-  background: #f3f4f6;
-  color: #111827;
+  background: var(--bg-secondary);
+  color: var(--text-h);
 }
 
 .adm-modal-close:disabled {
@@ -850,7 +883,7 @@
 
 .adm-modal-footer {
   padding: 14px 22px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border);
   display: flex;
   justify-content: flex-end;
   gap: 10px;
@@ -874,16 +907,17 @@
 .adm-form-label {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--text);
 }
 
+/* => stays semantic red in both themes, not converted */
 .adm-form-required {
   color: #b91c1c;
   margin-left: 2px;
 }
 
 .adm-form-optional {
-  color: #9ca3af;
+  color: var(--text-muted, #9ca3af);
   font-weight: 400;
   font-size: 0.75rem;
   margin-left: 4px;
@@ -893,12 +927,15 @@
 .adm-form-select,
 .adm-form-textarea {
   padding: 9px 12px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border);
   border-radius: 8px;
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--text-h);
   font-family: inherit;
-  background: #fff;
+  /* => was hardcoded white, would have shown dark text on a dark modal
+     => background invisibly - same fix already applied on the other
+     => modal input classes in this file */
+  background: var(--bg);
   transition: border-color 0.15s;
   width: 100%;
   box-sizing: border-box;
@@ -908,7 +945,7 @@
 .adm-form-select:focus,
 .adm-form-textarea:focus {
   outline: none;
-  border-color: #1a56db;
+  border-color: var(--accent-hover, #8a0d17);
 }
 
 .adm-form-textarea {
@@ -922,7 +959,7 @@
   margin: 4px 0 0;
   padding-left: 18px;
   font-size: 0.8125rem;
-  color: #374151;
+  color: var(--text);
   max-height: 120px;
   overflow-y: auto;
 }
@@ -944,11 +981,11 @@
 /* Modal action buttons */
 .adm-modal-cancel-btn {
   padding: 9px 20px;
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--code-bg, var(--bg));
+  color: var(--text);
   font-size: 0.875rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border);
   border-radius: 8px;
   cursor: pointer;
   font-family: inherit;
@@ -956,7 +993,7 @@
 }
 
 .adm-modal-cancel-btn:hover:not(:disabled) {
-  background: #e5e7eb;
+  background: var(--border);
 }
 
 .adm-modal-cancel-btn:disabled {
@@ -1206,6 +1243,15 @@
   border-bottom: 2px solid var(--accent-hover, #8a0d17);
 }
 
+/* => Dark mode: same --accent-text token Courses.css's .tab-btn.tab-active
+   => and SupportTickets.css's .tickets-tab-btn--active already use, so the
+   => active tab label/underline reads the same light maroon/pink in dark
+   => mode instead of the dim --accent-hover red */
+:root[data-theme="dark"] .adm-main-tab-btn--active {
+  color: var(--accent-text);
+  border-bottom: 2px solid var(--accent-text);
+}
+
 
 /* => Restore button for the Facilities Deleted view - matches Courses.css's
       .btn-restore pattern, duplicated here since the two CSS files aren't shared */
@@ -1244,7 +1290,9 @@
 }
 
 .adm-table-wrap--maroon .adm-table-row:hover {
-  background: rgba(102, 9, 17, 0.08);
+  /* => was hardcoded light-theme-only rgba, swapped for the token Courses.css's
+     => .courses-row:hover already uses, which resolves correctly for both themes */
+  background: var(--row-hover-bg);
 }
 
 .adm-table-wrap--maroon .adm-table-row:hover .adm-td-arrow {
@@ -1284,8 +1332,8 @@
   flex-direction: column;
   gap: 10px;
   padding: 10px 12px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
   border-radius: 8px;
 }
 
@@ -1294,14 +1342,14 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6b7280;
+  color: var(--text-muted, var(--text));
 }
 
 .adm-cluster-courses-list {
   margin: 4px 0 0;
   padding-left: 18px;
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--text-h);
 }
 
 .adm-course-trainer-grade-group {

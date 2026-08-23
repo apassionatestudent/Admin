@@ -7,7 +7,8 @@
 .adm-tesda-batch-detail-page {
   padding: 32px 40px 64px;
   min-height: 100vh;
-  background: #f4f5f8;
+  background: var(--bg-secondary); /* => was hardcoded #f4f5f8 */
+  color: var(--text); /* => was missing entirely */
   font-family: var(--font-body), sans-serif;
 }
 
@@ -17,7 +18,7 @@
   gap: 6px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #4b5563;
+  color: var(--text-muted, var(--text)); /* => was hardcoded #4b5563 */
   background: none;
   border: none;
   padding: 0;
@@ -27,7 +28,7 @@
 }
 
 .adm-back-btn:hover {
-  color: #1a56db;
+  color: var(--accent-hover, #8a0d17); /* => was leftover blue #1a56db */
 }
 
 
@@ -98,28 +99,36 @@
 .status--completed    { background: #ecfdf5; color: #047857; }
 .status--reserved     { background: #ede9fe; color: #5b21b6; }
 
-/* SECTION WRAPPER */
-.adm-batch-section {
-  background: #ffffff;
+/* SECTION WRAPPER
+   => Renamed from adm-batch-section/adm-section-title/adm-section-count-inline/
+      adm-empty-note - those generic names collide with ShsBatchDetail.css
+      loaded in the same bundle, silently overriding one or the other back
+      to a hardcoded white background regardless of theme */
+.tbd-section {
+  background: var(--bg);
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   padding: 24px 28px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
-.adm-section-title {
+:root[data-theme="dark"] .tbd-section {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.tbd-section-title {
   font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #6b7280;
+  color: var(--text-muted, var(--text));
   margin: 0 0 20px;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.adm-section-count-inline {
+.tbd-section-count-inline {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -127,15 +136,15 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background: #e5e7eb;
-  color: #374151;
+  background: var(--border);
+  color: var(--text-h);
   font-size: 0.75rem;
   font-weight: 700;
 }
 
-.adm-empty-note {
+.tbd-empty-note {
   font-size: 0.875rem;
-  color: #9ca3af;
+  color: var(--text-muted, #9ca3af);
   margin: 0;
 }
 
@@ -149,11 +158,11 @@
 
 .adm-status-select {
   padding: 9px 14px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border); /* => was hardcoded #d1d5db */
   border-radius: 8px;
   font-size: 0.875rem;
-  color: #111827;
-  background: #fff;
+  color: var(--text-h); /* => was hardcoded #111827 */
+  background: var(--bg); /* => was hardcoded #fff */
   cursor: pointer;
   min-width: 200px;
   transition: border-color 0.15s;
@@ -162,7 +171,7 @@
 
 .adm-status-select:focus {
   outline: none;
-  border-color: #1a56db;
+  border-color: var(--accent-hover, #8a0d17); /* => was leftover blue #1a56db */
 }
 
 /* => New: remarks input in the status changer row, required on every
@@ -170,11 +179,11 @@
       up cleanly */
 .adm-status-remarks-input {
   padding: 9px 14px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border); /* => was hardcoded #d1d5db */
   border-radius: 8px;
   font-size: 0.875rem;
-  color: #111827;
-  background: #fff;
+  color: var(--text-h); /* => was hardcoded #111827 */
+  background: var(--bg); /* => was hardcoded #fff */
   flex: 1;
   min-width: 220px;
   transition: border-color 0.15s;
@@ -183,7 +192,7 @@
 
 .adm-status-remarks-input:focus {
   outline: none;
-  border-color: #1a56db;
+  border-color: var(--accent-hover, #8a0d17); /* => was leftover blue #1a56db */
 }
 
 /* => New: pencil-icon edit mode CSS, matches trainerDetail.css's
@@ -203,7 +212,7 @@
 
 .adm-section-edit-btn {
   background: none;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border); /* => was hardcoded #e5e7eb */
   border-radius: 6px;
   padding: 5px 8px;
   cursor: pointer;
@@ -213,8 +222,14 @@
 }
 
 .adm-section-edit-btn:hover {
-  background: #f3f4f6;
-  border-color: #1a56db;
+  background: var(--bg-secondary); /* => was hardcoded #f3f4f6 */
+  border-color: var(--accent-hover, #8a0d17); /* => was leftover blue #1a56db */
+}
+
+/* => keeps the pencil icon visible once the button bg goes dark on
+   => hover, same icon filter rule already applied elsewhere */
+.adm-section-edit-btn:hover .adm-pencil-icon {
+  filter: brightness(0) invert(1);
 }
 
 .adm-pencil-icon {
@@ -243,8 +258,8 @@
 
 .adm-section-cancel-btn {
   padding: 7px 16px;
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--bg-secondary); /* => was hardcoded #f3f4f6 */
+  color: var(--text); /* => was hardcoded #374151 */
   font-size: 0.8125rem;
   font-weight: 600;
   border: none;
@@ -281,7 +296,7 @@
 }
 
 .adm-status-btn:hover:not(:disabled) {
-  background: #1648c0;
+  background: var(--accent-hover, #8a0d17); /* => was leftover blue #1648c0 */
 }
 
 .adm-status-btn:disabled {
@@ -297,16 +312,14 @@
 .adm-save-msg--success { color: #065f46; }
 .adm-save-msg--error   { color: #b91c1c; }
 
-/* => New: Release Overflow button, maroon tone since this is a
-      consequential bulk action, pulls the same maroon used in
-      .adm-log-row:hover (rgba(102, 9, 17)) so it stays on-brand rather
-      than introducing a new color */
+/* => Release Overflow button, maroon tone since this is a consequential
+      bulk action */
 .adm-release-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 9px 18px;
-  background: #660911;
+  background: var(--sidebar-bg, #660911); /* => was hardcoded to light theme's exact sidebar-bg value */
   color: #fff;
   font-size: 0.8125rem;
   font-weight: 600;
@@ -319,7 +332,7 @@
 }
 
 .adm-release-btn:hover {
-  background: #4d060d;
+  background: var(--accent-hover, #8a0d17); /* => was hardcoded #4d060d */
 }
 
 .adm-release-btn:active {
@@ -344,8 +357,8 @@
 }
 
 .adm-info-card {
-  background: #f9fafb;
-  border: 1px solid #f3f4f6;
+  background: var(--bg-secondary); /* => was hardcoded #f9fafb */
+  border: 1px solid var(--border); /* => was hardcoded #f3f4f6 */
   border-radius: 8px;
   padding: 12px 14px;
 }
@@ -355,21 +368,21 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: #9ca3af;
+  color: var(--text-muted, #9ca3af); /* => was hardcoded #9ca3af */
   margin: 0 0 4px;
 }
 
 .adm-info-value {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #111827;
+  color: var(--text-h); /* => was hardcoded #111827 */
   margin: 0;
   word-break: break-word;
 }
 
 /* => New: clickable link style for groupchat_link */
 .adm-info-link {
-  color: #1a56db;
+  color: var(--accent-hover, #8a0d17); /* => was leftover blue #1a56db */
   text-decoration: none;
   font-weight: 600;
 }
@@ -380,80 +393,82 @@
 
 .adm-slots-note {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was hardcoded #6b7280 */
   font-weight: 400;
 }
 
 .adm-remarks-box {
   margin-top: 16px;
-  background: #f9fafb;
-  border: 1px solid #f3f4f6;
+  background: var(--bg-secondary); /* => was hardcoded #f9fafb */
+  border: 1px solid var(--border); /* => was hardcoded #f3f4f6 */
   border-radius: 8px;
   padding: 14px 16px;
 }
 
 .adm-remarks-text {
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--text); /* => was hardcoded #374151 */
   margin: 6px 0 0;
   white-space: pre-wrap;
   line-height: 1.6;
 }
 
-/* ENROLLED STUDENTS TABLE */
-.adm-sub-table-wrap {
+/* ENROLLED STUDENTS TABLE
+   => Renamed adm-sub-table-wrap/adm-sub-table/adm-sub-table-row for the
+      same collision reason as tbd-section above */
+.tbd-sub-table-wrap {
   overflow-x: auto;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
 }
 
-.adm-sub-table {
+.tbd-sub-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.8375rem;
-  color: #374151;
+  color: var(--text);
   min-width: 560px;
 }
 
-.adm-sub-table thead tr {
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+.tbd-sub-table thead tr {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
 }
 
-.adm-sub-table th {
+.tbd-sub-table th {
   padding: 10px 14px;
   text-align: left;
   font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6b7280;
+  color: var(--text-muted, var(--text));
   white-space: nowrap;
 }
 
-.adm-sub-table td {
+.tbd-sub-table td {
   padding: 11px 14px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
 
-.adm-sub-table tbody tr:last-child td {
+.tbd-sub-table tbody tr:last-child td {
   border-bottom: none;
 }
 
-.adm-sub-table-row {
+.tbd-sub-table-row {
   cursor: pointer;
   transition: background 0.12s;
 }
 
-.adm-sub-table-row:hover {
-  background: #f0f4ff;
+.tbd-sub-table-row:hover {
+  background: var(--row-hover-bg);
 }
 
-.adm-td-student-name { font-weight: 600; color: #111827; }
-.adm-td-email        { color: #6b7280; font-size: 0.8125rem; }
-.adm-td-date          { white-space: nowrap; color: #6b7280; }
-.adm-td-arrow          { color: #d1d5db; font-size: 1.1rem; text-align: right; padding-right: 14px; }
+.adm-td-student-name { font-weight: 600; color: var(--text-h); }
+.adm-td-email        { color: var(--text-muted, var(--text)); font-size: 0.8125rem; }
+.adm-td-date          { white-space: nowrap; color: var(--text-muted, var(--text)); }
+.adm-td-arrow          { color: var(--border); font-size: 1.1rem; text-align: right; padding-right: 14px; }
 
 /* => Miscellaneous Fees section */
 .adm-fee-delete-btn {
@@ -475,7 +490,7 @@
   margin: 12px 0 0;
   font-size: 0.875rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-h); /* => was hardcoded #111827 */
   text-align: right;
 }
 
@@ -492,7 +507,7 @@
   min-width: 160px;
 }
 
-.adm-sub-table-row:hover .adm-td-arrow { color: #1a56db; }
+.tbd-sub-table-row:hover .adm-td-arrow { color: var(--accent-hover, #8a0d17); }
 
 .adm-badge {
   display: inline-block;
@@ -504,48 +519,7 @@
   white-space: nowrap;
 }
 
-/* ════════════════════════════════════
-   ACTIVITY LOGS - expandable rows
-   => Table itself reuses .adm-sub-table-wrap / .adm-sub-table already
-      defined above, this only adds the row-click/expand behavior on top
-   ════════════════════════════════════ */
-.adm-log-row {
-  cursor: pointer;
-  transition: background 0.12s;
-}
 
-.adm-log-row:hover {
-  background: rgba(102, 9, 17, 0.05);
-}
-
-.adm-log-detail-cell {
-  max-width: 360px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.adm-log-detail-row td {
-  background: #f4f3ec;
-  padding: 14px 20px;
-}
-
-.adm-log-detail-full p {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #374151;
-}
-
-.adm-log-chevron {
-  width: 12px;
-  height: 12px;
-  transition: transform 0.15s ease;
-  opacity: 0.6;
-}
-
-.adm-log-chevron-open {
-  transform: rotate(180deg);
-}
 
 /* ════════════════════════════════════
    RESPONSIVE
@@ -611,7 +585,7 @@
     margin-top: 8px;
   }
 
-  .adm-batch-section { padding: 18px 16px; }
+  .tbd-section { padding: 18px 16px; }
 
   .adm-info-grid { grid-template-columns: 1fr 1fr; }
 
@@ -657,7 +631,7 @@
     padding: 16px 20px;
   }
 
-  .adm-batch-section {
+  .tbd-section {
     padding: 16px 18px;
   }
 }

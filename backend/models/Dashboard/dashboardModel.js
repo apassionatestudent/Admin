@@ -63,7 +63,11 @@ export const getClassSessionsTodayCount = async () => {
         SELECT COUNT(*)::int AS count
         FROM class_sessions
         WHERE session_date = (now() AT TIME ZONE 'Asia/Manila')::date
+        AND deleted_at IS NULL
     `;
+    // => deleted_at IS NULL excludes soft-deleted rows left behind by
+    // => rescheduled or cancelled sessions, which were being counted
+    // => even though they no longer show on the Classes calendar
     const rows = toRows(result);
     return rows[0]?.count ?? 0;
 };

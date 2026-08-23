@@ -5,7 +5,13 @@
 .chatbots-page {
   padding: 32px;
   color: var(--text);
+  /* => was missing entirely, same gap Staff/StaffDetail had before that fix */
+  background: var(--bg-secondary);
   font-family: var(--font-body), sans-serif;
+  /* => fills the full viewport height so the background doesn't cut off when the table is short */
+  min-height: 100vh;
+  /* => keeps padding from pushing the box taller than 100vh */
+  box-sizing: border-box;
 }
 
 .chatbots-header {
@@ -25,10 +31,22 @@
 
 .chatbots-subtitle {
   font-size: 0.875rem;
-  color: var(--text-muted, var(--text));
+  color: var(--text-muted);
   margin: 0;
 }
 
+/* => Was referenced in Chatbots.jsx's wrapper div but never actually
+   => defined in this file - added now, same overflow-x:auto pattern as
+   => sdaw-table-wrap / faqw-table-wrap / adm-admins-table-wrap */
+.chatbots-table-wrap {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* => Semantic "add" green, kept constant across both themes on purpose */
 .chatbots-fab {
   position: fixed;
   /* => bottom changed from 32px to 22px so this button's vertical center
@@ -71,6 +89,7 @@
 
 .chatbots-table {
   width: 100%;
+  min-width: 620px; /* => forces the scrollbar to actually trigger inside chatbots-table-wrap instead of columns just squeezing */
   border-collapse: collapse;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -82,7 +101,8 @@
 .chatbots-table th {
   text-align: left;
   padding: 12px 16px;
-  background: var(--sidebar-bg, #660911);
+  /* => sidebar-bg stays a fixed maroon accent surface in both themes */
+  background: var(--sidebar-bg);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -103,15 +123,17 @@
 }
 
 .chatbots-row:hover {
-  background: rgba(102, 9, 17, 0.08);
+  background: var(--row-hover-bg);
 }
 
 .chatbots-empty {
   text-align: center;
   padding: 32px !important;
-  color: var(--text-muted, var(--text));
+  color: var(--text-muted);
 }
 
+/* => Semantic status colors below, kept constant across both themes on
+   => purpose, same rule as chatbotDetail.css's own copy of this class */
 .status-badge {
   display: inline-block;
   padding: 4px 12px;

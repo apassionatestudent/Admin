@@ -7,6 +7,46 @@
   max-width: 92vw;
 }
 
+/* => Same compound-selector fix already applied to addAnnouncementModal.css
+   => and addFAQSectionModal.css */
+.afm-modal-box.adm-modal-box {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.afm-modal-box .adm-modal-title {
+  color: var(--text-h);
+}
+
+.afm-modal-box .adm-form-label {
+  color: var(--text-h);
+}
+
+.afm-modal-box .adm-form-input {
+  background: var(--bg);
+  color: var(--text-h);
+  border: 1px solid var(--border);
+}
+
+.afm-modal-box .adm-form-input::placeholder {
+  color: var(--text-muted, var(--text));
+}
+
+.afm-modal-box .adm-modal-footer {
+  border-top: 1px solid var(--border);
+}
+
+.afm-modal-box .adm-modal-cancel-btn {
+  background: var(--bg-secondary);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.afm-modal-box .adm-modal-save-btn {
+  background: var(--accent-hover);
+  color: #fff;
+}
+
 .afm-inline-icon {
   width: 14px;
   height: 14px;

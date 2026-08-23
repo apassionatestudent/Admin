@@ -385,18 +385,18 @@ function EditableField({ label, value, onChange, type = 'text', options = null, 
 function SectionEditControls({ sectionKey, editingSection, saving, onEdit, onSave, onCancel }) {
   const isEditing = editingSection === sectionKey;
   return (
-    <div className="adm-section-actions">
+    <div className="adm-tesda-section-actions">
       {isEditing ? (
         <>
-          <button className="adm-section-save-btn" onClick={onSave} disabled={saving}>
+          <button className="adm-tesda-section-save-btn" onClick={onSave} disabled={saving}>
             {saving ? 'Saving…' : 'Save'}
           </button>
-          <button className="adm-section-cancel-btn" onClick={onCancel} disabled={saving}>
+          <button className="adm-tesda-section-save-btn" onClick={onSave} disabled={saving}>
             Cancel
           </button>
         </>
       ) : (
-        <button className="adm-section-edit-btn" onClick={onEdit} title="Edit section">
+        <button className="adm-tesda-section-edit-btn" onClick={onEdit} title="Edit section">
           <img src={pencilIcon} alt="Edit" className="adm-pencil-icon" />
         </button>
       )}
@@ -592,18 +592,18 @@ function DocPreview({ documentKey, documentType, docPublicId, onOpenModal, onRep
   const inputId = `replace-doc-${docPublicId}`;
 
   return (
-    <div className="adm-doc-preview">
-      <p className="adm-doc-type">{documentType}</p>
+    <div className="adm-tesda-doc-preview">
+      <p className="adm-tesda-doc-type">{documentType}</p>
 
       {loading && (
-        <div className="adm-doc-preview-state">
+        <div className="adm-tesda-doc-preview-state">
           <div className="adm-spinner adm-spinner--sm" />
           <span>Loading…</span>
         </div>
       )}
 
       {error && !loading && (
-        <div className="adm-doc-preview-state adm-doc-preview-state--error">
+        <div className="adm-tesda-doc-preview-state adm-tesda-doc-preview-state--error">
           <span><img src={errorIcon} alt="Error" className="error-icon"/></span> {error}
         </div>
       )}
@@ -636,7 +636,7 @@ function DocPreview({ documentKey, documentType, docPublicId, onOpenModal, onRep
       )}
 
       {/* => Replace control - hidden file input triggered by a visible label/button */}
-      <div className="adm-doc-replace-row">
+      <div className="adm-tesda-doc-replace-row">
         <input
           id={inputId}
           type="file"
@@ -648,7 +648,7 @@ function DocPreview({ documentKey, documentType, docPublicId, onOpenModal, onRep
             e.target.value = ''; // => allow re-selecting the same file later
           }}
         />
-        <label htmlFor={inputId} className="adm-doc-replace-btn">
+        <label htmlFor={inputId} className="adm-tesda-doc-replace-btn">
           {replacing ? 'Uploading…' : 'Replace File'}
         </label>
         {/* => Original submissions can only be replaced, never deleted, for
@@ -1339,7 +1339,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
   const othersRow = classifications.find(c => c.classification_value === 'others');
 
   return (
-    <div className="adm-detail-page">
+    <div className="adm-tesda-enrollment-detail-page">
 
       <BackButton destination="Enrollments" onClick={() => navigate('/dashboard/enrollments')} />
 
@@ -1389,8 +1389,8 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
           {/* ════════════════════════════════════
               STATUS CHANGER
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <h3 className="adm-section-title">Update Status</h3>
+          <section className="adm-tesda-section">
+            <h3 className="adm-tesda-section-title">Update Status</h3>
             <div className="adm-status-changer">
               <select
                 className="adm-status-select"
@@ -1469,8 +1469,9 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                    Save Status is confirmed (see the useEffect that clears/
                    restores this on status change). Moved next to the status
                    meaning to match SHSEnrollmentDetail's layout. */}
-              <div className="adm-remarks-group adm-remarks-group--external">
-                <label className="adm-remarks-label adm-remarks-label--external" htmlFor="tesda-external-remarks">
+              <div className="adm-tesda-remarks-group adm-tesda-remarks-group--external">
+                <div className="adm-tesda-remarks-header">
+                <label className="adm-tesda-remarks-label adm-tesda-remarks-label--external" htmlFor="tesda-external-remarks">
                   External Remarks
                   {/* => Only shown when the rule actually applies, so the
                        label doesn't nag on every other status */}
@@ -1478,9 +1479,10 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                     <span className="adm-remarks-required"> (required)</span>
                   )}
                 </label>
+                </div>
                 <textarea
                   id="tesda-external-remarks"
-                  className="adm-remarks-input adm-remarks-input--external"
+                  className="adm-tesda-remarks-input adm-tesda-remarks-input--external"
                   placeholder="Note shown to the student when this status is saved…"
                   value={externalRemarksDraft}
                   onChange={e => setExternalRemarksDraft(e.target.value)}
@@ -1488,13 +1490,13 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               </div>
 
               {/* => Internal Remarks: staff-only note, own Save button, not tied to status */}
-              <div className="adm-remarks-group adm-remarks-group--internal">
-                <div className="adm-remarks-header">
-                  <label className="adm-remarks-label adm-remarks-label--internal" htmlFor="tesda-internal-remarks">
+              <div className="adm-tesda-remarks-group adm-tesda-remarks-group--internal">
+                <div className="adm-tesda-remarks-header">
+                  <label className="adm-tesda-remarks-label adm-tesda-remarks-label--internal" htmlFor="tesda-internal-remarks">
                     Internal Remarks
                   </label>
                   <button
-                    className="adm-remarks-save-btn adm-remarks-save-btn--internal"
+                    className="adm-tesda-remarks-save-btn adm-tesda-remarks-save-btn--internal"
                     onClick={handleSaveInternalRemarks}
                     disabled={savingInternalRemarks}
                   >
@@ -1503,7 +1505,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                 </div>
                 <textarea
                   id="tesda-internal-remarks"
-                  className="adm-remarks-input adm-remarks-input--internal"
+                  className="adm-tesda-remarks-input adm-tesda-remarks-input--internal"
                   placeholder="Staff-only note (not visible to the student)…"
                   value={internalRemarksDraft}
                   onChange={e => setInternalRemarksDraft(e.target.value)}
@@ -1519,9 +1521,9 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                  a proper picker UI, deferred per earlier project decision.
                  ULI and Fee are direct columns and fully editable.
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <div className="adm-section-header-row">
-              <h3 className="adm-section-title">Enrollment Information</h3>
+          <section className="adm-tesda-section">
+            <div className="adm-tesda-section-header-row">
+              <h3 className="adm-tesda-section-title">Enrollment Information</h3>
               <SectionEditControls
                 sectionKey="enrollmentInfo"
                 editingSection={editingSection}
@@ -1534,7 +1536,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               />
             </div>
             {editingSection === 'enrollmentInfo' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
+              <p className="adm-tesda-section-error">{sectionError}</p>
             )}
             <div className="adm-info-grid">
               {editingSection === 'enrollmentInfo' ? (
@@ -1559,10 +1561,10 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
           {/* ════════════════════════════════════
               PAYMENT & REFUND HISTORY (read-only)
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <h3 className="adm-section-title">
+          <section className="adm-tesda-section">
+            <h3 className="adm-tesda-section-title">
               Payment History
-              <span className="adm-section-count-inline">{paymentHistory.length}</span>
+              <span className="adm-tesda-section-count-inline">{paymentHistory.length}</span>
             </h3>
 
             {/* => Reservation fee must be paid in full before this enrollment
@@ -1626,9 +1628,9 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               => Read-only: comes from the joined tesda_classes row, not
                  tesda_enrollments directly. Reassignment deferred.
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <div className="adm-section-header-row">
-              <h3 className="adm-section-title">Class / Batch</h3>
+          <section className="adm-tesda-section">
+            <div className="adm-tesda-section-header-row">
+              <h3 className="adm-tesda-section-title">Class / Batch</h3>
               <SectionEditControls
                 sectionKey="classAssign"
                 editingSection={editingSection}
@@ -1639,7 +1641,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               />
             </div>
             {editingSection === 'classAssign' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
+              <p className="adm-tesda-section-error">{sectionError}</p>
             )}
             {editingSection === 'classAssign' ? (
               <div className="adm-info-grid">
@@ -1677,9 +1679,9 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
           {/* ════════════════════════════════════
               NCAE
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <div className="adm-section-header-row">
-              <h3 className="adm-section-title">NCAE</h3>
+          <section className="adm-tesda-section">
+            <div className="adm-tesda-section-header-row">
+              <h3 className="adm-tesda-section-title">NCAE</h3>
               <SectionEditControls
                 sectionKey="ncae"
                 editingSection={editingSection}
@@ -1694,7 +1696,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               />
             </div>
             {editingSection === 'ncae' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
+              <p className="adm-tesda-section-error">{sectionError}</p>
             )}
             <div className="adm-info-grid">
               {editingSection === 'ncae' ? (
@@ -1730,9 +1732,9 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
           {/* ════════════════════════════════════
               SCHOLARSHIP
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <div className="adm-section-header-row">
-              <h3 className="adm-section-title">Scholarship</h3>
+          <section className="adm-tesda-section">
+            <div className="adm-tesda-section-header-row">
+              <h3 className="adm-tesda-section-title">Scholarship</h3>
               <SectionEditControls
                 sectionKey="scholarship"
                 editingSection={editingSection}
@@ -1747,7 +1749,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               />
             </div>
             {editingSection === 'scholarship' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
+              <p className="adm-tesda-section-error">{sectionError}</p>
             )}
             <div className="adm-info-grid">
               {editingSection === 'scholarship' ? (
@@ -1783,9 +1785,9 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
           {/* ════════════════════════════════════
               CLIENT CLASSIFICATIONS
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <div className="adm-section-header-row">
-              <h3 className="adm-section-title">
+          <section className="adm-tesda-section">
+            <div className="adm-tesda-section-header-row">
+              <h3 className="adm-tesda-section-title">
                 Client Classifications
               </h3>
               <SectionEditControls
@@ -1801,7 +1803,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               />
             </div>
             {editingSection === 'classifications' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
+              <p className="adm-tesda-section-error">{sectionError}</p>
             )}
 
             {editingSection === 'classifications' ? (
@@ -1846,9 +1848,9 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
           {/* ════════════════════════════════════
               STUDENT PROFILE
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <div className="adm-section-header-row">
-              <h3 className="adm-section-title">Student Profile</h3>
+          <section className="adm-tesda-section">
+            <div className="adm-tesda-section-header-row">
+              <h3 className="adm-tesda-section-title">Student Profile</h3>
               <SectionEditControls
                 sectionKey="profile"
                 editingSection={editingSection}
@@ -1876,7 +1878,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               />
             </div>
             {editingSection === 'profile' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
+              <p className="adm-tesda-section-error">{sectionError}</p>
             )}
 
             <div className="adm-info-grid">
@@ -1972,7 +1974,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
             </div>
 
             {/* => Address is a separate table/endpoint - its own edit toggle */}
-            <div className="adm-section-header-row" style={{ marginTop: '18px' }}>
+            <div className="adm-tesda-section-header-row" style={{ marginTop: '18px' }}>
               <p className="adm-info-label" style={{ margin: 0 }}>Address</p>
               <SectionEditControls
                 sectionKey="address"
@@ -1990,7 +1992,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               />
             </div>
             {editingSection === 'address' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
+              <p className="adm-tesda-section-error">{sectionError}</p>
             )}
             {editingSection === 'address' ? (
               <div className="adm-info-grid" style={{ marginTop: '12px' }}>
@@ -2020,9 +2022,9 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               => Shows an "Add Guardian" edit trigger if no row exists yet,
                  since upsertGuardian on the backend inserts on first save.
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <div className="adm-section-header-row">
-              <h3 className="adm-section-title">Guardian</h3>
+          <section className="adm-tesda-section">
+            <div className="adm-tesda-section-header-row">
+              <h3 className="adm-tesda-section-title">Guardian</h3>
               <SectionEditControls
                 sectionKey="guardian"
                 editingSection={editingSection}
@@ -2037,7 +2039,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               />
             </div>
             {editingSection === 'guardian' && sectionError && (
-              <p className="adm-section-error">{sectionError}</p>
+              <p className="adm-tesda-section-error">{sectionError}</p>
             )}
             {editingSection === 'guardian' ? (
               <div className="adm-info-grid">
@@ -2071,12 +2073,12 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                  the block below lets admins add a new document type that
                  wasn't originally submitted.
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <h3 className="adm-section-title">
+          <section className="adm-tesda-section">
+            <h3 className="adm-tesda-section-title">
               Submitted Documents
-              <span className="adm-section-count-inline">{docs.length}</span>
+              <span className="adm-tesda-section-count-inline">{docs.length}</span>
             </h3>
-            {docError && <p className="adm-section-error">{docError}</p>}
+            {docError && <p className="adm-tesda-section-error">{docError}</p>}
 
             {docs.length === 0 ? (
               <p className="adm-empty-note">No documents uploaded.</p>
@@ -2114,7 +2116,7 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
                 style={{ display: 'none' }}
                 onChange={e => setAddDocFile(e.target.files?.[0] ?? null)}
               />
-              <label htmlFor="add-doc-file-input" className="adm-doc-replace-btn">
+              <label htmlFor="add-doc-file-input" className="adm-tesda-doc-replace-btn">
                 {addDocFile ? addDocFile.name : 'Choose File'}
               </label>
               <button className="adm-status-btn" onClick={handleAddDoc} disabled={addingDoc}>
@@ -2126,10 +2128,10 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
           {/* ════════════════════════════════════
               ACTIVITY LOGS
               ════════════════════════════════════ */}
-          <section className="adm-section">
-            <h3 className="adm-section-title">
+          <section className="adm-tesda-section">
+            <h3 className="adm-tesda-section-title">
               Activity Logs
-              <span className="adm-section-count-inline">{logs.length}</span>
+              <span className="adm-tesda-section-count-inline">{logs.length}</span>
             </h3>
 
             {logs.length === 0 ? (

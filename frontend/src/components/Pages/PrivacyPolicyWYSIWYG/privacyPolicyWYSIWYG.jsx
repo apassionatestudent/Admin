@@ -12,10 +12,15 @@ import axiosAdmin from '../../../utils/axiosAdmin.js';
 import RichTextEditor from '../RichTextEditor/richTextEditor.jsx';
 import PrivacyPolicyRevisions from '../PrivacyPolicyRevisions/privacyPolicyRevisions.jsx';
 import LoadingState from '../../LoadingState/loadingState.jsx';
+import ConfirmModal from '../../ConfirmModal/ConfirmModal.jsx';
 import './privacyPolicyWYSIWYG.css';
 
-const PrivacyPolicyWYSIWYG = forwardRef(function PrivacyPolicyWYSIWYG(_props, ref) {
+const PrivacyPolicyWYSIWYG = forwardRef(function PrivacyPolicyWYSIWYG({ onDirtyChange }, ref) {
   const [content, setContent] = useState('');
+  // => Tracks the last-saved/last-fetched value separately from the live
+  //    editor content, so we can tell "actually edited" apart from "just
+  //    viewing" - used to disable the Save Changes button when nothing changed
+  const [savedContent, setSavedContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
   // => Passed down to PrivacyPolicyRevisions as a prop - incrementing it
@@ -29,6 +34,7 @@ const PrivacyPolicyWYSIWYG = forwardRef(function PrivacyPolicyWYSIWYG(_props, re
     try {
       const res = await axiosAdmin.get('/api/admin/pages/privacy-policy');
       setContent(res.data.page.content || '');
+      setSavedContent(res.data.page.content || '');
     } catch (err) {
       console.error('Failed to fetch privacy policy:', err);
       setFetchError('Failed to load the privacy policy. Please try again.');
@@ -41,10 +47,14 @@ const PrivacyPolicyWYSIWYG = forwardRef(function PrivacyPolicyWYSIWYG(_props, re
     fetchPrivacyPolicy();
   }, []);
 
-  const save = async () => {
+  // => The actual PUT request - only runs after the admin confirms via
+  //    ConfirmModal, so a stray click on "Save Changes" can't overwrite
+  //    the live public-facing Privacy Policy without a second step
+  const performSave = async () => {
     try {
       const res = await axiosAdmin.put('/api/admin/pages/privacy-policy', { content });
       setContent(res.data.page.content || '');
+      setSavedContent(res.data.page.content || ''); // => resets the dirty check baseline to the freshly-saved value
       toast.success('Privacy Policy saved.');
       setRevisionsRefreshKey((prev) => prev + 1); // => tells PrivacyPolicyRevisions a new revision was just written
     } catch (err) {
@@ -53,8 +63,29 @@ const PrivacyPolicyWYSIWYG = forwardRef(function PrivacyPolicyWYSIWYG(_props, re
     }
   };
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // => save() now just opens the confirmation dialog - pages.jsx's header
+  //    button calls this via ref, same wiring as before, only the inside
+  //    of the function changed
+  const save = () => {
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmSave = async () => {
+    setConfirmOpen(false);
+    await performSave();
+  };
+
   // => Exposes save() to pages.jsx's header button via ref
   useImperativeHandle(ref, () => ({ save }));
+
+  // => Reports dirty state up to pages.jsx every time content or the
+  //    saved baseline changes, so the header's Save Changes button can
+  //    disable itself when there's nothing to save
+  useEffect(() => {
+    onDirtyChange?.(content !== savedContent);
+  }, [content, savedContent, onDirtyChange]);
 
   return (
     <div className="ppw-wrap">
@@ -74,6 +105,13 @@ const PrivacyPolicyWYSIWYG = forwardRef(function PrivacyPolicyWYSIWYG(_props, re
              revision history stays visible even if the live content
              fetch above fails or is still loading */}
       <PrivacyPolicyRevisions refreshKey={revisionsRefreshKey} />
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        message="Save changes to the Privacy Policy? This updates the live public page immediately."
+        onConfirm={handleConfirmSave}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 });

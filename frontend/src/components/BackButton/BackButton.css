@@ -12,6 +12,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  white-space: nowrap; /* => stops "Back to Staff" from wrapping onto a second line and getting clipped at narrow widths */
+  flex-shrink: 0; /* => keeps the button itself from getting squeezed by a flex parent, matching the icon's existing flex-shrink:0 pattern */
 }
 
 .back-arrow-icon {

@@ -168,7 +168,7 @@ export default function TrainerDetail() {
       key: 'actor',
       header: 'Actor',
       render: (log) => log.actor_type === 'System' ? (
-        <span className="adm-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>System</span>
+        <span className="trainer-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>System</span>
       ) : (
         log.actor_name
       ),
@@ -604,10 +604,10 @@ export default function TrainerDetail() {
              on this page. Design/classes match TesdaBatchDetail/
              ShsBatchDetail/FacilityDetail's Activity Logs section exactly
              for visual consistency. */}
-      <div className="adm-batch-section">
-        <p className="adm-section-title">
+      <div className="trainer-log-section">
+        <p className="trainer-log-section-title">
           Activity Logs
-          <span className="adm-section-count-inline">{logs.length}</span>
+          <span className="trainer-log-count-inline">{logs.length}</span>
         </p>
 
         <LogComponent

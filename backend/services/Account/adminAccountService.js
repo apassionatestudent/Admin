@@ -2,6 +2,18 @@
 import bcrypt from 'bcryptjs';
 import { pool } from '../../config/db.js';
 import { logActivity, getActivityLogsByActorPaginated } from '../../models/adminActivityLogModel.js';
+
+// => Same 4 rules enforced everywhere else a password gets set
+// => (passwordTokenService.js, staffInviteService.js, accountServices.js
+// => on the student side). This is the real gate, keep it in sync if the
+// => rule set ever changes.
+const validatePasswordStrength = (value) => {
+    if (!value || value.length < 8) return 'Password must be at least 8 characters';
+    if (!/[A-Z]/.test(value)) return 'Password must include at least one uppercase letter';
+    if (!/[0-9]/.test(value)) return 'Password must include at least one number';
+    if (!/[^A-Za-z0-9]/.test(value)) return 'Password must include at least one special character';
+    return null;
+};
 import {
     findAdminById,
     findPasswordHashById,
@@ -100,8 +112,9 @@ export async function changePassword(adminId, currentPassword, newPassword) {
     if (!currentPassword || !newPassword) {
         throw { status: 400, message: 'Current and new password are required' };
     }
-    if (newPassword.length < 8) {
-        throw { status: 400, message: 'New password must be at least 8 characters' };
+    const passwordError = validatePasswordStrength(newPassword);
+    if (passwordError) {
+        throw { status: 400, message: passwordError };
     }
 
     const record = await findPasswordHashById(adminId);

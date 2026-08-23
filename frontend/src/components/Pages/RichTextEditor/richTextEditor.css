@@ -7,7 +7,7 @@
   border: 1px solid var(--border, #e0d8d0);
   border-radius: 10px;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg); /* => was hardcoded #fff, now follows theme */
 }
 
 .rte-toolbar {
@@ -15,7 +15,7 @@
   align-items: center;
   gap: 4px;
   padding: 8px 10px;
-  background: #faf7f5;
+  background: var(--bg-secondary); /* => was hardcoded #faf7f5 (light-only off-white), now follows theme */
   border-bottom: 1px solid var(--border, #e0d8d0);
 }
 
@@ -38,13 +38,23 @@
   opacity: 0.75;
 }
 
+/* => Toolbar icon PNGs are dark-colored images, invisible against the
+   => dark theme's toolbar background. Inverts them to white in dark
+   => mode only, same filter trick already used for #social .button-icon
+   => in index.css. Scoped to :root[data-theme="dark"] since this site
+   => toggles via data-theme attribute, not prefers-color-scheme */
+:root[data-theme="dark"] .rte-toolbar-btn img {
+  filter: invert(1) brightness(1.4);
+  opacity: 0.9;
+}
+
 .rte-toolbar-btn:hover {
-  background: #efe6e2;
+  background: var(--row-hover-bg); /* => was hardcoded #efe6e2 (light-only tint), now follows theme */
 }
 
 .rte-toolbar-btn--active {
-  background: #8a0d17;
-  border-color: #8a0d17;
+  background: var(--accent-hover); /* => was hardcoded #8a0d17 (dark theme's exact value), now follows theme */
+  border-color: var(--accent-hover);
 }
 
 /* => turns the icon white while active, so it reads on the maroon background */
@@ -82,7 +92,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  background: #fff7e6;
+  background: var(--bg-secondary); /* => was hardcoded #fff7e6 (light-only pale yellow), now follows theme */
   border-bottom: 1px solid var(--border, #e0d8d0);
   flex-wrap: wrap;
 }
@@ -98,15 +108,16 @@
   padding: 4px 10px;
   border: 1px solid var(--border, #e0d8d0);
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg); /* => was hardcoded #fff, now follows theme */
+  color: var(--text-h); /* => was missing entirely - text color defaulted to browser black, unreadable on a dark button background */
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
 }
 
 .rte-image-preset-btn:hover {
-  background: #8a0d17;
-  border-color: #8a0d17;
+  background: var(--accent-hover); /* => was hardcoded #8a0d17, now follows theme */
+  border-color: var(--accent-hover);
   color: #fff;
 }
 

@@ -1,6 +1,7 @@
 .chatbot-modal-backdrop {
   position: fixed;
   inset: 0;
+  /* => universal dimming scrim, left as flat black regardless of theme */
   background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
@@ -9,7 +10,7 @@
 }
 
 .chatbot-modal-panel {
-  background: var(--bg, #fff);
+  background: var(--bg);
   border-radius: 10px;
   padding: 28px;
   width: 100%;
@@ -69,18 +70,19 @@
 
 .chatbot-modal-optional {
   font-weight: 400;
-  color: var(--text-muted, #9ca3af);
+  color: var(--text-muted);
 }
 
 .chatbot-modal-input,
 .chatbot-modal-textarea,
 .chatbot-modal-select {
   padding: 9px 12px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border);
   border-radius: 8px;
   font-size: 0.875rem;
   font-family: var(--font-body), sans-serif;
-  color: #111827;
+  color: var(--text-h);
+  background: var(--bg);
   resize: vertical;
 }
 
@@ -88,7 +90,7 @@
 .chatbot-modal-textarea:focus,
 .chatbot-modal-select:focus {
   outline: none;
-  border-color: var(--accent-hover, #8a0d17);
+  border-color: var(--accent-hover);
 }
 
 .chatbot-modal-actions {
@@ -99,7 +101,7 @@
 }
 
 .chatbot-modal-btn-secondary {
-  background: var(--code-bg, #f4f3ec);
+  background: var(--code-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 9px 16px;
@@ -111,7 +113,9 @@
 }
 
 .chatbot-modal-btn-primary {
-  background: var(--sidebar-bg, #660911);
+  /* => sidebar-bg stays a fixed maroon accent surface in both themes,
+     => white text on top stays readable either way */
+  background: var(--sidebar-bg);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -123,7 +127,7 @@
 }
 
 .chatbot-modal-btn-primary:hover {
-  background: var(--accent-hover, #8a0d17);
+  background: var(--accent-hover);
 }
 
 .chatbot-modal-btn-primary:disabled,

@@ -10,7 +10,8 @@
 .adm-payments-page {
   padding: 36px 40px;
   min-height: 100vh;
-  background: #f4f5f8;
+  background: var(--bg-secondary); /* => was hardcoded #f4f5f8, this page never got wired to theme tokens - same root cause as the white gap fixed on Staff/Courses/Pages */
+  color: var(--text); /* => was missing entirely, text was relying on inherited black */
   font-family: var(--font-body), sans-serif;
   width: 100%;
   box-sizing: border-box;
@@ -33,19 +34,19 @@
 .adm-payments-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #0f1724;
+  color: var(--text-h); /* => was hardcoded #0f1724 */
   letter-spacing: -0.02em;
   margin: 0 0 4px;
 }
 
 .adm-payments-subtitle {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was hardcoded #6b7280 */
   margin: 0;
 }
 
 .adm-payments-subtitle strong {
-  color: #374151;
+  color: var(--text); /* => was hardcoded #374151 */
 }
 
 /* ════════════════════════════════════
@@ -71,17 +72,18 @@
   flex: 1;
   min-width: 220px;
   padding: 9px 14px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border); /* => was hardcoded #d1d5db */
   border-radius: 8px;
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--text-h); /* => was hardcoded #111827 */
+  background: var(--bg); /* => was missing entirely, input defaulted to browser white regardless of theme */
   font-family: inherit;
   transition: border-color 0.15s;
 }
 
 .adm-search-input:focus {
   outline: none;
-  border-color: #1a56db;
+  border-color: var(--accent-hover, #8a0d17); /* => was hardcoded blue #1a56db, leftover from a different theme */
 }
 
 /* ════════════════════════════════════
@@ -108,17 +110,17 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was hardcoded #6b7280 */
   margin-right: 2px;
 }
 
 .adm-filter-btn {
   padding: 6px 14px;
-  background: #fff;
-  color: #374151;
+  background: var(--bg); /* => was hardcoded #fff */
+  color: var(--text); /* => was hardcoded #374151 */
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border); /* => was hardcoded #e5e7eb */
   border-radius: 999px;
   cursor: pointer;
   font-family: inherit;
@@ -127,7 +129,7 @@
 }
 
 .adm-filter-btn:hover {
-  background: #f3f4f6;
+  background: var(--code-bg, var(--bg)); /* => was hardcoded #f3f4f6 */
 }
 
 .adm-filter-btn--active {
@@ -140,11 +142,11 @@
       as .adm-filter-btn for visual consistency in the same filter row */
 .adm-filter-select {
   padding: 6px 12px;
-  background: #fff;
-  color: #374151;
+  background: var(--bg); /* => was hardcoded #fff */
+  color: var(--text); /* => was hardcoded #374151 */
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border); /* => was hardcoded #e5e7eb */
   border-radius: 999px;
   cursor: pointer;
   font-family: inherit;
@@ -153,7 +155,7 @@
 
 .adm-filter-select:focus {
   outline: none;
-  border-color: #1a56db;
+  border-color: var(--accent-hover, #8a0d17); /* => was hardcoded blue #1a56db */
 }
 
 /* ════════════════════════════════════
@@ -190,6 +192,15 @@
   border-bottom: 2px solid var(--accent-hover, #8a0d17);
 }
 
+/* => Dark mode: same --accent-text token used across the campaign
+      (Courses.css/Pages.jsx tabs), so "Payments"/"Refunds" stays
+      readable against the dark background instead of the dim
+      --accent-hover red */
+:root[data-theme="dark"] .adm-main-tab-btn--active {
+  color: var(--accent-text);
+  border-bottom: 2px solid var(--accent-text);
+}
+
 /* ════════════════════════════════════
    LOADING / ERROR / EMPTY STATES
    => Identical to Classes.css's .adm-classes-state, renamed to
@@ -201,7 +212,7 @@
   align-items: center;
   gap: 12px;
   padding: 64px 0;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was hardcoded #6b7280 */
   font-size: 0.9375rem;
 }
 
@@ -224,9 +235,9 @@
    TABLE (maroon variant - matches Facilities/Trainers)
    ════════════════════════════════════ */
 .adm-table-wrap {
-  background: #ffffff;
+  background: var(--bg); /* => was hardcoded #ffffff */
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border); /* => was hardcoded #e5e7eb */
   overflow-x: auto;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   width: 100%;
@@ -238,13 +249,13 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--text); /* => was hardcoded #374151 */
   min-width: 720px;
 }
 
 .adm-table thead tr {
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--code-bg, var(--bg)); /* => was hardcoded #f9fafb - kept here for the base/non-maroon table variant, though Payments.jsx currently always pairs this with adm-table-wrap--maroon which overrides it below */
+  border-bottom: 1px solid var(--border); /* => was hardcoded #e5e7eb */
 }
 
 .adm-table th {
@@ -254,12 +265,12 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was hardcoded #6b7280 */
   white-space: nowrap;
 }
 
 .adm-table-row {
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border); /* => was hardcoded #f3f4f6 */
   cursor: pointer;
   transition: background 0.12s ease;
   animation: adm-row-in 0.28s ease both;
@@ -275,7 +286,7 @@
 }
 
 .adm-table-row:hover {
-  background: #f0f4ff;
+  background: var(--row-hover-bg); /* => was hardcoded #f0f4ff, light-theme-only blue tint - now uses the token already defined in index.css for both themes, same pattern as adm-admins-table's row hover */
 }
 
 .adm-table td {
@@ -290,19 +301,19 @@
 .adm-course-name {
   display: block;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-h); /* => was hardcoded #111827 */
 }
 
 .adm-td-date {
   white-space: nowrap;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was hardcoded #6b7280 */
 }
 
 /* => Payments-specific: OR number cell, monospace to read as a receipt code */
 .adm-td-or-number {
   font-family: monospace;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-h) !important; /* => forced with !important as a temporary workaround - devtools showed a second stale/colliding rule still holding #111827 that kept winning even after a clean rebuild, this overrides it regardless of source order or specificity until the real duplicate is found and removed */
   white-space: nowrap;
 }
 
@@ -314,8 +325,8 @@
   margin-left: 6px;
   padding: 1px 7px;
   border-radius: 999px;
-  background: #f3f4f6;
-  color: #4b5563;
+  background: var(--code-bg, var(--bg)); /* => was hardcoded #f3f4f6 */
+  color: var(--text); /* => was hardcoded #4b5563 */
   font-size: 0.7rem;
   font-weight: 700;
 }
@@ -387,7 +398,7 @@
 .adm-payments-pagination-info {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was hardcoded #6b7280 */
 }
 
 .adm-payments-pagination-controls {
@@ -397,11 +408,11 @@
 
 .adm-payments-page-btn {
   padding: 6px 16px;
-  background: #fff;
-  color: #374151;
+  background: var(--bg); /* => was hardcoded #fff */
+  color: var(--text); /* => was hardcoded #374151 */
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border); /* => was hardcoded #e5e7eb */
   border-radius: 8px;
   cursor: pointer;
   font-family: inherit;
@@ -409,7 +420,7 @@
 }
 
 .adm-payments-page-btn:hover:not(:disabled) {
-  background: #f3f4f6;
+  background: var(--code-bg, var(--bg)); /* => was hardcoded #f3f4f6 */
   border-color: var(--sidebar-bg);
 }
 

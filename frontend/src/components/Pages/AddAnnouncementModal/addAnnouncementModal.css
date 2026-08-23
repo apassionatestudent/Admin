@@ -7,6 +7,52 @@
   max-width: 92vw;
 }
 
+/* => Compound selector (both classes on the same element, no space) used
+   => on purpose here instead of a descendant selector - the shared
+   => adm-modal-box class also carries a single-class background rule
+   => somewhere else in the bundle, so a plain .aam-modal-box rule ties
+   => on specificity and loses whenever that shared file loads after this
+   => one. .aam-modal-box.adm-modal-box always wins regardless of load
+   => order, same root cause already logged for the Vite unscoped CSS
+   => import bug (pages.css/Classes.css leak) */
+.aam-modal-box.adm-modal-box {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.aam-modal-box .adm-modal-title {
+  color: var(--text-h);
+}
+
+.aam-modal-box .adm-form-label {
+  color: var(--text-h);
+}
+
+.aam-modal-box .adm-form-input {
+  background: var(--bg);
+  color: var(--text-h);
+  border: 1px solid var(--border);
+}
+
+.aam-modal-box .adm-form-input::placeholder {
+  color: var(--text-muted, var(--text));
+}
+
+.aam-modal-box .adm-modal-footer {
+  border-top: 1px solid var(--border);
+}
+
+.aam-modal-box .adm-modal-cancel-btn {
+  background: var(--bg-secondary);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.aam-modal-box .adm-modal-save-btn {
+  background: var(--accent-hover);
+  color: #fff;
+}
+
 .aam-toggle-row {
   display: flex;
   align-items: center;

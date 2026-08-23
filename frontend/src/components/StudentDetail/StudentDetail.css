@@ -8,7 +8,8 @@
 .adm-student-detail-page {
   padding: 32px 40px 64px;
   min-height: 100vh;
-  background: #f4f5f8;
+  background: var(--bg-secondary);
+  color: var(--text);
   font-family: var(--font-body), sans-serif;
 }
 
@@ -124,11 +125,15 @@
    SECTION WRAPPER
    ════════════════════════════════════ */
 .adm-student-section {
-  background: #ffffff;
+  background: var(--bg);
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   padding: 24px 28px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+:root[data-theme="dark"] .adm-student-section {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 
 .adm-section-title {
@@ -136,7 +141,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #6b7280;
+  color: var(--text-muted);
   margin: 0 0 20px;
   display: flex;
   align-items: center;
@@ -151,15 +156,15 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background: #e5e7eb;
-  color: #374151;
+  background: var(--border);
+  color: var(--text-h);
   font-size: 0.75rem;
   font-weight: 700;
 }
 
 .adm-empty-note {
   font-size: 0.875rem;
-  color: #9ca3af;
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -268,8 +273,8 @@
 }
 
 .adm-info-card {
-  background: #f9fafb;
-  border: 1px solid #f3f4f6;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px 14px;
   min-height: 58px;
@@ -284,14 +289,14 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: #9ca3af;
+  color: var(--text-muted);
   margin: 0 0 4px;
 }
 
 .adm-info-value {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #111827;
+  color: var(--text-h);
   margin: 0;
   word-break: break-word;
 }
@@ -299,82 +304,82 @@
 /* ════════════════════════════════════
    ENROLLMENT HISTORY TABLE
    ════════════════════════════════════ */
-.adm-sub-table-wrap {
+.student-detail-sub-table-wrap {
   overflow-x: auto;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
 }
 
-.adm-sub-table {
+.student-detail-sub-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.8375rem;
-  color: #374151;
+  color: var(--text);
   min-width: 700px;
 }
 
-.adm-sub-table thead tr {
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+.student-detail-sub-table thead tr {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
 }
 
-.adm-sub-table th {
+.student-detail-sub-table th {
   padding: 10px 14px;
   text-align: left;
   font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6b7280;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
-.adm-sub-table td {
+.student-detail-sub-table td {
   padding: 11px 14px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
 
-.adm-sub-table tbody tr:last-child td {
+.student-detail-sub-table tbody tr:last-child td {
   border-bottom: none;
 }
 
 /* => Clickable rows */
-.adm-sub-table-row {
+.student-detail-sub-table-row {
   cursor: pointer;
   transition: background 0.12s;
 }
 
-.adm-sub-table-row:hover {
-  background: #f0f4ff;
+.student-detail-sub-table-row:hover {
+  background: var(--row-hover-bg);
 }
 
-.adm-td-course {
+.student-detail-td-course {
   font-weight: 600;
-  color: #111827;
+  color: var(--text-h);
   min-width: 160px;
 }
 
-.adm-td-dates {
+.student-detail-td-dates {
   white-space: nowrap;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 0.8125rem;
 }
 
-.adm-td-date {
+.student-detail-td-date {
   white-space: nowrap;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
-.adm-td-arrow {
-  color: #d1d5db;
+.student-detail-td-arrow {
+  color: var(--border);
   font-size: 1.1rem;
   text-align: right;
   padding-right: 14px;
 }
 
-.adm-sub-table-row:hover .adm-td-arrow {
-  color: #1a56db;
+.student-detail-sub-table-row:hover .student-detail-td-arrow {
+  color: var(--accent-hover);
 }
 
 /* Badge used inside tables */
@@ -393,16 +398,16 @@
 .adm-badge--payment-voided    { background: #fee2e2; color: #7f1d1d; }
 
 /* => OR number / refund number cell, monospace to read as a receipt code */
-.adm-td-or-number {
+.student-detail-td-or-number {
   font-family: monospace;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-h);
   white-space: nowrap;
 }
 
 /* => Program (TESDA/SHS) and record (Payment/Refund) type badges,
       reused across the Payment & Refund History section */
-.adm-type-badge {
+.student-detail-type-badge {
   display: inline-block;
   padding: 3px 10px;
   border-radius: 6px;
@@ -411,10 +416,10 @@
   letter-spacing: 0.04em;
   white-space: nowrap;
 }
-.adm-type-badge--payment { background: #dcfce7; color: #166534; }
-.adm-type-badge--refund  { background: #fee2e2; color: #7f1d1d; }
-.adm-type-badge--tesda   { background: #e0e7ff; color: #3730a3; }
-.adm-type-badge--shs     { background: #fce7f3; color: #9d174d; }
+.student-detail-type-badge--payment { background: #dcfce7; color: #166534; }
+.student-detail-type-badge--refund  { background: #fee2e2; color: #7f1d1d; }
+.student-detail-type-badge--tesda   { background: #e0e7ff; color: #3730a3; }
+.student-detail-type-badge--shs     { background: #fce7f3; color: #9d174d; }
 
 
 /* ════════════════════════════════════
@@ -429,7 +434,7 @@
 }
 
 .adm-log-row:hover {
-  background: #f0f4ff;
+  background: var(--row-hover-bg);
 }
 
 .adm-log-detail-cell {
@@ -450,14 +455,14 @@
 }
 
 .adm-log-detail-row td {
-  background: #f9fafb;
+  background: var(--bg-secondary);
   padding: 14px 16px;
 }
 
 .adm-log-detail-full p {
   margin: 0;
   font-size: 0.8375rem;
-  color: #374151;
+  color: var(--text);
   line-height: 1.5;
   white-space: pre-wrap;
 }
@@ -470,15 +475,15 @@
   gap: 14px;
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border);
 }
 
 .adm-log-page-btn {
   padding: 8px 18px;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border);
   border-radius: 8px;
-  background: #fff;
-  color: #374151;
+  background: var(--bg);
+  color: var(--text-h);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -488,9 +493,9 @@
 }
 
 .adm-log-page-btn:hover:not(:disabled) {
-  background: #f0f4ff;
-  border-color: #1a56db;
-  color: #1a56db;
+  background: var(--row-hover-bg);
+  border-color: var(--accent-hover);
+  color: var(--accent-hover);
 }
 
 /* => Ghost look for a disabled Prev/Next - no border, faded text, matches the reference screenshot */
@@ -498,14 +503,14 @@
   background: transparent;
   border-color: transparent;
   box-shadow: none;
-  color: #b0b7c3;
+  color: var(--text-muted);
   cursor: not-allowed;
 }
 
 .adm-log-page-indicator {
   font-size: 0.875rem;
   font-weight: 700;
-  color: #374151;
+  color: var(--text-h);
 }
 
 .adm-log-pagination {
@@ -518,10 +523,10 @@
 
 .adm-log-page-btn {
   padding: 6px 16px;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border);
   border-radius: 8px;
-  background: #fff;
-  color: #374151;
+  background: var(--bg);
+  color: var(--text-h);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -530,9 +535,9 @@
 }
 
 .adm-log-page-btn:hover:not(:disabled) {
-  background: #f0f4ff;
-  border-color: #1a56db;
-  color: #1a56db;
+  background: var(--row-hover-bg);
+  border-color: var(--accent-hover);
+  color: var(--accent-hover);
 }
 
 .adm-log-page-btn:disabled {
@@ -542,7 +547,7 @@
 
 .adm-log-page-indicator {
   font-size: 0.8125rem;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 /* ════════════════════════════════════
@@ -567,7 +572,7 @@
 }
 
 .adm-modal-box {
-  background: #fff;
+  background: var(--bg);
   border-radius: 14px;
   overflow: hidden;
   display: flex;
@@ -577,6 +582,10 @@
   max-height: 90vh;
   animation: adm-modal-up 0.18s ease;
   box-shadow: 0 24px 80px rgba(0,0,0,0.3);
+}
+
+:root[data-theme="dark"] .adm-modal-box {
+  box-shadow: 0 24px 80px rgba(0,0,0,0.55);
 }
 
 .adm-modal-box--form {
@@ -593,14 +602,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 22px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
 .adm-modal-title {
   font-size: 0.9375rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-h);
   letter-spacing: -0.01em;
 }
 
@@ -608,7 +617,7 @@
   background: none;
   border: none;
   font-size: 1rem;
-  color: #6b7280;
+  color: var(--text-muted);
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 6px;
@@ -617,8 +626,8 @@
 }
 
 .adm-modal-close:hover:not(:disabled) {
-  background: #f3f4f6;
-  color: #111827;
+  background: var(--bg-secondary);
+  color: var(--text-h);
 }
 
 .adm-modal-close:disabled {
@@ -638,7 +647,7 @@
 
 .adm-modal-footer {
   padding: 14px 22px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border);
   display: flex;
   justify-content: flex-end;
   gap: 10px;
@@ -651,10 +660,10 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #6b7280;
+  color: var(--text-muted);
   margin: 4px 0 0;
   padding-bottom: 8px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border);
 }
 
 /* Form elements */
@@ -674,7 +683,7 @@
 .adm-form-label {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-h);
 }
 
 .adm-form-required {
@@ -683,7 +692,7 @@
 }
 
 .adm-form-optional {
-  color: #9ca3af;
+  color: var(--text-muted);
   font-weight: 400;
   font-size: 0.75rem;
   margin-left: 4px;
@@ -692,12 +701,12 @@
 .adm-form-input,
 .adm-form-select {
   padding: 9px 12px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border);
   border-radius: 8px;
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--text-h);
   font-family: inherit;
-  background: #fff;
+  background: var(--bg);
   transition: border-color 0.15s;
   width: 100%;
   box-sizing: border-box;
@@ -706,7 +715,7 @@
 .adm-form-input:focus,
 .adm-form-select:focus {
   outline: none;
-  border-color: #1a56db;
+  border-color: var(--accent-hover);
 }
 
 .adm-form-error {
@@ -732,11 +741,11 @@
 /* Modal buttons */
 .adm-modal-cancel-btn {
   padding: 9px 20px;
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--bg-secondary);
+  color: var(--text-h);
   font-size: 0.875rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border);
   border-radius: 8px;
   cursor: pointer;
   font-family: inherit;
@@ -744,7 +753,7 @@
 }
 
 .adm-modal-cancel-btn:hover:not(:disabled) {
-  background: #e5e7eb;
+  background: var(--row-hover-bg);
 }
 
 .adm-modal-cancel-btn:disabled {
@@ -799,7 +808,7 @@
 
 .adm-section-edit-btn {
   background: none;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border);
   border-radius: 6px;
   padding: 5px 8px;
   cursor: pointer;
@@ -807,8 +816,8 @@
 }
 
 .adm-section-edit-btn:hover {
-  background: #f3f4f6;
-  border-color: #1a56db;
+  background: var(--bg-secondary);
+  border-color: var(--accent-hover);
 }
 
 .adm-pencil-icon {
@@ -836,11 +845,11 @@
 
 .adm-section-cancel-btn {
   padding: 6px 14px;
-  background: #f3f4f6;
-  color: #4b5563;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border);
   border-radius: 7px;
   cursor: pointer;
   font-family: inherit;
@@ -858,23 +867,23 @@
 .adm-edit-input {
   width: 100%;
   padding: 7px 10px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border);
   border-radius: 6px;
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--text-h);
   font-family: inherit;
   box-sizing: border-box;
-  background: #fff;
+  background: var(--bg);
 }
 
 .adm-edit-input:focus {
   outline: none;
-  border-color: #1a56db;
+  border-color: var(--accent-hover);
 }
 
 .adm-edit-input:disabled {
-  background: #f3f4f6;
-  color: #9ca3af;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
   cursor: not-allowed;
 }
 
@@ -910,7 +919,7 @@
   border: none;
   padding: 2px 4px;
   cursor: pointer;
-  color: #9ca3af;
+  color: var(--text-muted);
   border-radius: 4px;
   line-height: 1;
   transition: color 0.12s, background 0.12s;
@@ -923,8 +932,8 @@
 }
 
 .adm-copy-btn:hover {
-  color: #374151;
-  background: #f3f4f6;
+  color: var(--text-h);
+  background: var(--bg-secondary);
 }
 
 .adm-copy-btn--copied {

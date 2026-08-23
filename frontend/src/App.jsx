@@ -14,7 +14,7 @@ import Payments      from './pages/Payments/payments.jsx';
 import Courses       from './pages/Courses/Courses.jsx';
 import Pages         from './pages/Pages/pages.jsx';
 import Logs          from './pages/Logs/Logs.jsx';
-import Chatbots      from './pages/Chatbots/chatbots.jsx';
+import Chatbots      from './pages/Chatbots/Chatbots.jsx';
 import Staff          from './pages/Staff/staff.jsx';
 import Account from './pages/Account/account.jsx';
 import SetAdminPassword from './pages/SetAdminPassword/setAdminPassword.jsx';
@@ -43,6 +43,9 @@ import StudentSupportTicketDetail from './components/SupportTickets/StudentSuppo
 // => Route guard: redirects to /dashboard if the logged-in admin isn't granted this section
 import RequireSection from './components/RequireSection/requireSection.jsx';
 
+// => Theme context provider, mirrors the student dashboard's ThemeProvider
+import { ThemeProvider } from './context/themeContext.jsx';
+
 import { Toaster } from "react-hot-toast";
 
 
@@ -55,6 +58,10 @@ function App() {
         <Toaster /> 
         {/* // => BrowserRouter provides the routing context required by useNavigate, useLocation, etc. */}
         <BrowserRouter>
+            {/* => ThemeProvider needs Router context (useLocation), so it sits inside
+                => BrowserRouter here. Unlike the student dashboard, admin's BrowserRouter
+                => lives in App.jsx (not main.jsx), so this is where it has to wrap instead */}
+            <ThemeProvider>
             <Routes>
                 {/* => Public route: login page */}
                 <Route path="/" element={<Login />} />
@@ -106,6 +113,7 @@ function App() {
                 </Route>
                 
             </Routes>
+            </ThemeProvider>
             
         </BrowserRouter>
         </div>

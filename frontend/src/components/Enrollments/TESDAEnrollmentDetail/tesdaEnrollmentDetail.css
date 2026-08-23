@@ -6,10 +6,11 @@
    ========================================================= */
 
 /*  Page shell  */
-.adm-detail-page {
+.adm-tesda-enrollment-detail-page {
   padding: 32px 40px 64px;
   min-height: 100vh;
-  background: #f4f5f8;
+  background: var(--bg-secondary); /* => was #f4f5f8 */
+  color: var(--text); /* => was missing, matches TesdaBatchDetail.css */
   font-family: var(--font-body), sans-serif;
 }
 
@@ -20,7 +21,7 @@
   gap: 6px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #4b5563;
+  color: var(--text); /* => was #4b5563 */
   background: none;
   border: none;
   padding: 0;
@@ -30,7 +31,7 @@
 }
 
 .adm-back-btn:hover {
-  color: #1a56db;
+  color: var(--accent-hover, #8a0d17); /* => was #1a56db blue */
 }
 
 
@@ -39,8 +40,8 @@
 .adm-spinner {
   width: 36px;
   height: 36px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #1a56db;
+  border: 3px solid var(--border); /* => was #e5e7eb */
+  border-top-color: var(--accent-hover, #8a0d17); /* => was #1a56db blue */
   border-radius: 50%;
   animation: adm-spin 0.8s linear infinite;
 }
@@ -161,27 +162,31 @@
 /* ════════════════════════════════════
    SECTION WRAPPER
    ════════════════════════════════════ */
-.adm-section {
-  background: #ffffff;
+.adm-tesda-section {
+  background: var(--bg); /* => was #ffffff */
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border); /* => was #e5e7eb */
   padding: 24px 28px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
-.adm-section-title {
+:root[data-theme="dark"] .adm-tesda-section {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3); /* => new, matches TesdaBatchDetail.css's dark shadow override */
+}
+
+.adm-tesda-section-title {
   font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was #6b7280 */
   margin: 0 0 20px;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.adm-section-count-inline {
+.adm-tesda-section-count-inline {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -189,15 +194,15 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background: #e5e7eb;
-  color: #374151;
+  background: var(--border); /* => was #e5e7eb */
+  color: var(--text); /* => was #374151 */
   font-size: 0.75rem;
   font-weight: 700;
 }
 
 .adm-empty-note {
   font-size: 0.875rem;
-  color: #9ca3af;
+  color: var(--text-muted, #9ca3af); /* => was #9ca3af */
   margin: 0;
 }
 
@@ -206,18 +211,18 @@
    ════════════════════════════════════ */
 .adm-status-changer {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   flex-wrap: wrap;
 }
 
 .adm-status-select {
   padding: 9px 14px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border); /* => was #d1d5db */
   border-radius: 8px;
   font-size: 0.875rem;
-  color: #111827;
-  background: #fff;
+  color: var(--text-h); /* => was #111827 */
+  background: var(--bg); /* => was #fff */
   cursor: pointer;
   min-width: 220px;
   transition: border-color 0.15s;
@@ -226,7 +231,7 @@
 
 .adm-status-select:focus {
   outline: none;
-  border-color: #1a56db;
+  border-color: var(--accent-hover, #8a0d17); /* => was #1a56db blue */
 }
 
 .adm-status-btn {
@@ -243,7 +248,7 @@
 }
 
 .adm-status-btn:hover:not(:disabled) {
-  background: #1648c0;
+  background: var(--accent-hover, #8a0d17); /* => was #1648c0 blue, button itself uses maroon --sidebar-bg so hover should match */
 }
 
 .adm-status-btn:disabled {
@@ -253,13 +258,13 @@
 
 .adm-status-description {
   font-size: 0.8125rem;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was #6b7280 */
   font-style: italic;
   flex: 0 1 260px;
   max-width: 260px;
 }
 
-.adm-remarks-group {
+.adm-tesda-remarks-group {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -267,49 +272,51 @@
 }
 
 /* => No longer pushed to the far edge - keeps it snug next to External Remarks */
-.adm-remarks-group--internal { margin-left: 0; }
+.adm-tesda-remarks-group--internal { margin-left: 0; }
 
-.adm-remarks-header {
+.adm-tesda-remarks-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  min-height: 20px; /* => new, forces External's bare-label header row and Internal's label+button header row to measure the same height so both textareas line up */
 }
 
-.adm-remarks-label {
+.adm-tesda-remarks-label {
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
-.adm-remarks-label--internal { color: #1d4ed8; }
-.adm-remarks-label--external { color: #b91c1c; }
+.adm-tesda-remarks-label--internal { color: #1d4ed8; }
+.adm-tesda-remarks-label--external { color: #b91c1c; }
 
-.adm-remarks-required {
+.adm-tesda-remarks-required {
   font-weight: 400;
   text-transform: none;
   letter-spacing: normal;
   font-style: italic;
 }
 
-.adm-remarks-input {
+.adm-tesda-remarks-input {
   resize: vertical;
   min-height: 40px;
   padding: 8px 12px;
   border-radius: 8px;
   font-size: 0.8125rem;
   font-family: inherit;
-  color: #111827;
+  color: var(--text-h); /* => was #111827, internal/external border colors below stay hardcoded, they're a semantic blue/red pair not a theme surface */
+  background: var(--bg); /* => was missing entirely, letting the browser's native dark form-control chrome show through regardless of site theme */
 }
 
-.adm-remarks-input--internal { border: 1.5px solid #93c5fd; }
-.adm-remarks-input--internal:focus { outline: none; border-color: #1d4ed8; }
+.adm-tesda-remarks-input--internal { border: 1.5px solid #93c5fd; }
+.adm-tesda-remarks-input--internal:focus { outline: none; border-color: #1d4ed8; }
 
-.adm-remarks-input--external { border: 1.5px solid #fca5a5; }
-.adm-remarks-input--external:focus { outline: none; border-color: #b91c1c; }
+.adm-tesda-remarks-input--external { border: 1.5px solid #fca5a5; }
+.adm-tesda-remarks-input--external:focus { outline: none; border-color: #b91c1c; }
 
-.adm-remarks-save-btn {
+.adm-tesda-remarks-save-btn {
   padding: 3px 12px;
   border: none;
   border-radius: 6px;
@@ -318,8 +325,8 @@
   cursor: pointer;
 }
 
-.adm-remarks-save-btn--internal { background: #1d4ed8; color: #fff; }
-.adm-remarks-save-btn:disabled  { opacity: 0.5; cursor: not-allowed; }
+.adm-tesda-remarks-save-btn--internal { background: #1d4ed8; color: #fff; }
+.adm-tesda-remarks-save-btn:disabled  { opacity: 0.5; cursor: not-allowed; }
 
 /* ════════════════════════════════════
    INFO GRID (label + value cards)
@@ -335,8 +342,8 @@
 }
 
 .adm-info-card {
-  background: #f9fafb;
-  border: 1px solid #f3f4f6;
+  background: var(--bg-secondary); /* => was #f9fafb */
+  border: 1px solid var(--border); /* => was #f3f4f6 */
   border-radius: 8px;
   padding: 12px 14px;
 }
@@ -346,14 +353,14 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: #9ca3af;
+  color: var(--text-muted, #9ca3af); /* => was #9ca3af */
   margin: 0 0 4px;
 }
 
 .adm-info-value {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #111827;
+  color: var(--text-h); /* => was #111827 */
   margin: 0;
   word-break: break-word;
 }
@@ -396,25 +403,25 @@
 }
 
 /*  Single doc preview card  */
-.adm-doc-preview {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+.adm-tesda-doc-preview {
+  background: var(--bg-secondary); /* => was #f9fafb */
+  border: 1px solid var(--border); /* => was #e5e7eb */
   border-radius: 10px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-.adm-doc-type {
+.adm-tesda-doc-type {
   font-size: 0.78rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was #6b7280 */
   padding: 10px 14px 8px;
   margin: 0;
-  border-bottom: 1px solid #e5e7eb;
-  background: #fff;
+  border-bottom: 1px solid var(--border); /* => was #e5e7eb */
+  background: var(--bg); /* => was #fff */
 }
 
 .adm-doc-preview-state {
@@ -424,7 +431,7 @@
   gap: 10px;
   padding: 32px;
   font-size: 0.8125rem;
-  color: #9ca3af;
+  color: var(--text-muted, #9ca3af); /* => was #9ca3af */
 }
 
 .adm-doc-preview-state--error {
@@ -437,7 +444,7 @@
   max-height: 420px;
   object-fit: contain;
   display: block;
-  background: #fff;
+  background: var(--bg); /* => was #fff */
 }
 
 /* => PDF preview as an embedded viewer */
@@ -446,7 +453,7 @@
   height: 480px;
   border: none;
   display: block;
-  background: #fff;
+  background: var(--bg); /* => was #fff */
 }
 
 /* ════════════════════════════════════
@@ -455,20 +462,20 @@
 .adm-sub-table-wrap {
   overflow-x: auto;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border); /* => was #e5e7eb */
 }
 
 .adm-sub-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.8375rem;
-  color: #374151;
+  color: var(--text); /* => was #374151 */
   min-width: 600px;
 }
 
 .adm-sub-table thead tr {
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--bg-secondary); /* => was #f9fafb */
+  border-bottom: 1px solid var(--border); /* => was #e5e7eb */
 }
 
 .adm-sub-table th {
@@ -478,13 +485,13 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was #6b7280 */
   white-space: nowrap;
 }
 
 .adm-sub-table td {
   padding: 11px 14px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border); /* => was #f3f4f6 */
   vertical-align: middle;
 }
 
@@ -493,7 +500,7 @@
 }
 
 .adm-sub-table tbody tr:hover {
-  background: #f9fafb;
+  background: var(--bg-secondary); /* => was #f9fafb */
 }
 
 /* => Payment History table needs actual clickable-row styling, unlike
@@ -504,19 +511,19 @@
 }
 
 .adm-sub-table-row:hover {
-  background: #f0f4ff;
+  background: var(--row-hover-bg); /* => was #f0f4ff */
 }
 
 .adm-td-or-number {
   font-family: monospace;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-h); /* => was #111827 */
   white-space: nowrap;
 }
 
 .adm-td-date {
   white-space: nowrap;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was #6b7280 */
 }
 
 /* Badge used inside the Payment History table */
@@ -619,7 +626,7 @@
 }
 
 .adm-modal-box {
-  background: #fff;
+  background: var(--bg); /* => was #fff */
   border-radius: 14px;
   overflow: hidden;
   display: flex;
@@ -641,7 +648,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 20px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border); /* => was #e5e7eb */
   flex-shrink: 0;
 }
 
@@ -650,14 +657,14 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #374151;
+  color: var(--text); /* => was #374151 */
 }
 
 .adm-modal-close {
   background: none;
   border: none;
   font-size: 1rem;
-  color: #6b7280;
+  color: var(--text-muted, var(--text)); /* => was #6b7280 */
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 6px;
@@ -666,8 +673,8 @@
 }
 
 .adm-modal-close:hover {
-  background: #f3f4f6;
-  color: #111827;
+  background: var(--bg-secondary); /* => was #f3f4f6 */
+  color: var(--text-h); /* => was #111827 */
 }
 
 .adm-modal-img {
@@ -675,7 +682,7 @@
   max-height: calc(90vh - 60px);
   object-fit: contain;
   display: block;
-  background: #f9fafb;
+  background: var(--bg-secondary); /* => was #f9fafb */
 }
 
 .adm-modal-iframe {
@@ -701,7 +708,7 @@
   border: none;
   padding: 2px 4px;
   cursor: pointer;
-  color: #9ca3af;
+  color: var(--text-muted, #9ca3af); /* => was #9ca3af */
   border-radius: 4px;
   line-height: 1;
   transition: color 0.12s, background 0.12s;
@@ -714,8 +721,8 @@
 }
 
 .adm-copy-btn:hover {
-  color: #374151;
-  background: #f3f4f6;
+  color: var(--text-h); /* => was #374151 */
+  background: var(--bg-secondary); /* => was #f3f4f6 */
 }
 
 .adm-copy-btn--copied {
@@ -725,7 +732,7 @@
 /* ════════════════════════════════════
    EDIT MODE - section header row with pencil / Save / Cancel
    ════════════════════════════════════ */
-.adm-section-header-row {
+.adm-tesda-section-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -733,29 +740,29 @@
   margin-bottom: 12px;
 }
 
-.adm-section-header-row .adm-section-title {
+.adm-tesda-section-header-row .adm-tesda-section-title {
   margin: 0;
 }
 
-.adm-section-actions {
+.adm-tesda-section-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
 
-.adm-section-edit-btn {
+.adm-tesda-section-edit-btn {
   background: none;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border); /* => was #e5e7eb */
   border-radius: 6px;
   padding: 5px 8px;
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s;
 }
 
-.adm-section-edit-btn:hover {
-  background: #f3f4f6;
-  border-color: #1a56db;
+.adm-tesda-section-edit-btn:hover {
+  background: var(--bg-secondary); /* => was #f3f4f6 */
+  border-color: var(--accent-hover, #8a0d17); /* => was #1a56db blue */
 }
 
 .adm-pencil-icon {
@@ -764,7 +771,7 @@
   display: block;
 }
 
-.adm-section-save-btn {
+.adm-tesda-section-save-btn {
   padding: 6px 16px;
   background: var(--sidebar-bg);
   color: #fff;
@@ -776,24 +783,24 @@
   font-family: inherit;
 }
 
-.adm-section-save-btn:disabled {
+.adm-tesda-section-save-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.adm-section-cancel-btn {
+.adm-tesda-section-cancel-btn {
   padding: 6px 14px;
-  background: #f3f4f6;
-  color: #4b5563;
+  background: var(--bg-secondary); /* => was #f3f4f6 */
+  color: var(--text); /* => was #4b5563 */
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border); /* => was #e5e7eb */
   border-radius: 7px;
   cursor: pointer;
   font-family: inherit;
 }
 
-.adm-section-error {
+.adm-tesda-section-error {
   font-size: 0.8125rem;
   color: #b91c1c;
   margin: 0 0 12px;
@@ -805,23 +812,23 @@
 .adm-edit-input {
   width: 100%;
   padding: 7px 10px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border); /* => was #d1d5db */
   border-radius: 6px;
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--text-h); /* => was #111827 */
   font-family: inherit;
   box-sizing: border-box;
-  background: #fff;
+  background: var(--bg); /* => was #fff */
 }
 
 .adm-edit-input:focus {
   outline: none;
-  border-color: #1a56db;
+  border-color: var(--accent-hover, #8a0d17); /* => was #1a56db blue */
 }
 
 .adm-edit-input:disabled {
-  background: #f3f4f6;
-  color: #9ca3af;
+  background: var(--bg-secondary); /* => was #f3f4f6 */
+  color: var(--text-muted, #9ca3af); /* => was #9ca3af */
   cursor: not-allowed;
 }
 
@@ -844,7 +851,7 @@
   align-items: center;
   gap: 8px;
   font-size: 0.9rem;
-  color: #111827;
+  color: var(--text-h); /* => was #111827 */
   cursor: pointer;
 }
 
@@ -859,36 +866,36 @@
   align-items: center;
   gap: 8px;
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--text); /* => was #374151 */
   cursor: pointer;
 }
 
 /* ════════════════════════════════════
    DOCUMENTS - replace + add controls
    ════════════════════════════════════ */
-.adm-doc-replace-row {
+.adm-tesda-doc-replace-row {
   padding: 10px 14px;
-  border-top: 1px solid #e5e7eb;
-  background: #fff;
+  border-top: 1px solid var(--border); /* => was #e5e7eb */
+  background: var(--bg); /* => was #fff */
   display: flex;
   align-items: center;
 }
 
-.adm-doc-replace-btn {
+.adm-tesda-doc-replace-btn {
   display: inline-block;
   padding: 6px 14px;
-  background: #f3f4f6;
-  border: 1.5px solid #e5e7eb;
+  background: var(--bg-secondary); /* => was #f3f4f6 */
+  border: 1.5px solid var(--border); /* => was #e5e7eb */
   border-radius: 6px;
   font-size: 0.78rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--text); /* => was #374151 */
   cursor: pointer;
   transition: background 0.12s;
 }
 
-.adm-doc-replace-btn:hover {
-  background: #e5e7eb;
+.adm-tesda-doc-replace-btn:hover {
+  background: var(--row-hover-bg); /* => was #e5e7eb */
 }
 
 .adm-add-doc-row {
@@ -897,7 +904,7 @@
   gap: 10px;
   margin-top: 18px;
   padding-top: 18px;
-  border-top: 1px dashed #e5e7eb;
+  border-top: 1px dashed var(--border); /* => was #e5e7eb */
   flex-wrap: wrap;
 }
 
@@ -916,8 +923,8 @@
 }
 
 .adm-family-edit-row {
-  background: #f9fafb;
-  border: 1px solid #f3f4f6;
+  background: var(--bg-secondary); /* => was #f9fafb */
+  border: 1px solid var(--border); /* => was #f3f4f6 */
   border-radius: 8px;
   padding: 14px;
 }
@@ -953,11 +960,11 @@
 .adm-log-page-btn {
   min-width: 32px;
   padding: 6px 10px;
-  background: #fff;
-  color: #374151;
+  background: var(--bg); /* => was #fff */
+  color: var(--text); /* => was #374151 */
   font-size: 0.8125rem;
   font-weight: 600;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border); /* => was #e5e7eb */
   border-radius: 7px;
   cursor: pointer;
   font-family: inherit;
@@ -965,7 +972,7 @@
 }
 
 .adm-log-page-btn:hover:not(:disabled) {
-  background: #f3f4f6;
+  background: var(--bg-secondary); /* => was #f3f4f6 */
 }
 
 .adm-log-page-btn:disabled {
@@ -974,8 +981,8 @@
 }
 
 .adm-log-page-btn--active {
-  background: var(--sidebar-bg, #1a56db);
-  border-color: var(--sidebar-bg, #1a56db);
+  background: var(--sidebar-bg, #660911); /* => fallback was #1a56db blue, wrong brand color */
+  border-color: var(--sidebar-bg, #660911); /* => fallback was #1a56db blue */
   color: #fff;
 }
 
@@ -1048,7 +1055,7 @@
 .adm-log-detail-full p {
   margin: 0 0 4px;
   font-size: 0.85rem;
-  color: #374151;
+  color: var(--text); /* => was #374151 */
 }
 
 .adm-log-detail-full p:last-child {
@@ -1070,7 +1077,7 @@
 
 /* --- TABLET / SMALL LAPTOP --- */
 @media (max-width: 1024px) {
-  .adm-detail-page {
+  .adm-tesda-enrollment-detail-page {
     padding: 28px 28px 56px;
   }
 
@@ -1081,7 +1088,7 @@
 
 /* --- TABLET PORTRAIT --- */
 @media (max-width: 768px) {
-  .adm-detail-page {
+  .adm-tesda-enrollment-detail-page {
     padding: 24px 20px 48px;
   }
 
@@ -1110,7 +1117,7 @@
 
 /* --- MOBILE --- */
 @media (max-width: 640px) {
-  .adm-detail-page {
+  .adm-tesda-enrollment-detail-page {
     /* => bottom padding clears the floating hamburger button in Dashboard.css */
     padding: 20px 16px 100px;
   }
@@ -1135,7 +1142,7 @@
     margin-top: 12px;
   }
 
-  .adm-section {
+  .adm-tesda-section {
     padding: 18px 16px;
   }
 
@@ -1158,7 +1165,7 @@
 /* --- MOBILE LANDSCAPE --- */
 /* => matches the max-height: 500px landscape pass used elsewhere in the campaign */
 @media (max-height: 500px) and (orientation: landscape) {
-  .adm-detail-page {
+  .adm-tesda-enrollment-detail-page {
     padding: 16px 20px 100px;
   }
 
@@ -1166,7 +1173,7 @@
     padding: 16px 20px;
   }
 
-  .adm-section {
+  .adm-tesda-section {
     padding: 16px 18px;
   }
 }

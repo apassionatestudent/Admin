@@ -21,8 +21,12 @@
 }
 
 .asm-type-btn--active {
-  background: #8a0d17;
-  border-color: #8a0d17;
+  /* => was hardcoded to the light theme's accent-hover value only - swapped
+     => for the token so dark mode gets its own correct shade (#ab0916)
+     => instead of the light-mode red, matching every other active
+     => filter/tab/toggle button in the campaign */
+  background: var(--accent-hover, #8a0d17);
+  border-color: var(--accent-hover, #8a0d17);
   color: #fff;
 }
 
@@ -33,7 +37,12 @@
   border-radius: 8px;
   font-size: 0.875rem;
   color: var(--text);
-  background: var(--sidebar-hover-bg, #f5f5f5);
+  /* => --sidebar-hover-bg isn't declared as a root token in index.css or
+     => Classes.css - if it's genuinely undefined here, the old #f5f5f5
+     => fallback would put dark-mode's light text on a light background.
+     => Chained to --bg-secondary instead, a token confirmed to exist in
+     => both themes, so the fallback is safe either way. */
+  background: var(--sidebar-hover-bg, var(--bg-secondary));
 }
 
 .asm-empty-text,
@@ -91,8 +100,9 @@
 }
 
 .asm-day-btn--active {
-  background: #8a0d17;
-  border-color: #8a0d17;
+  /* => same accent-hover token fix as .asm-type-btn--active above */
+  background: var(--accent-hover, #8a0d17);
+  border-color: var(--accent-hover, #8a0d17);
   color: #fff;
 }
 

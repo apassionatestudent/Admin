@@ -9,6 +9,9 @@
 .course-detail-page {
   padding: 32px;
   max-width: 100%; /* => was 960px - that hard cap was leaving the big blank gap on the right; letting it fill the available layout width instead */
+  min-height: 100vh; /* => fills the full viewport height, same fix already applied to staff.css/staffDetail.css/pages.css/Courses.css */
+  box-sizing: border-box; /* => keeps padding from pushing the box taller than 100vh */
+  background: var(--bg-secondary); /* => was missing entirely - this is the actual root cause of the white background showing through behind the header and around the cards */
   color: var(--text);
   font-family: var(--font-body), sans-serif;
 }
@@ -174,6 +177,13 @@
   color: var(--accent-hover, #8a0d17);
 }
 
+/* => Dark mode: same --accent-text token used across the campaign, so
+      the required-field asterisk stays visible against the dark
+      background instead of the dim --accent-hover red */
+:root[data-theme="dark"] .required-mark {
+  color: var(--accent-text);
+}
+
 .field-error {
   display: block;
   color: #dc2626;
@@ -277,6 +287,12 @@
   cursor: pointer;
 }
 
+/* => Dark mode: same --accent-text token used across the campaign, so
+      "+ Add Row" stays readable against the dark section background */
+:root[data-theme="dark"] .btn-add-row {
+  color: var(--accent-text);
+}
+
 .competency-table {
   width: 100%;
   border-collapse: collapse;
@@ -378,6 +394,13 @@
   font-size: 13px;
   padding: 4px 6px;
   color: var(--accent-hover, #8a0d17); /* => was violet/blue fallback */
+}
+
+/* => Dark mode: same --accent-text token used across the campaign, so
+      the Save/Cancel row action links stay readable against the dark
+      table background */
+:root[data-theme="dark"] .row-actions button {
+  color: var(--accent-text);
 }
 
 .row-actions button + button {
@@ -533,7 +556,15 @@
       Classes duplicated into this page's own CSS file per your
       no-shared-abstraction policy, not imported from TesdaBatchDetail.css.
    ════════════════════════════════════ */
-.adm-batch-section {
+/* => Renamed from .adm-batch-section / .adm-section-title /
+      .adm-section-count-inline - those generic names are shared by
+      Facilities/Trainers/Support Tickets/TesdaBatchDetail, each with
+      their own copy since Vite doesn't scope plain CSS imports. That
+      made this page's copy vulnerable to being silently overridden by
+      whichever of those other files' version happened to load last in
+      the same browser session. Renamed to page-specific classes so
+      nothing else can collide with it again. */
+.course-detail-batch-section {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -541,7 +572,7 @@
   margin-top: 20px;
 }
 
-.adm-section-title {
+.course-detail-section-title {
   font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -553,7 +584,7 @@
   gap: 8px;
 }
 
-.adm-section-count-inline {
+.course-detail-section-count-inline {
   display: inline-flex;
   align-items: center;
   justify-content: center;
