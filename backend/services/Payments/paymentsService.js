@@ -154,12 +154,14 @@ export async function createPayment({ enrollmentType, enrollmentId, amount, paym
       createdBy: admin.adminId
     });
 
+    // => action must match activity_logs_action_check's allowed enum values.
+    // => 'payment_created' is not in that list, CREATE is the correct value.
     await paymentsModel.insertActivityLog(client, {
       entityType: 'payment',
       entityId: payment.payment_id,
       actorId: admin.adminId,
       actorName: admin.fullName,
-      action: 'payment_created',
+      action: 'CREATE',
       actionDetail: `Recorded ${enrollmentType} payment ${payment.or_number} for enrollment #${enrollmentId}, amount ${amount}.`
     });
 
@@ -290,12 +292,14 @@ export async function voidPayment({ publicId, voidReason, admin }) {
       voidedBy: admin.adminId
     });
 
+    // => action must match activity_logs_action_check's allowed enum values.
+    // => 'payment_voided' is not in that list, VOID is the correct value.
     await paymentsModel.insertActivityLog(client, {
       entityType: 'payment',
       entityId: existing.payment_id,
       actorId: admin.adminId,
       actorName: admin.fullName,
-      action: 'payment_voided',
+      action: 'VOID',
       actionDetail: `Voided payment ${voided.or_number}. Reason: ${voidReason}`
     });
 
