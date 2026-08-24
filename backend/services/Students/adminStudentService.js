@@ -185,11 +185,21 @@ export const updateStudentRecord = async (publicId, body, actor) => {
     username, is_email_confirmed,
   } = body;
 
+  // => Business rule: student_accounts.username IS the student's login
+  //    email, so whenever student_profile.email changes, username must
+  //    change with it. This is enforced here in the service, not just
+  //    the frontend, so it holds no matter what the Username field on
+  //    the form was left as. Without this, Reset Password kept emailing
+  //    the OLD address after an admin updated the contact email.
+  const emailChanged  = String(studentRow.email ?? '') !== String(email ?? '');
+  const usernameToSave = emailChanged ? email : username;
+
   // => Validate required profile fields before hitting DB
   // => Mirrors the NOT NULL constraints on the latest student_profile table
   if (!last_name)          throw new Error('last_name is required.');
   if (!first_name)        throw new Error('first_name is required.');
   if (!birthplace_region) throw new Error('birthplace_region is required.');
+  
   if (!nationality)       throw new Error('nationality is required.');
   if (!sex)                throw new Error('sex is required.');
   if (!facebook_link)     throw new Error('facebook_link is required.');
@@ -197,8 +207,10 @@ export const updateStudentRecord = async (publicId, body, actor) => {
   if (!contact_no)         throw new Error('contact_no is required.');
 
   // => Build the log detail BEFORE saving, off the fresh studentRow that
-  //    still holds pre-save values
-  const logDetail = buildStudentUpdateDetail(studentRow, body);
+  //    still holds pre-save values. Uses usernameToSave (not the raw
+  //    body) so an auto-synced username change actually shows up in the
+  //    Activity Log instead of happening silently.
+  const logDetail = buildStudentUpdateDetail(studentRow, { ...body, username: usernameToSave });
 
   // => Run profile upsert and account update in parallel
   const [updatedProfile, updatedAccount] = await Promise.all([
@@ -211,8 +223,10 @@ export const updateStudentRecord = async (publicId, body, actor) => {
       facebook_link, email, contact_no, religion, religion_others,
     }),
     // => Only pass account fields that were actually provided
-    (username !== undefined || is_email_confirmed !== undefined)
-      ? updateStudentAccount(pool, studentRow.student_id, { username, is_email_confirmed })
+    // => usernameToSave covers both cases: admin edited Username
+    //    directly, or the email-changed auto-sync above kicked in
+    (usernameToSave !== undefined || is_email_confirmed !== undefined)
+      ? updateStudentAccount(pool, studentRow.student_id, { username: usernameToSave, is_email_confirmed })
       : Promise.resolve(null),
   ]);
 
