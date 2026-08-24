@@ -70,9 +70,29 @@
           NULL::text                 AS certification_type,
           NULL::text                 AS sector,
           sc.name                    AS cluster,
-          -- => No single trainer_name for SHS - two slots don't collapse
-          --    into one column cleanly, list view leaves it blank same as before
-          NULL::text                 AS trainer_name,
+          -- => Shows the trainer(s) for whichever grade level is currently
+          --    active for this batch. Grade 11 is taught first; once
+          --    grade11_completed flips true, this switches to show the
+          --    Grade 12 trainer(s) instead, matching the batch's actual
+          --    teaching order.
+          -- => Shows the trainer name only when exactly one distinct
+          --    trainer covers every course at that grade level. Shows
+          --    'Multiple' when different courses have different trainers,
+          --    and NULL (renders as '-' same as before) when none of
+          --    those courses have a trainer assigned yet.
+          (
+            SELECT CASE
+                     WHEN COUNT(DISTINCT t.trainer_id) = 0 THEN NULL
+                     WHEN COUNT(DISTINCT t.trainer_id) = 1 THEN MAX(t.trainer_full_name)
+                     ELSE 'Multiple'
+                   END
+              FROM shs_courses sc2
+              JOIN shs_batch_course_trainers bct
+                ON bct.course_id = sc2.course_id AND bct.batch_id = b.batch_id
+              JOIN trainers t ON t.trainer_id = bct.trainer_id
+             WHERE sc2.cluster_id  = b.cluster_id
+               AND sc2.grade_level = CASE WHEN b.grade11_completed THEN 'Grade 12' ELSE 'Grade 11' END
+          )                          AS trainer_name,
           -- => enrolled_count now reflects only Approved enrollments, same
           --    reasoning as the TESDA branch above
           COUNT(e.enrollment_id) FILTER (

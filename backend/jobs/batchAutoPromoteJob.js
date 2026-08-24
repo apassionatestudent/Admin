@@ -37,7 +37,11 @@ const promoteTesdaBatches = async () => {
             updated_at = NOW()
       WHERE tb.status      = 'Pending'
         AND tb.trainer_id IS NOT NULL
-        AND tb.start_date <= CURRENT_DATE - INTERVAL '${AUTO_PROMOTE_BUFFER_DAYS} days'
+        -- => Anchored to Asia/Manila instead of bare CURRENT_DATE, since Neon
+        --    defaults session timezone to UTC. Without this, early-morning PH
+        --    cron runs read "today" as still being the prior UTC day, which
+        --    silently threw off the promote buffer by a day.
+        AND tb.start_date <= (NOW() AT TIME ZONE 'Asia/Manila')::date - INTERVAL '${AUTO_PROMOTE_BUFFER_DAYS} days'
         AND tb.required_number_of_students <= (
               -- => Gate promotion on the approved headcount actually
               --    reaching required_number_of_students. A batch with a
@@ -82,7 +86,7 @@ const promoteTesdaBatches = async () => {
        FROM tesda_batches tb
       WHERE tb.status      = 'Pending'
         AND tb.trainer_id IS NULL
-        AND tb.start_date <= CURRENT_DATE - INTERVAL '${AUTO_PROMOTE_BUFFER_DAYS} days'
+        AND tb.start_date <= (NOW() AT TIME ZONE 'Asia/Manila')::date - INTERVAL '${AUTO_PROMOTE_BUFFER_DAYS} days'
         AND NOT EXISTS (
               SELECT 1 FROM activity_logs al
                WHERE al.entity_type   = 'tesda_batch'
@@ -121,7 +125,7 @@ const promoteShsBatches = async () => {
         SET status     = 'Ongoing',
             updated_at = NOW()
       WHERE sb.status      = 'Pending'
-        AND sb.start_date <= CURRENT_DATE - INTERVAL '${AUTO_PROMOTE_BUFFER_DAYS} days'
+        AND sb.start_date <= (NOW() AT TIME ZONE 'Asia/Manila')::date - INTERVAL '${AUTO_PROMOTE_BUFFER_DAYS} days'
         AND EXISTS (
               SELECT 1 FROM shs_courses sc
                WHERE sc.cluster_id = sb.cluster_id AND sc.grade_level = 'Grade 11'
@@ -172,7 +176,7 @@ const promoteShsBatches = async () => {
     `SELECT sb.public_id, sb.batch_id
        FROM shs_batches sb
       WHERE sb.status      = 'Pending'
-        AND sb.start_date <= CURRENT_DATE - INTERVAL '${AUTO_PROMOTE_BUFFER_DAYS} days'
+        AND sb.start_date <= (NOW() AT TIME ZONE 'Asia/Manila')::date - INTERVAL '${AUTO_PROMOTE_BUFFER_DAYS} days'
         AND EXISTS (
               SELECT 1 FROM shs_courses sc
                WHERE sc.cluster_id = sb.cluster_id AND sc.grade_level = 'Grade 11'
