@@ -216,9 +216,11 @@ export const fetchEligibleBatchesForFacility = async (facilityPublicId) => {
       return {
         ...b,
         active_grade: activeGrade,
+        // => active_trainer_id/active_trainer_name removed - trainer is now
+        //    per course (see attachTrainer in getActiveShsBatches), not a
+        //    single value per grade. Each entry in active_courses already
+        //    carries its own trainer_id/trainer_name.
         active_courses: activeCourses,
-        active_trainer_id: activeGrade === 'Grade 12' ? b.grade12_trainer_id : b.grade11_trainer_id,
-        active_trainer_name: activeGrade === 'Grade 12' ? b.grade12_trainer_name : b.grade11_trainer_name,
         approved_count: approvedCount,
         capacity_exceeded: facility.capacity != null && approvedCount > facility.capacity,
       };
@@ -244,9 +246,9 @@ export const fetchAllActiveBatchesForRemote = async () => {
       return {
         ...b,
         active_grade: activeGrade,
+        // => same removal as fetchEligibleBatchesForFacility above - trainer
+        //    now lives on each course inside active_courses.
         active_courses: activeCourses,
-        active_trainer_id: activeGrade === 'Grade 12' ? b.grade12_trainer_id : b.grade11_trainer_id,
-        active_trainer_name: activeGrade === 'Grade 12' ? b.grade12_trainer_name : b.grade11_trainer_name,
       };
     })
     .filter(b => b.active_courses.length > 0);

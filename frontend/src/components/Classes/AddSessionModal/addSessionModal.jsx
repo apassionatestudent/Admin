@@ -191,18 +191,31 @@ export default function AddSessionModal({ facilityPublicId, prefill, existingSes
   //    trainer, and the course too if there's only one option under that grade.
   const handleShsBatchChange = (batchId) => {
     const batch = shsBatches.find(b => String(b.batch_id) === String(batchId));
+    // => Trainer is per-course now, not per-batch/grade - only safe to
+    //    auto-fill trainer here when there's exactly one course under the
+    //    active grade, same case where the course itself auto-selects.
+    const singleCourse = batch?.active_courses?.length === 1 ? batch.active_courses[0] : null;
     setForm(f => ({
       ...f,
       batch_id: batchId,
       grade_level: batch?.active_grade ?? '',
-      shs_course_id: batch?.active_courses?.length === 1 ? String(batch.active_courses[0].course_id) : '',
-      trainer_id: batch?.active_trainer_id ?? null,
-      trainer_name: batch?.active_trainer_name ?? '',
+      shs_course_id: singleCourse ? String(singleCourse.course_id) : '',
+      trainer_id: singleCourse?.trainer_id ?? null,
+      trainer_name: singleCourse?.trainer_name ?? '',
     }));
   };
 
+  // => Picking a course now also resolves its trainer - each course under
+  //    a batch can be staffed by a different trainer, so this can no
+  //    longer be read off the batch itself.
   const handleShsCourseChange = (courseId) => {
-    setForm(f => ({ ...f, shs_course_id: courseId }));
+    const course = selectedShsBatch?.active_courses.find(c => String(c.course_id) === String(courseId));
+    setForm(f => ({
+      ...f,
+      shs_course_id: courseId,
+      trainer_id: course?.trainer_id ?? null,
+      trainer_name: course?.trainer_name ?? '',
+    }));
   };
 
   const selectedShsBatch = shsBatches.find(b => String(b.batch_id) === String(form.batch_id));

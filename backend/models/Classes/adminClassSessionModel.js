@@ -93,15 +93,15 @@ export const getActiveTesdaBatches = async (pool) => {
 export const getActiveShsBatches = async (pool) => {
   const batchesResult = await pool.query(
     // => max_students added, same reason as getActiveTesdaBatches above.
+    // => grade11_trainer_id/grade12_trainer_id dropped from this SELECT -
+    //    those columns are no longer written to anywhere (see the comment
+    //    on getShsBatchByPublicId in adminBatchModel.js). Trainer is now
+    //    resolved per course below, from shs_batch_course_trainers.
     `SELECT sb.batch_id, sb.public_id, sb.status, sb.cluster, sb.school_year,
             sb.grade11_completed, sb.max_students,
-            cl.cluster_id, cl.name AS cluster_name,
-            sb.grade11_trainer_id, t11.trainer_full_name AS grade11_trainer_name,
-            sb.grade12_trainer_id, t12.trainer_full_name AS grade12_trainer_name
+            cl.cluster_id, cl.name AS cluster_name
        FROM shs_batches sb
        JOIN shs_clusters cl ON cl.name = sb.cluster
-       LEFT JOIN trainers t11 ON t11.trainer_id = sb.grade11_trainer_id
-       LEFT JOIN trainers t12 ON t12.trainer_id = sb.grade12_trainer_id
       WHERE sb.status IN ('Pending', 'Ongoing')
       ORDER BY cl.name ASC, sb.batch_id ASC`
   );
@@ -109,19 +109,51 @@ export const getActiveShsBatches = async (pool) => {
   if (batches.length === 0) return [];
 
   const clusterIds = [...new Set(batches.map(b => b.cluster_id))];
-  const coursesResult = await pool.query(
-    `SELECT course_id, cluster_id, grade_level, title
-       FROM shs_courses
-      WHERE cluster_id = ANY($1::int[])
-      ORDER BY title ASC`,
-    [clusterIds]
+  const batchIds = batches.map(b => b.batch_id);
+
+  const [coursesResult, courseTrainersResult] = await Promise.all([
+    pool.query(
+      `SELECT course_id, cluster_id, grade_level, title
+         FROM shs_courses
+        WHERE cluster_id = ANY($1::int[])
+        ORDER BY title ASC`,
+      [clusterIds]
+    ),
+    // => Per-batch, per-course trainer assignment - a cluster can staff the
+    //    same course with a different trainer in two different batch
+    //    instances, so this is keyed by (batch_id, course_id), never just
+    //    course_id alone.
+    pool.query(
+      `SELECT bct.batch_id, bct.course_id, bct.trainer_id, t.trainer_full_name AS trainer_name
+         FROM shs_batch_course_trainers bct
+         LEFT JOIN trainers t ON t.trainer_id = bct.trainer_id
+        WHERE bct.batch_id = ANY($1::int[])`,
+      [batchIds]
+    ),
+  ]);
+
+  // => Lookup keyed by "batch_id-course_id" so each batch's own trainer
+  //    assignment gets attached to its own copy of the course, not a
+  //    shared one - two batches in the same cluster can have two
+  //    different trainers on the exact same course.
+  const trainerMap = new Map(
+    courseTrainersResult.rows.map(r => [`${r.batch_id}-${r.course_id}`, { trainer_id: r.trainer_id, trainer_name: r.trainer_name }])
   );
 
-  return batches.map(b => ({
-    ...b,
-    grade11_courses: coursesResult.rows.filter(c => c.cluster_id === b.cluster_id && c.grade_level === 'Grade 11'),
-    grade12_courses: coursesResult.rows.filter(c => c.cluster_id === b.cluster_id && c.grade_level === 'Grade 12'),
-  }));
+  return batches.map(b => {
+    // => Attaches this batch's trainer_id/trainer_name onto a course row -
+    //    null/null if that course hasn't had a trainer assigned yet
+    //    ("Assign later"), matching the batch detail page's behavior.
+    const attachTrainer = (c) => {
+      const t = trainerMap.get(`${b.batch_id}-${c.course_id}`);
+      return { ...c, trainer_id: t?.trainer_id ?? null, trainer_name: t?.trainer_name ?? null };
+    };
+    return {
+      ...b,
+      grade11_courses: coursesResult.rows.filter(c => c.cluster_id === b.cluster_id && c.grade_level === 'Grade 11').map(attachTrainer),
+      grade12_courses: coursesResult.rows.filter(c => c.cluster_id === b.cluster_id && c.grade_level === 'Grade 12').map(attachTrainer),
+    };
+  });
 };
 
 // => All sessions booked at one facility within a date range - powers the
