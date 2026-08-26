@@ -164,32 +164,54 @@ export async function lockShsEnrollmentForRefund(client, enrollmentId) {
   };
 }
 
-// => Locks the enrollment row for the duration of the transaction and
-// => returns fee, total paid, and total already refunded.
+// => Locks the enrollment row for the duration of the transaction, then
+// => resolves fee/total_paid/total_refunded in separate plain queries.
+// => Postgres rejects FOR UPDATE combined with GROUP BY/aggregates in the
+// => same statement ("FOR UPDATE is not allowed with GROUP BY clause"),
+// => so this can't be one query like the old version tried. Same split
+// => pattern as lockShsEnrollmentForRefund above.
 export async function lockEnrollmentForRefund(client, enrollmentId) {
-  const result = await client.query(
-    `SELECT te.enrollment_id,
-            te.fee_at_enrollment,
-            COALESCE(tesda_fee.total_misc_fee, 0) AS total_misc_fee,
-            tb.class_type,
-            COALESCE(SUM(p.amount) FILTER (WHERE p.status = 'Completed'), 0) AS total_paid,
-            COALESCE(SUM(r.amount) FILTER (WHERE r.status = 'Completed'), 0) AS total_refunded
+  const lockResult = await client.query(
+    `SELECT te.enrollment_id, te.fee_at_enrollment, te.batch_id, tb.class_type
      FROM tesda_enrollments te
      JOIN tesda_batches tb ON tb.batch_id = te.batch_id
-     LEFT JOIN LATERAL (
-       SELECT SUM(fee_amount) AS total_misc_fee
-       FROM batch_misc_fees
-       WHERE batch_type = 'TESDA' AND batch_id = tb.batch_id
-     ) tesda_fee ON true
-     LEFT JOIN payments p ON p.enrollment_id = te.enrollment_id
-     LEFT JOIN refunds r ON r.enrollment_id = te.enrollment_id
      WHERE te.enrollment_id = $1
-     GROUP BY te.enrollment_id, tb.class_type, tesda_fee.total_misc_fee
      FOR UPDATE OF te`,
     [enrollmentId]
   );
 
-  return result.rows[0] || null;
+  const enrollment = lockResult.rows[0];
+  if (!enrollment) return null;
+
+  const feeResult = await client.query(
+    `SELECT COALESCE(SUM(fee_amount), 0) AS total_misc_fee
+     FROM batch_misc_fees
+     WHERE batch_type = 'TESDA' AND batch_id = $1`,
+    [enrollment.batch_id]
+  );
+
+  const paidResult = await client.query(
+    `SELECT COALESCE(SUM(amount) FILTER (WHERE status = 'Completed'), 0) AS total_paid
+     FROM payments
+     WHERE enrollment_id = $1`,
+    [enrollmentId]
+  );
+
+  const refundedResult = await client.query(
+    `SELECT COALESCE(SUM(amount) FILTER (WHERE status = 'Completed'), 0) AS total_refunded
+     FROM refunds
+     WHERE enrollment_id = $1`,
+    [enrollmentId]
+  );
+
+  return {
+    enrollment_id: enrollment.enrollment_id,
+    fee_at_enrollment: enrollment.fee_at_enrollment,
+    class_type: enrollment.class_type,
+    total_misc_fee: feeResult.rows[0].total_misc_fee,
+    total_paid: paidResult.rows[0].total_paid,
+    total_refunded: refundedResult.rows[0].total_refunded
+  };
 }
 
 // => enrollment_type must be written explicitly now that SHS refunds are
