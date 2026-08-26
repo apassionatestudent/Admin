@@ -1368,3 +1368,34 @@
   font-weight: 500;
   color: #4b5563;
 }
+
+
+/* => Pager for the search-results table (Status: All, or any search with
+      more than 10 results). Kept minimal and reusing the existing
+      maroon/token palette, not a new design language. */
+.adm-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.adm-page-btn {
+  padding: 6px 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.adm-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.adm-page-info {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
