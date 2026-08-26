@@ -52,6 +52,29 @@ const applyCodeFormat = (e, setValue) => {
   });
 };
 
+// => Same local-date helpers as CreateTesdaCourseModal.jsx - local time
+// => parts, not toISOString(), which converts to UTC first and can land on
+// => the wrong day depending on the admin's browser timezone
+const getLocalDateString = (dateObj) => {
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getTodayString = () => getLocalDateString(new Date());
+const getTomorrowString = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return getLocalDateString(d);
+};
+
+// => Accreditation No. must be uppercase letters, numbers, and dashes only.
+// => The input itself is already live-formatted via applyCodeFormat below,
+// => this just backstops the rare case of a value getting in some other way
+// => (e.g. autofill).
+const ACCREDITATION_NO_PATTERN = /^[A-Z0-9-]+$/;
+
 // => Live per-field validators - same shape as CreateTesdaCourseModal.jsx's
 const validators = {
   title: (val) => {
@@ -61,11 +84,20 @@ const validators = {
   },
   certification_id: (val) => (!val ? 'National Certification Level is required.' : ''),
   description: (val) => (!val.trim() ? 'Description is required.' : ''),
-  accreditation_no: (val) => (!val.trim() ? 'Accreditation No. is required.' : ''),
+  accreditation_no: (val) => {
+    if (!val.trim()) return 'Accreditation No. is required.';
+    if (!ACCREDITATION_NO_PATTERN.test(val)) return 'Uppercase letters, numbers, and dashes only - no spaces.';
+    return '';
+  },
   sector_id: (val) => (!val ? 'Sector is required.' : ''),
-  date_accredited: (val) => (!val ? 'Date Accredited is required.' : ''),
+  date_accredited: (val) => {
+    if (!val) return 'Date Accredited is required.';
+    if (val > getTodayString()) return 'Cannot be a future date.';
+    return '';
+  },
   expiration_date: (val, form) => {
     if (!val) return 'Expiration Date is required.';
+    if (val < getTomorrowString()) return 'Must be a future date (tomorrow or later).';
     if (form.date_accredited && val < form.date_accredited) return 'Cannot be earlier than Date Accredited.';
     return '';
   },
@@ -225,6 +257,16 @@ export default function TesdaCourseDetail() {
       const updatedForm = { ...infoForm, title: val };
       setInfoForm(updatedForm);
       setInfoFieldErrors((prev) => ({ ...prev, title: validators.title(val) }));
+    });
+  };
+
+  // => Same live strip-spaces-and-uppercase formatting as the Create modal's
+  // => Accreditation No. field
+  const handleAccreditationNoChange = (e) => {
+    applyCodeFormat(e, (val) => {
+      const updatedForm = { ...infoForm, accreditation_no: val };
+      setInfoForm(updatedForm);
+      setInfoFieldErrors((prev) => ({ ...prev, accreditation_no: validators.accreditation_no(val) }));
     });
   };
 
@@ -844,7 +886,7 @@ export default function TesdaCourseDetail() {
             </label>
             <label>
               <span>Accreditation No. <span className="required-mark">*</span></span>
-              <input name="accreditation_no" value={infoForm.accreditation_no} onChange={handleInfoChange} required />
+              <input name="accreditation_no" value={infoForm.accreditation_no} onChange={handleAccreditationNoChange} required />
               <FieldError message={infoFieldErrors.accreditation_no} />
             </label>
             <label>
@@ -861,7 +903,14 @@ export default function TesdaCourseDetail() {
             </label>
             <label>
               <span>Date Accredited <span className="required-mark">*</span></span>
-              <input type="date" name="date_accredited" value={infoForm.date_accredited} onChange={handleInfoChange} required />
+              <input
+                type="date"
+                name="date_accredited"
+                value={infoForm.date_accredited}
+                onChange={handleInfoChange}
+                max={getTodayString()} // => blocks picking a future date directly from the calendar widget
+                required
+              />
               <FieldError message={infoFieldErrors.date_accredited} />
             </label>
             <label>
@@ -871,7 +920,7 @@ export default function TesdaCourseDetail() {
                 name="expiration_date"
                 value={infoForm.expiration_date}
                 onChange={handleInfoChange}
-                min={infoForm.date_accredited || undefined}
+                min={getTomorrowString()} // => blocks picking today or a past date directly from the calendar widget
                 required
               />
               <FieldError message={infoFieldErrors.expiration_date} />

@@ -117,7 +117,7 @@ export async function toggleAnnouncementActiveById(publicId, isActive, updatedBy
 //    Facilities/Trainers/Courses do
 export async function deleteAnnouncementById(publicId) {
   const { rows } = await pool.query(
-    `DELETE FROM announcements WHERE public_id = $1 RETURNING announcement_id`,
+    `DELETE FROM announcements WHERE public_id = $1 RETURNING announcement_id, title`, // => added title, needed for the DELETE activity log's action_detail since the row won't exist to re-query afterward
     [publicId]
   );
   return rows[0] || null;
