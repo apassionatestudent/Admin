@@ -253,6 +253,14 @@ export const changeTesdaBatchStatus = async (publicId, newStatus, remarks, admin
   const existing = await getTesdaBatchByPublicId(pool, publicId);
   if (!existing) throw new Error('Batch not found.');
 
+  // => Once a batch leaves Pending, it can never go back - covers Ongoing
+  //    (classes already started), Concluded (already finished), and
+  //    Dissolved (already called off). "Not yet started" stops being true
+  //    the moment any of those happen, so there's no valid path back to it
+  if (existing.status !== 'Pending' && newStatus === 'Pending') {
+    throw new Error(`Cannot revert to Pending - this batch is already ${existing.status}.`);
+  }
+
   if (newStatus === 'Ongoing') {
     // => Reuses the same enrolled-students query the batch detail page
     //    calls, filtered down to just the Approved count needed here.
@@ -293,6 +301,13 @@ export const changeShsBatchStatus = async (publicId, newStatus, remarks, adminId
   //    trainer assigned before the batch can go Ongoing
   const existing = await getShsBatchByPublicId(pool, publicId);
   if (!existing) throw new Error('Batch not found.');
+
+  // => Same rule as the TESDA side above - once a batch leaves Pending
+  //    (Ongoing, Concluded, or Dissolved), it can never go back to it
+  if (existing.status !== 'Pending' && newStatus === 'Pending') {
+    throw new Error(`Cannot revert to Pending - this batch is already ${existing.status}.`);
+  }
+
   const courseTrainers = await getShsBatchCourseTrainers(pool, existing.batch_id);
 
   if (newStatus === 'Ongoing') {
@@ -637,7 +652,19 @@ export const setShsBatchGrade11Completed = async (publicId, adminId, batchId) =>
 export const searchBatchesService = async (filters) => {
   const hasFilter = Object.values(filters).some(v => v && String(v).trim());
   if (!hasFilter) throw new Error('At least one search field is required.');
-  return searchBatches(pool, filters);
+
+  // => 'ALL_STATUSES' is a frontend-only sentinel meaning "every status,
+  //    no constraint". It's a real non-empty string, so it correctly
+  //    counts toward hasFilter above (a genuinely empty, accidental
+  //    search still gets rejected) - but the SQL layer needs an actual
+  //    null here, not the literal word 'ALL_STATUSES', which would never
+  //    match any real status enum value and would silently return zero rows
+  const normalizedFilters = {
+    ...filters,
+    status: filters.status === 'ALL_STATUSES' ? null : filters.status,
+  };
+
+  return searchBatches(pool, normalizedFilters);
 };
 
 // FORM OPTIONS

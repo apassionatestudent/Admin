@@ -603,7 +603,11 @@ export default function ShsBatchDetail() {
               value={selectedStatus}
               onChange={e => setSelectedStatus(e.target.value)}
             >
-              <option value="Pending">Pending</option>
+              {/* => Disabled once the batch has left Pending at all
+                     (Ongoing, Concluded, or Dissolved) - reverting to
+                     "not yet started" isn't a real option anymore once any
+                     of those has happened. Backend enforces this too either way. */}
+              <option value="Pending" disabled={batchRow.status !== 'Pending'}>Pending</option>
               <option value="Ongoing">Ongoing</option>
               <option value="Concluded">Concluded</option>
               <option value="Dissolved">Dissolved</option>

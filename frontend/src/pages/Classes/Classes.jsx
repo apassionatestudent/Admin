@@ -168,6 +168,11 @@ export default function Classes() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError,   setSearchError]   = useState(null);
 
+  // => Pagination for the search-results table - 10 rows per page. Added
+  //    specifically for the new true "All statuses" option below, since
+  //    that view can return far more than a single page's worth of batches
+  const [searchPage, setSearchPage] = useState(1);
+
   // => Client-side ONLY filters (type + status) - never trigger a re-fetch,
   //    they just filter whatever's already loaded in `classes` / `searchResults`
   //    Mirrors Enrollments.jsx's typeFilter/statusFilter pattern
@@ -397,14 +402,27 @@ export default function Classes() {
   //    UI for setting program_type/status on an actual search request too
   const getSearchFilters = () => ({
     ...filters,
-    program_type: typeFilter   === 'ALL' ? '' : typeFilter,
-    status:       statusFilter === 'ALL' ? '' : statusFilter,
+    program_type: typeFilter === 'ALL' ? '' : typeFilter,
+    // => 'ALL' never reaches this (see the auto-search effect below). For
+    //    'ALL_STATUSES', send the literal string through as an actual,
+    //    non-empty query param instead of ''. An empty status previously
+    //    made the whole query look empty to both buildQuery and the
+    //    backend's "at least one filter" guard, which silently rejected
+    //    the request. The backend now explicitly unpacks this sentinel
+    //    into "no status constraint" itself (see searchBatchesService).
+    status: statusFilter === 'ALL' ? '' : statusFilter,
   });
 
   // => Run search against /api/admin/batches/search
   const handleSearch = async () => {
     const query = buildQuery(getSearchFilters());
-    if (!query) return;
+    // => 'ALL_STATUSES' must still hit the backend even when the query
+    //    string ends up empty (no other filter set, program_type/status
+    //    both map to '' on purpose so the backend applies no constraint).
+    //    Without this exception, the guard below was silently discarding
+    //    the very request the auto-search effect just triggered, so
+    //    picking 'All' never actually reached /batches/search at all.
+    if (!query && statusFilter !== 'ALL_STATUSES') return;
 
     // => Cancel any in-flight search
     if (abortRef.current) abortRef.current.abort();
@@ -420,6 +438,7 @@ export default function Classes() {
         signal: abortRef.current.signal,
       });
       setSearchResults(res.data.batches);
+      setSearchPage(1); // => Always land on page 1 for a fresh result set
     } catch (err) {
       // => axios throws a CanceledError (not fetch's AbortError) when the
       // => signal fires - axios.isCancel() is the correct check for either
@@ -429,6 +448,31 @@ export default function Classes() {
       setSearchLoading(false);
     }
   };
+
+  // => Auto-run a real backend search whenever the Status filter picks
+  //    anything other than 'ALL'. The default `classes` list (loaded once
+  //    on mount via /api/admin/batches) only ever contains Ongoing/Pending
+  //    rows, so filtering it client-side for Concluded/Dissolved always
+  //    returned zero results, the rows were simply never fetched in the
+  //    first place. Routing through handleSearch() hits /batches/search
+  //    instead, which already supports every status correctly.
+  // => typeFilter is included in the dependency array too, so switching
+  //    Type while a non-ALL Status is already active also re-searches
+  //    instead of silently going stale.
+  useEffect(() => {
+    if (statusFilter === 'ALL') {
+      // => Only fall back to the default Ongoing/Pending view if nothing
+      //    else is actively filtering - otherwise leave an existing manual
+      //    search (batch_name, trainer_id, etc.) alone
+      if (typeFilter === 'ALL' && !buildQuery(filters)) {
+        setSearchResults(null);
+      }
+      return;
+    }
+    setSearchPage(1);
+    handleSearch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, typeFilter]);
 
   // => Allow pressing Enter in search inputs to trigger search
   const handleKeyDown = (e) => {
@@ -451,9 +495,22 @@ export default function Classes() {
 
   // => Applies type/status filters in memory only - no fetch, no API call
   //    Mirrors Enrollments.jsx's applyFilters
+  // => 'ALL_STATUSES' behaves the same as 'ALL' here - don't narrow by
+  //    status client-side, since "every status" is exactly the point
   const applyFilters = (rows) => rows.filter(r =>
-    (typeFilter === 'ALL'   || r.program_type === typeFilter) &&
-    (statusFilter === 'ALL' || r.status === statusFilter)
+    (typeFilter === 'ALL' || r.program_type === typeFilter) &&
+    (statusFilter === 'ALL' || statusFilter === 'ALL_STATUSES' || r.status === statusFilter)
+  );
+
+  // => Pagination derived state for the search-results table - 10 rows per
+  //    page. searchTotalPages is clamped to at least 1 so the "Page 1 of 1"
+  //    math never divides oddly on an empty result set.
+  const SEARCH_PAGE_SIZE = 10;
+  const filteredSearchResults = isSearchMode ? applyFilters(searchResults) : [];
+  const searchTotalPages = Math.max(1, Math.ceil(filteredSearchResults.length / SEARCH_PAGE_SIZE));
+  const pagedSearchResults = filteredSearchResults.slice(
+    (searchPage - 1) * SEARCH_PAGE_SIZE,
+    searchPage * SEARCH_PAGE_SIZE
   );
 
   // => Same in-memory filtering pattern for Facilities - filters whatever's
@@ -854,9 +911,17 @@ export default function Classes() {
           <select
             className="adm-filter-select"
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
+            onChange={e => { setStatusFilter(e.target.value); setSearchPage(1); }}
           >
-            <option value="ALL">All</option>
+            {/* => Default view - Ongoing + Pending only, this is what the page
+                   loads with on mount and what the subtitle above describes.
+                   Kept as value 'ALL' so it doesn't change the existing
+                   default-mode logic (ongoing/pending arrays, effect below) */}
+            <option value="ALL">Active (Ongoing / Pending)</option>
+            {/* => New - true "all statuses" option. Runs a real search with
+                   no status filter, so Concluded/Dissolved batches show up
+                   too, paginated 10 per page below */}
+            <option value="ALL_STATUSES">All</option>
             {Object.keys(statusClass).map(s => (
               <option key={s} value={s}>{s}</option>
             ))}
@@ -883,16 +948,41 @@ export default function Classes() {
           )}
 
           {/* => searchResults has rows, but the type/status filters narrowed it to 0 */}
-          {!searchLoading && searchResults.length > 0 && applyFilters(searchResults).length === 0 && (
+          {!searchLoading && searchResults.length > 0 && filteredSearchResults.length === 0 && (
             <div className="adm-classes-state">
               <span className="adm-state-icon"><img src={warningIcon} alt="" /></span>
               <p>No classes match the current Type/Status filters.</p>
             </div>
           )}
 
-          {!searchLoading && applyFilters(searchResults).length > 0 && (
+          {!searchLoading && filteredSearchResults.length > 0 && (
             <section className="adm-classes-section">
-              <ClassTable rows={applyFilters(searchResults)} onRowClick={handleRowClick} />
+              <ClassTable rows={pagedSearchResults} onRowClick={handleRowClick} />
+
+              {/* => Pager - only rendered when there's more than one page,
+                     e.g. 11+ batches under the 'All' status option. A single
+                     page of results (10 or fewer) shows no page numbers at all */}
+              {searchTotalPages > 1 && (
+                <div className="adm-pagination">
+                  <button
+                    className="adm-page-btn"
+                    onClick={() => setSearchPage(p => Math.max(1, p - 1))}
+                    disabled={searchPage === 1}
+                  >
+                    Prev
+                  </button>
+                  <span className="adm-page-info">
+                    Page {searchPage} of {searchTotalPages}
+                  </span>
+                  <button
+                    className="adm-page-btn"
+                    onClick={() => setSearchPage(p => Math.min(searchTotalPages, p + 1))}
+                    disabled={searchPage === searchTotalPages}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </section>
           )}
         </>
