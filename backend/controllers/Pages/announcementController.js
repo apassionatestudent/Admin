@@ -61,7 +61,10 @@ export async function toggleAnnouncementActive(req, res) {
 
 export async function deleteAnnouncement(req, res) {
   try {
-    await announcementService.deleteAnnouncement(req.params.publicId);
+    await announcementService.deleteAnnouncement(req.params.publicId, {
+      deleted_by: req.admin.admin_id, // => set by protectAdmin
+      deleted_by_name: req.admin.full_name, // => set by protectAdmin, verify this is the actual field name on req.admin
+    });
     res.json({ success: true });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ error: err.message });

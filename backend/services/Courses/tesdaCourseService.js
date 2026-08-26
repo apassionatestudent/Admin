@@ -9,6 +9,15 @@ import { logActivity, getActivityLogsForEntity } from '../../models/adminActivit
 import { ACTIVITY_ACTIONS } from '../../constants/activityActions.js';
 import { buildFieldDiff, formatDiffDetail } from '../../utils/buildFieldDiff.js';
 
+// => Server-side "today" in Philippine time, formatted as YYYY-MM-DD to
+// => match the date strings the frontend sends. Uses Asia/Manila explicitly
+// => rather than the server's raw UTC date, per the standing timezone rule
+// => (Neon/Node default to UTC, PH is UTC+8) - comparing against bare UTC
+// => "today" could be wrong for several hours around midnight PH time.
+function getTodayPH() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+}
+
 // => Friendly labels for the Course Information diff, shown in the Activity Log
 const TESDA_COURSE_INFO_LABELS = {
   title: 'Title',
@@ -57,6 +66,22 @@ function assertTitleHasNoNcLevel(title) {
   }
 }
 
+// => Accreditation No. must be uppercase letters, numbers, and dashes only -
+// => no spaces, no lowercase. The frontend already live-formats this via
+// => applyCodeFormat, but that alone is never trusted for a write, so it's
+// => re-checked here.
+const ACCREDITATION_NO_PATTERN = /^[A-Z0-9-]+$/;
+
+function assertValidAccreditationNo(value) {
+  if (value && !ACCREDITATION_NO_PATTERN.test(value)) {
+    const error = new Error(
+      'Accreditation No. must be uppercase letters, numbers, and dashes only - no spaces or lowercase letters.'
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+}
+
 export async function listTesdaCourses() {
   return TesdaCourseModel.findAllTesdaCourses();
 }
@@ -93,6 +118,37 @@ export async function createTesdaCourse({ course, competencies, jobOpportunities
   }
 
   assertTitleHasNoNcLevel(course.title);
+  assertValidAccreditationNo(course.accreditation_no);
+
+  // => Accreditation date can't be in the future; expiration date can't be
+  // => today or earlier. Mirrors the live validators in
+  // => CreateTesdaCourseModal.jsx - re-checked here since a frontend check
+  // => alone is never trusted for a write.
+  const todayPH = getTodayPH();
+  if (course.date_accredited > todayPH) {
+    const error = new Error('Date Accredited cannot be a future date.');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (course.expiration_date <= todayPH) {
+    const error = new Error('Expiration Date must be a future date (tomorrow or later).');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // => At least one fully-filled row (code AND competency) is required per
+  // => type. The model silently skips incomplete rows on insert, so without
+  // => this check a course could get created with zero rows in a whole
+  // => competency category.
+  const missingCompetencyTypes = ['basic', 'common', 'core'].filter((type) => {
+    const rows = competencies?.[type] || [];
+    return !rows.some((row) => row.code?.trim() && row.competency?.trim());
+  });
+  if (missingCompetencyTypes.length > 0) {
+    const error = new Error(`At least one competency is required for: ${missingCompetencyTypes.join(', ')}`);
+    error.statusCode = 400;
+    throw error;
+  }
 
   const newCourse = await TesdaCourseModel.insertTesdaCourseWithCompetencies({
     course, competencies, jobOpportunities, adminId: actor?.admin_id,
@@ -114,6 +170,9 @@ export async function createTesdaCourse({ course, competencies, jobOpportunities
 export async function updateTesdaCourse(adminUuid, fields, actor) {
   if (fields?.title !== undefined) {
     assertTitleHasNoNcLevel(fields.title);
+  }
+  if (fields?.accreditation_no !== undefined) {
+    assertValidAccreditationNo(fields.accreditation_no);
   }
 
   // => Fetched before the write so the diff / status-change check below has

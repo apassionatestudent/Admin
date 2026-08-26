@@ -4,6 +4,7 @@ import '../CreateTesdaCourseModal/CreateTesdaCourseModal.css';
 
 const emptyCompetencyRow = () => ({ code: '', competency: '' });
 const emptyJobRow = () => ({ job_title: '' });
+const emptyRequirementRow = () => ({ document_type: '', is_required: true, max_files: 1 });
 
 // => Title must not contain the NC level itself - it's selected separately
 // => via dropdown and concatenated for display (e.g. "Computer Systems
@@ -49,6 +50,25 @@ const applyCodeFormat = (e, setValue) => {
   });
 };
 
+// => Formats a Date as YYYY-MM-DD using LOCAL time parts, not
+// => toISOString() (which converts to UTC first and can land on the wrong
+// => day depending on the admin's browser timezone vs UTC). This only needs
+// => to match whatever the browser's <input type="date"> itself produces,
+// => which is always local.
+const getLocalDateString = (dateObj) => {
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getTodayString = () => getLocalDateString(new Date());
+const getTomorrowString = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return getLocalDateString(d);
+};
+
 // => Live per-field validators - run on every keystroke/change, not just on
 // => submit. Each returns an error string (shown below that field) or ''
 // => when the current value is acceptable. expiration_date's validator takes
@@ -63,9 +83,14 @@ const validators = {
   description: (val) => (!val.trim() ? 'Description is required.' : ''),
   accreditation_no: (val) => (!val.trim() ? 'Accreditation No. is required.' : ''),
   sector_id: (val) => (!val ? 'Sector is required.' : ''),
-  date_accredited: (val) => (!val ? 'Date Accredited is required.' : ''),
+  date_accredited: (val) => {
+    if (!val) return 'Date Accredited is required.';
+    if (val > getTodayString()) return 'Cannot be a future date.'; // => today or past only
+    return '';
+  },
   expiration_date: (val, form) => {
     if (!val) return 'Expiration Date is required.';
+    if (val < getTomorrowString()) return 'Must be a future date (tomorrow or later).'; // => today itself is not allowed
     if (form.date_accredited && val < form.date_accredited) return 'Cannot be earlier than Date Accredited.';
     return '';
   },
@@ -112,6 +137,20 @@ export default function CreateTesdaCourseModal({ onClose, onCreated }) {
     common: [{ code: '', competency: '' }],
     core: [{ code: '', competency: '' }],
   });
+  // => Section-level error, separate from the per-row errors above - fires
+  // => when a whole type (basic/common/core) has zero fully-filled rows at
+  // => submit time, e.g. all rows were removed or left half-blank
+  const [competencySectionErrors, setCompetencySectionErrors] = useState({
+    basic: '',
+    common: '',
+    core: '',
+  });
+  // => Same shape/pattern as competencies: an array of rows plus a parallel
+  // => array of per-row "label is required" errors, plus one section-level
+  // => "at least one row" error - mirrors the detail page's requirement rows
+  const [requirements, setRequirements] = useState([emptyRequirementRow()]);
+  const [requirementErrors, setRequirementErrors] = useState(['']);
+  const [requirementsSectionError, setRequirementsSectionError] = useState('');
   const [jobOpportunities, setJobOpportunities] = useState([emptyJobRow()]);
   const [jobErrors, setJobErrors] = useState(['']);
   const [isSaving, setIsSaving] = useState(false);
@@ -157,6 +196,18 @@ export default function CreateTesdaCourseModal({ onClose, onCreated }) {
     });
   };
 
+  // => Reuses applyCodeFormat (already used for competency codes) - strips
+  // => spaces and forces uppercase on every keystroke/paste, so an
+  // => accreditation number like "tr 1234567" becomes "TR1234567" as the
+  // => admin types, same live-format behavior as the Code fields below.
+  const handleAccreditationNoChange = (e) => {
+    applyCodeFormat(e, (val) => {
+      const updatedForm = { ...form, accreditation_no: val };
+      setForm(updatedForm);
+      setFieldErrors((prev) => ({ ...prev, accreditation_no: validators.accreditation_no(val) }));
+    });
+  };
+
   const handleCompetencyChange = (type, index, field, value) => {
     setCompetencies((prev) => {
       const rows = [...prev[type]];
@@ -168,6 +219,9 @@ export default function CreateTesdaCourseModal({ onClose, onCreated }) {
       rows[index] = { ...rows[index], [field]: value.trim() ? '' : `${field === 'code' ? 'Code' : 'Description'} is required.` };
       return { ...prev, [type]: rows };
     });
+    // => Clear the "at least one required" section error the moment typing
+    // => produces a fully-filled row, so it doesn't sit there stale
+    setCompetencySectionErrors((prev) => (prev[type] ? { ...prev, [type]: '' } : prev));
   };
 
   const addCompetencyRow = (type) => {
@@ -184,6 +238,42 @@ export default function CreateTesdaCourseModal({ onClose, onCreated }) {
       ...prev,
       [type]: prev[type].filter((_, i) => i !== index),
     }));
+  };
+
+  const handleRequirementChange = (index, field, value) => {
+    setRequirements((prev) => {
+      const rows = [...prev];
+      rows[index] = { ...rows[index], [field]: value };
+      return rows;
+    });
+    if (field === 'document_type') {
+      setRequirementErrors((prev) => {
+        const rows = [...prev];
+        rows[index] = value.trim() ? '' : 'Requirement label is required.';
+        return rows;
+      });
+      // => Clear the section-level "at least one required" error as soon as
+      // => a label is typed, same pattern as the competency sections
+      setRequirementsSectionError((prev) => (value.trim() ? '' : prev));
+    }
+  };
+
+  // => Clamped to a minimum of 1 in the handler itself - a student can never
+  // => be shown an upload field that accepts zero files. Matches the same
+  // => clamp used on the detail page's Add/Edit requirement rows.
+  const handleRequirementMaxFilesChange = (index, e) => {
+    const val = Math.max(1, Number(e.target.value) || 1);
+    handleRequirementChange(index, 'max_files', val);
+  };
+
+  const addRequirementRow = () => {
+    setRequirements((prev) => [...prev, emptyRequirementRow()]);
+    setRequirementErrors((prev) => [...prev, '']);
+  };
+
+  const removeRequirementRow = (index) => {
+    setRequirements((prev) => prev.filter((_, i) => i !== index));
+    setRequirementErrors((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleJobChange = (index, e) => {
@@ -226,7 +316,32 @@ export default function CreateTesdaCourseModal({ onClose, onCreated }) {
     }
     setFieldErrors(newFieldErrors);
 
-    if (hasError) {
+    // => At least one FULLY FILLED row (both code and description) is
+    // => required per competency type. A row with only one field filled
+    // => doesn't count - it gets silently stripped as incomplete right
+    // => before the request is sent anyway (see cleanedCompetencies below).
+    const newSectionErrors = { basic: '', common: '', core: '' };
+    let hasSectionError = false;
+    for (const type of ['basic', 'common', 'core']) {
+      const hasCompleteRow = competencies[type].some((row) => row.code.trim() && row.competency.trim());
+      if (!hasCompleteRow) {
+        newSectionErrors[type] = `At least one ${type} competency is required.`;
+        hasSectionError = true;
+      }
+    }
+    setCompetencySectionErrors(newSectionErrors);
+
+    // => At least one requirement row with a filled-in label is required,
+    // => same "at least one" rule as each competency type above
+    const hasCompleteRequirement = requirements.some((r) => r.document_type.trim());
+    if (!hasCompleteRequirement) {
+      setRequirementsSectionError('At least one enrollment requirement is required.');
+      hasSectionError = true;
+    } else {
+      setRequirementsSectionError('');
+    }
+
+    if (hasError || hasSectionError) {
       setErrorMsg('Please fix the highlighted fields before saving.');
       return;
     }
@@ -241,6 +356,13 @@ export default function CreateTesdaCourseModal({ onClose, onCreated }) {
         core: competencies.core.filter((r) => r.code && r.competency),
       };
       const cleanedJobOpportunities = jobOpportunities.filter((j) => j.job_title.trim());
+      const cleanedRequirements = requirements
+        .filter((r) => r.document_type.trim())
+        .map((r) => ({
+          document_type: r.document_type.trim(),
+          is_required: r.is_required,
+          max_files: r.max_files,
+        }));
 
       await axiosAdmin.post('/api/admin/tesda-courses', {
         course: {
@@ -251,6 +373,7 @@ export default function CreateTesdaCourseModal({ onClose, onCreated }) {
         },
         competencies: cleanedCompetencies,
         jobOpportunities: cleanedJobOpportunities,
+        requirements: cleanedRequirements,
       });
 
       onCreated();
@@ -264,7 +387,8 @@ export default function CreateTesdaCourseModal({ onClose, onCreated }) {
 
   const renderCompetencySection = (type, label) => (
     <div className="competency-section">
-      <h4>{label}</h4>
+      <h4>{label} <span className="required-mark">*</span></h4>
+      <FieldError message={competencySectionErrors[type]} />
       {competencies[type].map((row, index) => (
         <div className="competency-row" key={index}>
           <div className="competency-row-field">
@@ -301,7 +425,11 @@ export default function CreateTesdaCourseModal({ onClose, onCreated }) {
   );
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    // => onClick removed here on purpose - clicking outside the modal must
+    // => NOT close it, only the explicit X button or the Cancel button
+    // => should. stopPropagation() below is now dead code (no parent
+    // => handler left to stop) but harmless, kept as-is.
+    <div className="modal-overlay">
       <div className="modal-content create-course-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>Add TESDA Course</h3>
@@ -313,7 +441,7 @@ export default function CreateTesdaCourseModal({ onClose, onCreated }) {
         <form onSubmit={handleSubmit}>
           <p className="form-reminder">
             Please review every field carefully before saving - this information will be shown to
-            prospective students once the course is published.
+            prospective students once the course is saved.
           </p>
 
           <div className="form-grid">
@@ -352,7 +480,13 @@ export default function CreateTesdaCourseModal({ onClose, onCreated }) {
 
             <label>
               <span>Accreditation No. <span className="required-mark">*</span></span>
-              <input type="text" name="accreditation_no" value={form.accreditation_no} onChange={handleChange} required />
+              <input
+                type="text"
+                name="accreditation_no"
+                value={form.accreditation_no}
+                onChange={handleAccreditationNoChange}
+                required
+              />
               <FieldError message={fieldErrors.accreditation_no} />
             </label>
 
@@ -371,7 +505,14 @@ export default function CreateTesdaCourseModal({ onClose, onCreated }) {
 
             <label>
               <span>Date Accredited <span className="required-mark">*</span></span>
-              <input type="date" name="date_accredited" value={form.date_accredited} onChange={handleChange} required />
+              <input
+                type="date"
+                name="date_accredited"
+                value={form.date_accredited}
+                onChange={handleChange}
+                max={getTodayString()} // => blocks picking a future date directly from the calendar widget
+                required
+              />
               <FieldError message={fieldErrors.date_accredited} />
             </label>
 
@@ -382,7 +523,7 @@ export default function CreateTesdaCourseModal({ onClose, onCreated }) {
                 name="expiration_date"
                 value={form.expiration_date}
                 onChange={handleChange}
-                min={form.date_accredited || undefined}
+                min={getTomorrowString()} // => blocks picking today or a past date directly from the calendar widget
                 required
               />
               <FieldError message={fieldErrors.expiration_date} />
@@ -404,6 +545,49 @@ export default function CreateTesdaCourseModal({ onClose, onCreated }) {
           {renderCompetencySection('basic', 'Basic Competencies')}
           {renderCompetencySection('common', 'Common Competencies')}
           {renderCompetencySection('core', 'Core Competencies')}
+
+          <div className="competency-section">
+            <h4>Enrollment Requirements <span className="required-mark">*</span></h4>
+            <FieldError message={requirementsSectionError} />
+            {requirements.map((row, index) => (
+              <div className="requirement-row" key={index}>
+                <div className="competency-row-field">
+                  <input
+                    type="text"
+                    placeholder="e.g. PSA Birth Certificate"
+                    value={row.document_type}
+                    onChange={(e) => handleRequirementChange(index, 'document_type', e.target.value)}
+                    required
+                  />
+                  <FieldError message={requirementErrors[index]} />
+                </div>
+                <label className="requirement-inline-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={row.is_required}
+                    onChange={(e) => handleRequirementChange(index, 'is_required', e.target.checked)}
+                  />
+                  Required
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  className="requirement-max-files"
+                  value={row.max_files}
+                  onChange={(e) => handleRequirementMaxFilesChange(index, e)}
+                  title="Max files"
+                />
+                {requirements.length > 1 && (
+                  <button type="button" className="btn-remove-row" onClick={() => removeRequirementRow(index)}>
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
+            <button type="button" className="btn-add-row" onClick={addRequirementRow}>
+              + Add Requirement Row
+            </button>
+          </div>
 
           <div className="competency-section">
             <h4>Potential Job Opportunities</h4>

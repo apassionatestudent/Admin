@@ -261,6 +261,57 @@
   box-sizing: border-box;
 }
 
+/* => Requirement rows - document_type input, a "Required?" checkbox, a
+   small max-files number field, then the remove button */
+.requirement-row {
+  display: grid;
+  grid-template-columns: 1fr auto 90px auto;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: start;
+}
+
+.requirement-inline-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text);
+  white-space: nowrap;
+  padding-top: 8px; /* => roughly lines up with the input row next to it */
+}
+
+.requirement-max-files {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  font-family: var(--font-body), sans-serif;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* => The document_type text input inside .requirement-row was never given
+   its own styling rule - only .competency-row input and .job-row input
+   existed, so this field fell back to the browser's unstyled default
+   (dark/black background) in both day and night mode. Matches the same
+   look as every other text input in this modal. */
+.requirement-row input[type="text"] {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  font-family: var(--font-body), sans-serif;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+
 /* ════════════════════════════════════
    RESPONSIVE
    => Standard breakpoints matching the rest of the admin dashboard: 1024
