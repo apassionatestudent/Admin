@@ -247,6 +247,25 @@ export async function listDeletedTesdaCourses() {
 }
 
 export async function restoreTesdaCourse(adminUuid, actor) {
+  // => Restore guard - a course cannot come back if the sector it belongs
+  // => to is itself still soft-deleted. Same reasoning as the reactivation
+  // => guard in updateTesdaCourse above, just triggered from the Restore
+  // => button instead of the status toggle.
+  const courseLookup = await TesdaCourseModel.findTesdaCourseSectorIdForRestore(adminUuid);
+  if (!courseLookup) {
+    const error = new Error('Course not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  const sectorIsDeleted = await SectorClusterModel.isSectorDeleted(courseLookup.sector_id);
+  if (sectorIsDeleted) {
+    const error = new Error(
+      'Cannot restore this course - its sector has been deleted. Restore the sector first.'
+    );
+    error.statusCode = 409;
+    throw error;
+  }
+
   const restored = await TesdaCourseModel.restoreTesdaCourse(adminUuid);
   if (!restored) {
     const error = new Error('Course not found or is not currently deleted');

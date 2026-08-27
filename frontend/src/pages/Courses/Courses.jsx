@@ -6,6 +6,8 @@ import CreateShsCourseModal from '../../components/Courses/CreateShsCourseModal/
 import AddClusterModal from '../../components/Courses/AddClusterModal/AddClusterModal.jsx';
 import AddSectorModal from '../../components/Courses/AddSectorModal/AddSectorModal.jsx';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal.jsx';
+// => Toast for restore-blocked feedback (sector/cluster still deleted)
+import toast from 'react-hot-toast';
 // => Shared spinner/error block, replaces the local courses-state markup below
 import LoadingState from '../../components/LoadingState/loadingState.jsx';
 import './Courses.css';
@@ -93,6 +95,9 @@ export default function Courses() {
         fetchCourses();
       } catch (error) {
         console.error('Failed to restore course:', error);
+        // => 409 here means the backend guard caught a deleted sector/cluster -
+        // => surface that exact message instead of a generic failure toast
+        toast.error(error.response?.data?.message || 'Failed to restore course.');
       }
     });
   };

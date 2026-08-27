@@ -148,6 +148,25 @@ export async function listDeletedShsCourses() {
 }
 
 export async function restoreShsCourse(adminUuid, actor) {
+  // => Restore guard - a course cannot come back if the cluster it belongs
+  // => to is itself still soft-deleted. Same reasoning as the reactivation
+  // => guard in updateShsCourse above, just triggered from the Restore
+  // => button instead of the status toggle.
+  const courseLookup = await ShsCourseModel.findShsCourseClusterIdForRestore(adminUuid);
+  if (!courseLookup) {
+    const error = new Error('Course not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  const clusterIsDeleted = await SectorClusterModel.isClusterDeleted(courseLookup.cluster_id);
+  if (clusterIsDeleted) {
+    const error = new Error(
+      'Cannot restore this course - its cluster has been deleted. Restore the cluster first.'
+    );
+    error.statusCode = 409;
+    throw error;
+  }
+
   const restored = await ShsCourseModel.restoreShsCourse(adminUuid);
   if (!restored) {
     const error = new Error('Course not found or is not currently deleted');
