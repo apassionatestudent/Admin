@@ -30,15 +30,18 @@ export const getPaginatedStudents = async (pool, page = 1, onlyActive = false) =
         sp.first_name,
         sp.middle_name,
         sp.name_extension,
-        COUNT(e.enrollment_id)::int AS enrollment_count
+        -- => enrollment_count now sums both TESDA and SHS enrollments.
+        --    Correlated subqueries instead of a JOIN + GROUP BY, since
+        --    joining two enrollments tables directly would create a
+        --    cross-product and inflate the count for students who have
+        --    rows in both
+        (
+          (SELECT COUNT(*) FROM tesda_enrollments te WHERE te.student_id = sa.student_id) +
+          (SELECT COUNT(*) FROM shs_enrollments se WHERE se.student_id = sa.student_id)
+        )::int AS enrollment_count
       FROM student_accounts sa
       LEFT JOIN student_profile sp ON sp.student_id = sa.student_id
-      LEFT JOIN tesda_enrollments e  ON e.student_id  = sa.student_id
       ${activeClause}
-      GROUP BY
-        sa.public_id, sa.student_id, sa.username,
-        sa.is_active,  sa.created_at, sa.last_login_at,
-        sp.last_name, sp.first_name, sp.middle_name, sp.name_extension
       ORDER BY sa.created_at DESC
       LIMIT  $1
       OFFSET $2`,
@@ -120,15 +123,15 @@ export const searchStudents = async (pool, filters, page = 1) => {
         sp.first_name,
         sp.middle_name,
         sp.name_extension,
-        COUNT(e.enrollment_id)::int AS enrollment_count
+        -- => enrollment_count now sums both TESDA and SHS enrollments,
+        --    same reasoning as getPaginatedStudents above
+        (
+          (SELECT COUNT(*) FROM tesda_enrollments te WHERE te.student_id = sa.student_id) +
+          (SELECT COUNT(*) FROM shs_enrollments se WHERE se.student_id = sa.student_id)
+        )::int AS enrollment_count
       FROM student_accounts sa
       LEFT JOIN student_profile sp ON sp.student_id = sa.student_id
-      LEFT JOIN tesda_enrollments e  ON e.student_id  = sa.student_id
       ${whereClause}
-      GROUP BY
-        sa.public_id, sa.student_id, sa.username,
-        sa.is_active,  sa.created_at, sa.last_login_at,
-        sp.last_name, sp.first_name, sp.middle_name, sp.name_extension
       ORDER BY sa.created_at DESC
       LIMIT  $${limitParam}
       OFFSET $${offsetParam}`,
@@ -202,7 +205,10 @@ export const getStudentByPublicId = async (pool, publicId) => {
 // => Joins class, course for display
 // 
 export const getStudentEnrollmentHistory = async (pool, studentId) => {
-  const result = await pool.query(
+  // => TESDA enrollments for this student
+  // => program_type tag added so the frontend can route each row to
+  //    the correct detail page (enrollments/tesda/:publicId vs shs/:publicId)
+  const tesdaResult = await pool.query(
     `SELECT
         e.public_id           AS enrollment_public_id,
         e.status              AS enrollment_status,
@@ -213,15 +219,49 @@ export const getStudentEnrollmentHistory = async (pool, studentId) => {
         cl.start_date,
         cl.end_date,
         -- => Course info
-        c.title               AS course_name
+        c.title               AS course_name,
+        'TESDA'                AS program_type
       FROM tesda_enrollments e
       JOIN  tesda_batches cl ON e.batch_id   = cl.batch_id
       LEFT JOIN tesda_courses c  ON cl.course_id  = c.course_id
-      WHERE e.student_id = $1
-      ORDER BY e.submitted_at DESC NULLS LAST`,
+      WHERE e.student_id = $1`,
     [studentId]
   );
-  return result.rows;
+
+  // => SHS enrollments for this student
+  // => shs_batches DOES have a status column (Pending/Ongoing/Concluded/
+  //    Dissolved), confirmed against schema, so class_status is included
+  //    here same as TESDA
+  // => sc.name stands in for course_name - a cluster is a fixed 2-year
+  //    curriculum, not a single picked course, same reasoning as
+  //    getShsEnrollmentDetailByPublicId in shsEnrollmentModel.js
+  // => LEFT JOIN on shs_batches (not JOIN) because approveShsEnrollmentWithLock
+  //    sets batch_id back to NULL when an enrollment gets swept to
+  //    Reserved, an inner join would silently drop those rows here
+  const shsResult = await pool.query(
+    `SELECT
+        e.public_id           AS enrollment_public_id,
+        e.status              AS enrollment_status,
+        e.submitted_at,
+        -- => Class info
+        cl.public_id          AS class_public_id,
+        cl.status             AS class_status,
+        cl.start_date,
+        cl.end_date,
+        -- => Cluster info (stands in for course info on the SHS side)
+        sc.name                AS course_name,
+        'SHS'                   AS program_type
+      FROM shs_enrollments e
+      LEFT JOIN shs_batches cl  ON e.batch_id   = cl.batch_id
+      LEFT JOIN shs_clusters sc ON e.cluster_id = sc.cluster_id
+      WHERE e.student_id = $1`,
+    [studentId]
+  );
+
+  // => Merge both programs into a single timeline, latest submission first
+  return [...tesdaResult.rows, ...shsResult.rows].sort(
+    (a, b) => new Date(b.submitted_at) - new Date(a.submitted_at)
+  );
 };
 
 // 

@@ -1062,13 +1062,21 @@ export default function StudentDetail() {
                     <tr
                       key={e.enrollment_public_id}
                       className="student-detail-sub-table-row"
-                      onClick={() => navigate(`/dashboard/enrollments/${e.enrollment_public_id}`)}
+                      // => program_type comes from the merged TESDA/SHS query in
+                      //    getStudentEnrollmentHistory, routes to the correct
+                      //    detail page since there's no bare /enrollments/:publicId
+                      //    route anymore, only /enrollments/tesda/:publicId and
+                      //    /enrollments/shs/:publicId
+                      onClick={() => navigate(`/dashboard/enrollments/${e.program_type.toLowerCase()}/${e.enrollment_public_id}`)}
                       title="View enrollment detail"
                     >
                       <td className="student-detail-td-course">{e.course_name ?? '-'}</td>
                       <td className="student-detail-td-dates">
                         {e.start_date
-                          ? `${String(e.start_date).slice(0,10)} - ${String(e.end_date).slice(0,10)}`
+                          // => end_date can be null (batch not yet concluded/scheduled),
+                          //    guard separately so it renders as a dash instead of the
+                          //    literal string "null"
+                          ? `${String(e.start_date).slice(0,10)} - ${e.end_date ? String(e.end_date).slice(0,10) : '-'}`
                           : '-'
                         }
                       </td>

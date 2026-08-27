@@ -229,7 +229,7 @@
 .add-payment-submit-btn {
   border: none;
   background: var(--accent-hover, #8a0d17);
-  color: #fff;
+  color: #fff !important;
   border-radius: var(--radius-md, 8px);
   padding: 10px 16px;
   font-weight: 600;
