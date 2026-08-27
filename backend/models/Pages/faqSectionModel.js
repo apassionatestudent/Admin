@@ -33,8 +33,10 @@ export async function getSectionInternalIdByPublicId(publicId) {
 }
 
 export async function deleteSectionByPublicId(publicId) {
+  // => Also return name so the service layer can write a readable
+  //    activity log entry without a second query
   const { rows } = await pool.query(
-    `DELETE FROM faqs_sections WHERE public_id = $1 RETURNING section_id`,
+    `DELETE FROM faqs_sections WHERE public_id = $1 RETURNING section_id, name`,
     [publicId]
   );
   return rows[0] || null;

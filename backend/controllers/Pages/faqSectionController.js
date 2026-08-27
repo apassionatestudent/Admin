@@ -15,7 +15,11 @@ export async function getSections(req, res) {
 export async function createSection(req, res) {
   try {
     const { name } = req.body;
-    const section = await faqSectionService.createSection({ name, created_by: req.admin.admin_id });
+    const section = await faqSectionService.createSection({
+      name,
+      created_by: req.admin.admin_id,
+      actor_name: req.admin.full_name,
+    });
     res.status(201).json({ section });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ error: err.message });
@@ -26,7 +30,10 @@ export async function createSection(req, res) {
 
 export async function deleteSection(req, res) {
   try {
-    await faqSectionService.deleteSection(req.params.publicId);
+    await faqSectionService.deleteSection(req.params.publicId, {
+      actor_id: req.admin.admin_id,
+      actor_name: req.admin.full_name,
+    });
     res.json({ success: true });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ error: err.message });

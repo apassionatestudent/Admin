@@ -15,7 +15,14 @@ export async function getFaqs(req, res) {
 export async function createFaq(req, res) {
   try {
     const { section_id, question, answer } = req.body;
-    const faq = await faqService.createFaq({ section_id, question, answer, created_by: req.admin.admin_id });
+    // => actor_name feeds the activity log entry
+    const faq = await faqService.createFaq({
+      section_id,
+      question,
+      answer,
+      created_by: req.admin.admin_id,
+      actor_name: req.admin.full_name,
+    });
     res.status(201).json({ faq });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ error: err.message });
@@ -43,7 +50,10 @@ export async function updateFaq(req, res) {
 
 export async function deleteFaq(req, res) {
   try {
-    await faqService.deleteFaq(req.params.publicId);
+    await faqService.deleteFaq(req.params.publicId, {
+      actor_id: req.admin.admin_id,
+      actor_name: req.admin.full_name,
+    });
     res.json({ success: true });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ error: err.message });

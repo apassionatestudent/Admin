@@ -4,6 +4,14 @@ import * as faqModel from '../../models/Pages/faqModel.js';
 import * as faqSectionModel from '../../models/Pages/faqSectionModel.js';
 import { sanitizeEditorHtml, isEffectivelyEmptyHtml } from './htmlSanitizer.js';
 
+// => Activity logging, CREATE and DELETE only for FAQs (UPDATE is
+//    intentionally not logged for this entity). Double check these two
+//    paths match where adminActivityLogModel.js and activityActions.js
+//    actually live in your tree
+import { pool } from '../../config/db.js';
+import { logActivity } from '../../models/adminActivityLogModel.js';
+import { ACTIVITY_ACTIONS } from '../../constants/activityActions.js';
+
 export async function listFaqs() {
   return faqModel.getAllFaqs();
 }
@@ -14,7 +22,7 @@ async function resolveSectionInternalId(sectionPublicId) {
   return internalId;
 }
 
-export async function createFaq({ section_id, question, answer, created_by }) {
+export async function createFaq({ section_id, question, answer, created_by, actor_name }) {
   const cleanQuestion = (question || '').trim();
   const cleanAnswer = sanitizeEditorHtml(answer);
 
@@ -28,6 +36,19 @@ export async function createFaq({ section_id, question, answer, created_by }) {
     answer: cleanAnswer,
     created_by,
   });
+
+  // => Log the creation, fire-and-forget, never blocks or throws on the
+  //    actual save path since logActivity swallows its own errors
+  await logActivity(pool, {
+    entity_type: 'faq',
+    entity_id: faq.faq_id,
+    actor_type: 'Staff',
+    actor_id: created_by,
+    actor_name,
+    action: ACTIVITY_ACTIONS.CREATE,
+    action_detail: `Created FAQ "${cleanQuestion}"`,
+  });
+
   // => Echo the section's public_id back on the row - the model only
   //    ever deals in the internal id, the frontend only ever deals in
   //    public_ids
@@ -52,8 +73,21 @@ export async function updateFaq(publicId, { section_id, question, answer, update
   return { ...updated, section_id };
 }
 
-export async function deleteFaq(publicId) {
+export async function deleteFaq(publicId, { actor_id, actor_name } = {}) {
   const deleted = await faqModel.deleteFaqByPublicId(publicId);
   if (!deleted) throw { status: 404, message: 'FAQ not found.' };
+
+  // => Log the deletion using the question text returned by the DELETE
+  //    ...RETURNING clause, no second query needed
+  await logActivity(pool, {
+    entity_type: 'faq',
+    entity_id: deleted.faq_id,
+    actor_type: 'Staff',
+    actor_id,
+    actor_name,
+    action: ACTIVITY_ACTIONS.DELETE,
+    action_detail: `Deleted FAQ "${deleted.question}"`,
+  });
+
   return deleted;
 }
