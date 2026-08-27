@@ -72,8 +72,10 @@ export async function updateFaqByPublicId(publicId, { section_internal_id, quest
 }
 
 export async function deleteFaqByPublicId(publicId) {
+  // => Also return question so the service layer can write a readable
+  //    activity log entry without a second query
   const { rows } = await pool.query(
-    `DELETE FROM faqs WHERE public_id = $1 RETURNING faq_id`,
+    `DELETE FROM faqs WHERE public_id = $1 RETURNING faq_id, question`,
     [publicId]
   );
   return rows[0] || null;
