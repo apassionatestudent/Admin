@@ -122,6 +122,17 @@ export async function findAllDeletedShsCourses() {
   return result.rows;
 }
 
+// => Restore guard lookup: fetches a course's cluster_id regardless of its
+// => own deleted_at status - findShsCourseByAdminUuid can't be reused here
+// => since it filters out soft-deleted courses
+export async function findShsCourseClusterIdForRestore(adminUuid) {
+  const result = await pool.query(
+    `SELECT course_id, cluster_id, title FROM shs_courses WHERE admin_uuid = $1`,
+    [adminUuid]
+  );
+  return result.rows[0] || null;
+}
+
 // => Un-deletes a course - clears deleted_at, nothing else
 export async function restoreShsCourse(adminUuid) {
   const result = await pool.query(

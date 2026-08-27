@@ -195,6 +195,19 @@ export async function findAllDeletedTesdaCourses() {
   return result.rows;
 }
 
+// => Restore guard lookup: fetches a course's sector_id regardless of its
+// => own deleted_at status - findTesdaCourseByAdminUuid can't be reused here
+// => since it filters out soft-deleted courses, and this needs to work on
+// => a course that is currently soft-deleted (that's the whole point of
+// => a restore check)
+export async function findTesdaCourseSectorIdForRestore(adminUuid) {
+  const result = await pool.query(
+    `SELECT course_id, sector_id, title FROM tesda_courses WHERE admin_uuid = $1`,
+    [adminUuid]
+  );
+  return result.rows[0] || null;
+}
+
 // => Un-deletes a course - clears deleted_at, nothing else. Only matches rows
 // => that are actually currently deleted (mirrors softDelete's guard).
 export async function restoreTesdaCourse(adminUuid) {
