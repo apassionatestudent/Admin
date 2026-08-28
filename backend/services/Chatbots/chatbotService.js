@@ -5,13 +5,22 @@
 import {
     findAllChatbots,
     findChatbotByPublicId,
+    findChatbotsByScopeAndCourse,
     insertChatbot,
     updateChatbotByPublicId,
     deleteChatbotByPublicId,
 } from '../../models/Chatbots/chatbotModel.js';
 import { sendMessageToGemini } from './chatbotGeminiService.js';
+// => Logging only, not the chatbot's own CRUD queries - pool is passed
+//    through since logActivity takes it as its first argument, same
+//    pattern used by every other logged module
+import { pool } from '../../config/db.js';
+import { logActivity } from '../../models/adminActivityLogModel.js';
+import { ACTIVITY_ACTIONS } from '../../constants/activityActions.js';
 
-const ALLOWED_SCOPE_TYPES = ['public_site', 'tesda_course', 'shs_course', 'student_dashboard'];
+// => student_dashboard scope removed from selectable options per admin
+//    request - only these three remain
+const ALLOWED_SCOPE_TYPES = ['public_site', 'tesda_course', 'shs_course'];
 const COURSE_SCOPE_TYPES = ['tesda_course', 'shs_course'];
 const ALLOWED_STATUSES = ['active', 'inactive'];
 
@@ -66,6 +75,19 @@ function validateScopeAndCourse(scopeType, courseId) {
     }
 }
 
+// => Enforces one chatbot per scope regardless of status - this is the
+//    real security boundary, since dropdown filtering on the frontend
+//    only stops accidental duplicates, not a direct API call
+async function ensureScopeAvailable(scopeType, courseId, excludePublicId = null) {
+    const matches = await findChatbotsByScopeAndCourse(scopeType, courseId);
+    const conflict = matches.find((m) => m.public_id !== excludePublicId);
+    if (conflict) {
+        const error = new Error('A chatbot already exists for this scope, whether active or inactive. Only one chatbot is allowed per scope.');
+        error.statusCode = 409;
+        throw error;
+    }
+}
+
 // => Postgres 23505 = unique_violation, thrown by the three partial
 //    indexes when activating a second bot for the same scope/course
 function rethrowIfActiveScopeConflict(err) {
@@ -91,7 +113,7 @@ export async function getChatbotDetailService(publicId) {
     return chatbot;
 }
 
-export async function createChatbotService(payload, adminId) {
+export async function createChatbotService(payload, adminId, adminName) {
     const { name, widgetHeaderTitle, welcomeMessage, instructions, context, scopeType, courseId } = payload;
 
     if (!name?.trim() || !widgetHeaderTitle?.trim() || !welcomeMessage?.trim() || !instructions?.trim()) {
@@ -101,10 +123,14 @@ export async function createChatbotService(payload, adminId) {
     }
 
     validateScopeAndCourse(scopeType, courseId);
+    // => Blocks duplicate scopes regardless of active/inactive status,
+    //    on top of the DB-level partial unique indexes which only guard
+    //    active bots
+    await ensureScopeAvailable(scopeType, courseId);
 
     // => New bots always start inactive - they need to pass a Test first
     try {
-        return await insertChatbot({
+        const chatbot = await insertChatbot({
             name: name.trim(),
             widgetHeaderTitle: widgetHeaderTitle.trim(),
             welcomeMessage: welcomeMessage.trim(),
@@ -114,6 +140,20 @@ export async function createChatbotService(payload, adminId) {
             courseId: courseId || null,
             createdBy: adminId,
         });
+
+        // => entity_id here is chatbot_id, not public_id - matches the
+        //    convention used by every other entity_type in activity_logs
+        await logActivity(pool, {
+            entity_type: 'chatbot',
+            entity_id: chatbot.chatbot_id,
+            actor_type: 'Staff',
+            actor_id: adminId,
+            actor_name: adminName,
+            action: ACTIVITY_ACTIONS.CREATE,
+            action_detail: `Created chatbot "${chatbot.name}"`,
+        });
+
+        return chatbot;
     } catch (err) {
         rethrowIfActiveScopeConflict(err);
     }
@@ -132,6 +172,9 @@ export async function updateChatbotService(publicId, fields, adminId) {
         const scopeType = fields.scopeType || existing.scope_type;
         const courseId = Object.prototype.hasOwnProperty.call(fields, 'courseId') ? fields.courseId : existing.course_id;
         validateScopeAndCourse(scopeType, courseId);
+        // => excludePublicId lets the bot being edited keep its own scope
+        //    without tripping the duplicate check on itself
+        await ensureScopeAvailable(scopeType, courseId, publicId);
     }
 
     const { setClause, values } = buildPartialUpdate(fields);
@@ -156,13 +199,29 @@ export async function updateChatbotService(publicId, fields, adminId) {
     }
 }
 
-export async function deleteChatbotService(publicId) {
+export async function deleteChatbotService(publicId, adminId, adminName) {
+    // => Name is grabbed before the row is gone so action_detail can still
+    //    say what was deleted - deleteChatbotByPublicId's RETURNING only
+    //    gives back chatbot_id, not name
+    const existing = await getChatbotDetailService(publicId);
+
     const deleted = await deleteChatbotByPublicId(publicId);
     if (!deleted) {
         const error = new Error('Chatbot not found');
         error.statusCode = 404;
         throw error;
     }
+
+    await logActivity(pool, {
+        entity_type: 'chatbot',
+        entity_id: deleted.chatbot_id,
+        actor_type: 'Staff',
+        actor_id: adminId,
+        actor_name: adminName,
+        action: ACTIVITY_ACTIONS.DELETE,
+        action_detail: `Deleted chatbot "${existing.name}"`,
+    });
+
     return deleted;
 }
 

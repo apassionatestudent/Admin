@@ -34,8 +34,9 @@ export async function getChatbotDetail(req, res) {
 export async function createChatbot(req, res) {
     try {
         // => req.admin is the decoded JWT payload from protectAdmin,
-        //    signed with admin_id (snake_case), not adminId
-        const chatbot = await createChatbotService(req.body, req.admin.admin_id);
+        //    signed with admin_id (snake_case), not adminId - full_name
+        //    is passed through for the activity log's actor_name
+        const chatbot = await createChatbotService(req.body, req.admin.admin_id, req.admin.full_name);
         res.status(201).json({ data: chatbot });
     } catch (error) {
         console.error('Failed to create chatbot:', error);
@@ -57,7 +58,7 @@ export async function updateChatbot(req, res) {
 
 export async function deleteChatbot(req, res) {
     try {
-        await deleteChatbotService(req.params.publicId);
+        await deleteChatbotService(req.params.publicId, req.admin.admin_id, req.admin.full_name);
         res.status(200).json({ message: 'Chatbot deleted successfully.' });
     } catch (error) {
         console.error('Failed to delete chatbot:', error);

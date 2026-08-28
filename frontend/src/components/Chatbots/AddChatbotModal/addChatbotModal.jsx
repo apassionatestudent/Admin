@@ -7,7 +7,15 @@ import './addChatbotModal.css';
 // => Course dropdown only appears for these two scopes
 const COURSE_SCOPE_TYPES = ['tesda_course', 'shs_course'];
 
-export default function AddChatbotModal({ isOpen, onClose, onCreated }) {
+// => student_dashboard removed from selectable scopes per admin request -
+//    only these three remain
+const SCOPE_LABELS = {
+  public_site: 'Public Site (Home + About)',
+  tesda_course: 'TESDA Course',
+  shs_course: 'SHS Course',
+};
+
+export default function AddChatbotModal({ isOpen, onClose, onCreated, existingChatbots = [] }) {
   const [name, setName] = useState('');
   const [widgetHeaderTitle, setWidgetHeaderTitle] = useState('');
   const [welcomeMessage, setWelcomeMessage] = useState('');
@@ -40,6 +48,32 @@ export default function AddChatbotModal({ isOpen, onClose, onCreated }) {
       })
       .finally(() => setCourseLoading(false));
   }, [scopeType]);
+
+  // => public_site can only ever be claimed once. Once any chatbot
+  //    (active or inactive) has it, it drops out of the Scope dropdown
+  //    entirely so admins can't attempt a duplicate.
+  const publicSiteTaken = existingChatbots.some((bot) => bot.scope_type === 'public_site');
+  const availableScopeTypes = Object.keys(SCOPE_LABELS).filter((type) => {
+    if (type === 'public_site') return !publicSiteTaken;
+    return true;
+  });
+
+  // => Courses already claimed by another chatbot (any status) for this
+  //    scope type are filtered out of the Course dropdown
+  const takenCourseIds = existingChatbots
+    .filter((bot) => bot.scope_type === scopeType)
+    .map((bot) => bot.course_id);
+  const visibleCourseOptions = courseOptions.filter((c) => !takenCourseIds.includes(c.course_id));
+
+  // => If the modal opens on a scope that's since become unavailable
+  //    (public_site got taken, or it was left on a removed scope), fall
+  //    back to the first scope that's still open instead of showing a
+  //    dead option
+  useEffect(() => {
+    if (isOpen && !availableScopeTypes.includes(scopeType) && availableScopeTypes.length > 0) {
+      setScopeType(availableScopeTypes[0]);
+    }
+  }, [isOpen, availableScopeTypes, scopeType]);
 
   if (!isOpen) return null;
 
@@ -110,7 +144,7 @@ export default function AddChatbotModal({ isOpen, onClose, onCreated }) {
 
         <form onSubmit={handleSubmit} className="chatbot-modal-form">
           <label className="chatbot-modal-label">
-            Internal Name
+            Internal Name *
             <input
               type="text"
               className="chatbot-modal-input"
@@ -121,7 +155,7 @@ export default function AddChatbotModal({ isOpen, onClose, onCreated }) {
           </label>
 
           <label className="chatbot-modal-label">
-            Widget Header Title
+            Widget Header Title *
             <input
               type="text"
               className="chatbot-modal-input"
@@ -132,7 +166,7 @@ export default function AddChatbotModal({ isOpen, onClose, onCreated }) {
           </label>
 
           <label className="chatbot-modal-label">
-            Welcome Message
+            Welcome Message *
             <textarea
               className="chatbot-modal-textarea"
               rows={2}
@@ -143,7 +177,7 @@ export default function AddChatbotModal({ isOpen, onClose, onCreated }) {
           </label>
 
           <label className="chatbot-modal-label">
-            Instructions
+            Instructions *
             <textarea
               className="chatbot-modal-textarea"
               rows={5}
@@ -165,22 +199,21 @@ export default function AddChatbotModal({ isOpen, onClose, onCreated }) {
           </label>
 
           <label className="chatbot-modal-label">
-            Scope
+            Scope *
             <select
               className="chatbot-modal-select"
               value={scopeType}
               onChange={(e) => setScopeType(e.target.value)}
             >
-              <option value="public_site">Public Site (Home + About)</option>
-              <option value="tesda_course">TESDA Course</option>
-              <option value="shs_course">SHS Course</option>
-              <option value="student_dashboard">Student Dashboard</option>
+              {availableScopeTypes.map((type) => (
+                <option key={type} value={type}>{SCOPE_LABELS[type]}</option>
+              ))}
             </select>
           </label>
 
           {COURSE_SCOPE_TYPES.includes(scopeType) && (
             <label className="chatbot-modal-label">
-              Course
+              Course *
               <select
                 className="chatbot-modal-select"
                 value={courseId}
@@ -188,7 +221,7 @@ export default function AddChatbotModal({ isOpen, onClose, onCreated }) {
                 disabled={courseLoading}
               >
                 <option value="">{courseLoading ? 'Loading courses…' : 'Select a course'}</option>
-                {courseOptions.map((c) => (
+                {visibleCourseOptions.map((c) => (
                   <option key={c.course_id} value={c.course_id}>
                     {c.title} ({scopeType === 'tesda_course' ? c.certification_type : c.grade_level})
                   </option>

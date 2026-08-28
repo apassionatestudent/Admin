@@ -72,6 +72,28 @@ export default function Chatbots() {
         </div>
       </div>
 
+      {/* => Guidance box, same pattern as courses-guidelines on the
+             Courses page - points admins to the external prompt
+             engineering reference before they fill in Instructions/Context,
+             since those two fields are effectively a system prompt */}
+      <div className="chatbots-guidelines">
+        <strong>Writing good Instructions and Context:</strong> the Instructions field
+        is the bot's system prompt, it should say what the bot does, its tone, and
+        its limits. The Context field is optional background info like course lists
+        or policies. A well-structured prompt usually includes instruction, context,
+        input data, and an output format, see the guide below for the full breakdown.
+        <div className="guideline-links">
+          <a
+            href="https://www.promptingguide.ai/introduction/elements"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="guideline-link"
+          >
+            Elements of a Prompt Guide <span className="guideline-link-arrow">↗</span>
+          </a>
+        </div>
+      </div>
+
       {loading ? (
         <LoadingState message="Loading chatbots…" />
       ) : fetchError ? (
@@ -123,6 +145,7 @@ export default function Chatbots() {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onCreated={handleChatbotCreated}
+        existingChatbots={chatbots}
       />
     </main>
   );
