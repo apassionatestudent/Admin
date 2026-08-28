@@ -155,3 +155,65 @@
   color: #991b1b;
   border-color: #fca5a5;
 }
+
+/* ════════════════════════════════════
+   GUIDELINES BOX
+   => Same visual pattern as Courses.css's .courses-guidelines / 
+      .guideline-link, kept as its own copy per the no-shared-abstraction
+      convention already in use across admin pages
+   ════════════════════════════════════ */
+.chatbots-guidelines {
+  background: var(--code-bg, var(--bg));
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--sidebar-bg, #660911);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  font-size: 0.875rem;
+  color: var(--text-muted, var(--text));
+  font-family: var(--font-body), sans-serif;
+}
+
+.chatbots-guidelines strong {
+  color: var(--text-h);
+}
+
+.guideline-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.guideline-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg);
+  border: 1px solid var(--accent-hover, #8a0d17);
+  color: var(--accent-hover, #8a0d17);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+/* => Dark mode: same --accent-text token used across the rest of the
+      admin dashboard's dark mode pill links */
+:root[data-theme="dark"] .guideline-link {
+  color: var(--accent-text);
+  border-color: var(--accent-text);
+}
+
+.guideline-link:hover {
+  background: var(--sidebar-hover-bg, #262626);
+  border-color: var(--sidebar-hover-bg, #262626);
+  color: #fff;
+}
+
+.guideline-link-arrow {
+  font-size: 0.75rem;
+  line-height: 1;
+}

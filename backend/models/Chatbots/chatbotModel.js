@@ -53,6 +53,21 @@ export async function findChatbotByPublicId(publicId) {
     return result.rows[0] || null;
 }
 
+// => Used to enforce one chatbot per scope regardless of status (active
+//    or inactive) - course_id is compared with IS NOT DISTINCT FROM since
+//    it's NULL for public_site scopes and a plain "=" comparison against
+//    NULL never matches in Postgres
+export async function findChatbotsByScopeAndCourse(scopeType, courseId) {
+    const result = await pool.query(
+        `SELECT chatbot_id, public_id, status
+         FROM chatbots
+         WHERE scope_type = $1
+           AND course_id IS NOT DISTINCT FROM $2`,
+        [scopeType, courseId || null]
+    );
+    return result.rows;
+}
+
 export async function insertChatbot({ name, widgetHeaderTitle, welcomeMessage, instructions, context, scopeType, courseId, createdBy }) {
     // => CTE wrap so created_by_name comes back in the same round trip,
     //    same fix applied to announcementModel.js and faqModel.js
