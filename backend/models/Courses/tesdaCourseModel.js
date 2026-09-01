@@ -92,7 +92,7 @@ export async function insertTesdaCourseWithCompetencies({ course, competencies, 
     const courseResult = await client.query(
       `INSERT INTO tesda_courses
         (title, description, accreditation_no, date_accredited, expiration_date,
-         sector_id, certification_id, amount, hours, cover_image_url, status, created_by)
+         sector_id, certification_id, amount, hours, status, created_by)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'active'), $12)
        RETURNING *`,
       [
@@ -105,7 +105,6 @@ export async function insertTesdaCourseWithCompetencies({ course, competencies, 
         course.certification_id || null,
         course.amount ?? 0,
         course.hours,
-        course.cover_image_url ?? null,
         course.status ?? null,
         adminId ?? null,
       ]
@@ -149,7 +148,7 @@ export async function insertTesdaCourseWithCompetencies({ course, competencies, 
 // => never something a PATCH request should be able to change.
 export const TESDA_COURSE_ALLOWED_COLUMNS = new Set([
   'title', 'description', 'accreditation_no', 'date_accredited',
-  'expiration_date', 'sector_id', 'certification_id', 'amount', 'hours', 'cover_image_url', 'status',
+  'expiration_date', 'sector_id', 'certification_id', 'amount', 'hours', 'status',
 ]);
 
 export async function updateTesdaCourse(adminUuid, fields) {

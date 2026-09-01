@@ -41,14 +41,13 @@ export async function insertShsCourseWithJobOpportunities({ course, jobOpportuni
 
     const courseResult = await client.query(
       `INSERT INTO shs_courses
-        (cluster_id, title, description, cover_image_url, grade_level, course_link, status, created_by)
+        (cluster_id, title, description, grade_level, course_link, status, created_by)
        VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 'active'), $8)
        RETURNING *`,
       [
         course.cluster_id,
         course.title,
         course.description ?? null,
-        course.cover_image_url ?? null,
         course.grade_level,
         course.course_link ?? null,
         course.status ?? null,
@@ -79,7 +78,7 @@ export async function insertShsCourseWithJobOpportunities({ course, jobOpportuni
 // => Whitelisted editable columns - admin_uuid intentionally excluded, same
 // => reasoning as tesdaCourseModel.js
 export const SHS_COURSE_ALLOWED_COLUMNS = new Set([
-  'title', 'description', 'cover_image_url', 'cluster_id', 'grade_level', 'course_link', 'status',
+  'title', 'description', 'cluster_id', 'grade_level', 'course_link', 'status',
 ]);
 
 export async function updateShsCourse(adminUuid, fields) {
