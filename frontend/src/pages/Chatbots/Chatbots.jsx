@@ -51,7 +51,7 @@ export default function Chatbots() {
 
   const scopeLabel = (bot) => {
     if (bot.scope_type === 'public_site') return 'Public Site (Home + About)';
-    if (bot.scope_type === 'student_dashboard') return 'Student Dashboard';
+    // => student_dashboard scope removed, no chatbot will ever be scoped here going forward
     if (bot.scope_type === 'tesda_course' || bot.scope_type === 'shs_course') {
       // => course_title/course_level come from findAllChatbots' join -
       //    fall back to the raw id if a course was since deleted and the

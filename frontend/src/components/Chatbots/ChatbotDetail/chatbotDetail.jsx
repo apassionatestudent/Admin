@@ -267,7 +267,6 @@ export default function ChatbotDetail() {
               <option value="public_site">Public Site (Home + About)</option>
               <option value="tesda_course">TESDA Course</option>
               <option value="shs_course">SHS Course</option>
-              <option value="student_dashboard">Student Dashboard</option>
             </select>
           </label>
 
