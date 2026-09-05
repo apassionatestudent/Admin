@@ -1567,14 +1567,21 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
               <span className="adm-tesda-section-count-inline">{paymentHistory.length}</span>
             </h3>
 
-            {/* => Reservation fee must be paid in full before this enrollment
-                 can be Approved - enforced on the backend regardless, this is
-                 just a visible heads-up for staff reviewing the record. */}
-            <p className={`adm-reservation-note ${totalPaid >= 1000 ? 'adm-reservation-note--paid' : 'adm-reservation-note--unpaid'}`}>
-              Reservation Fee (₱1,000.00): {totalPaid >= 1000
-                ? 'Paid in full'
-                : `₱${(1000 - totalPaid).toFixed(2)} remaining`}
-            </p>
+            {/* => Reservation fee only applies to Regular class_type batches -
+                 Sponsored batches are covered externally and never carry
+                 this requirement. This now matches the same check the
+                 backend enforces in tesdaEnrollmentService.js. */}
+            {enrollment.class_type === 'Regular' ? (
+              <p className={`adm-reservation-note ${totalPaid >= 1000 ? 'adm-reservation-note--paid' : 'adm-reservation-note--unpaid'}`}>
+                Reservation Fee (₱1,000.00): {totalPaid >= 1000
+                  ? 'Paid in full'
+                  : `₱${(1000 - totalPaid).toFixed(2)} remaining`}
+              </p>
+            ) : (
+              <p className="adm-reservation-note adm-reservation-note--na">
+                Reservation fee not required ({enrollment.class_type || 'class type not set'})
+              </p>
+            )}
 
             {paymentHistory.length === 0 ? (
               <p className="adm-empty-note">No payments or refunds recorded yet.</p>
@@ -1671,6 +1678,14 @@ const [loadingClassOptions, setLoadingClassOptions] = useState(false);
             ) : (
               <div className="adm-info-grid adm-info-grid--halves">
                 <InfoCard label="Class Period" value={classPeriodValue} copyable={false} />
+              {/* => Surfaces Regular vs TESDA-Sponsored right in the detail
+                   view, so staff can tell at a glance whether the
+                   reservation fee rule even applies to this batch */}
+              <InfoCard
+                label="Class Type"
+                value={enrollment.batch_id ? (enrollment.class_type || '-') : 'Not yet assigned'}
+                copyable={false}
+              />
                 <InfoCard label="Groupchat Link" value={enrollment.groupchat_link || '-'} />
               </div>
             )}
