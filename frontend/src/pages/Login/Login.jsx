@@ -5,7 +5,7 @@ import axiosAdmin from '../../utils/axiosAdmin.js';
 // => toast handles ordinary login errors so the card doesn't stretch in height
 import toast from 'react-hot-toast';
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 import './Login.css';
 import logo from './../../assets/logo.jpg';
@@ -171,9 +171,9 @@ export default function Login() {
             </div>
           </div>
           <div className="login-forgot">
-            <a href="#">
+            <Link to="/forgot-password">
               Forgot password?
-            </a>
+            </Link>
           </div>
 
           {/* => Persistent lockout banner, stays visible for the full countdown */}

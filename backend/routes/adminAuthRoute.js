@@ -1,7 +1,7 @@
 // => admin/routes/adminAuthRoute.js
 
 import express from 'express';
-import { loginAdmin, logoutAdmin, getMe } from '../controllers/adminAuthController.js';
+import { loginAdmin, logoutAdmin, getMe, forgotPassword } from '../controllers/adminAuthController.js';
 import { protectAdmin } from '../middleware/adminAuth.js';
 // => Import auth-specific rate limiter (strict: 10 req / 15 min)
 // => Import read rate limiter (relaxed: 60 req / 1 min) for the /me route
@@ -13,6 +13,9 @@ const adminAuthRouter = express.Router();
 // => authRateLimit applied here to block brute-force login attempts
 adminAuthRouter.post('/login', authRateLimit, loginAdmin);
 adminAuthRouter.post('/logout', authRateLimit, logoutAdmin);
+// => Public: no session exists yet. Same rate limiter as login,
+// => this endpoint sends an email and must not be spammable
+adminAuthRouter.post('/forgot-password', authRateLimit, forgotPassword);
 
 // => Protected route: token required
 // => readRateLimit must be a direct flat argument - CodeQL does not recognize array-composed middleware

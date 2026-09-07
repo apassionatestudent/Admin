@@ -18,6 +18,7 @@ import Chatbots      from './pages/Chatbots/Chatbots.jsx';
 import Staff          from './pages/Staff/staff.jsx';
 import Account from './pages/Account/account.jsx';
 import SetAdminPassword from './pages/SetAdminPassword/setAdminPassword.jsx';
+import ForgotPassword from './pages/ForgotPassword/forgotPassword.jsx';
 
 // components 
 // import EnrollmentDetail from './components/EnrollmentDetail/EnrollmentDetail.jsx';
@@ -68,6 +69,9 @@ function App() {
 
                 {/* => Public route: newly invited admins land here to set their password */}
                 <Route path="/set-password/:token" element={<SetAdminPassword />} />
+
+                {/* => Public route: request a password reset link from the login page */}
+                <Route path="/forgot-password" element={<ForgotPassword />} />
 
                 {/* => Protected layout route: Dashboard wraps all admin sub-pages */}
                 {/* => Session verification happens inside Dashboard.jsx */}

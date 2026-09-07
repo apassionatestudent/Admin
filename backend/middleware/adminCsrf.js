@@ -33,10 +33,11 @@ export const csrfProtection = (req, res, next) => {
         return next();
     }
 
-    // => Login and logout are exempt from CSRF validation
+    // => Login, logout, and forgot-password are exempt from CSRF validation
     // => Login: no token exists yet - this is where the token gets generated
     // => Logout: protected instead by invalidating the token server-side
-    const exemptRoutes = ['/api/admin-auth/login', '/api/admin-auth/logout'];
+    // => Forgot-password: same as login, no session or token exists yet
+    const exemptRoutes = ['/api/admin-auth/login', '/api/admin-auth/logout', '/api/admin-auth/forgot-password'];
     if (exemptRoutes.includes(req.path)) {
         return next();
     }

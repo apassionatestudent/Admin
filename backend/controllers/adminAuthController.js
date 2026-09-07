@@ -2,6 +2,7 @@
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { Admin } from '../models/adminAuthModel.js';
 // => generateCsrfToken and invalidateCsrfToken live in middleware
 // => but are called here since issuing/revoking tokens is a controller responsibility
@@ -9,6 +10,12 @@ import { generateCsrfToken, invalidateCsrfToken } from '../middleware/adminCsrf.
 // => pool is needed here since logActivity takes pool as its first argument
 import { pool } from '../config/db.js';
 import { logActivity } from '../models/adminActivityLogModel.js';
+// => Reusing the exact same token utilities Staff invites already use.
+// => purpose 'reset' here is consumed by the same /api/admin-invite/:token
+// => completion flow (staffInviteController.completeInvite), no new
+// => completion logic is needed, only the request-a-reset step below
+import { createInviteToken, invalidateInviteTokens } from '../models/Staff/staffModel.js';
+import { sendStaffResetPasswordEmail } from '../utils/sendStaffResetPasswordEmail.js';
 
 // => Cookie options for security (mirrors studentAuthController pattern)
 const cookieOptions = {
@@ -151,6 +158,60 @@ export const loginAdmin = async (req, res) => {
         // => Safe: logs only the error object, never user-submitted data
         console.error('Admin login error:', error);
         return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// => POST /api/admin-auth/forgot-password
+// => Public: the admin has no session yet, this is where a reset starts.
+// => Always responds with the same generic message whether or not the
+// => email belongs to an account, so this endpoint can't be used to
+// => check which emails have admin accounts
+export const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ message: 'Please provide an email address' });
+    }
+
+    const genericMessage = { message: 'If an account exists for that email, a reset link has been sent.' };
+
+    try {
+        const admin = await Admin.findByEmail(email);
+
+        // => Silently exit for: no account found, super_admin (provisioned
+        // => manually in Neon, no self-service reset), or an account that
+        // => never completed its invite yet (that admin needs Resend Invite
+        // => from a super_admin, not a reset link)
+        if (!admin || admin.role === 'super_admin' || !admin.password_set) {
+            return res.status(200).json(genericMessage);
+        }
+
+        // => Same invalidate-then-create pattern as staffService.resetAdminPassword
+        await invalidateInviteTokens(admin.admin_id);
+
+        const rawToken = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await createInviteToken(admin.admin_id, rawToken, expiresAt, 'reset');
+
+        await sendStaffResetPasswordEmail({ toEmail: admin.email, fullName: admin.full_name, rawToken });
+
+        await logActivity(pool, {
+            entity_type: 'admin',
+            entity_id: admin.admin_id,
+            actor_type: 'Staff',
+            actor_id: admin.admin_id,
+            actor_name: admin.full_name,
+            action: 'RESET_PASSWORD',
+            action_detail: `${admin.full_name} requested a password reset from the login page.`,
+        });
+
+        return res.status(200).json(genericMessage);
+
+    } catch (error) {
+        // => Safe: logs only the error object, never user-submitted data
+        console.error('Forgot password error:', error);
+        // => Still generic on error, never leak internals to the client
+        return res.status(200).json(genericMessage);
     }
 };
 
