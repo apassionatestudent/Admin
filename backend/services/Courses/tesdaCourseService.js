@@ -107,7 +107,7 @@ export async function getTesdaCourseDetail(adminUuid) {
   return { ...course, competencies, jobOpportunities, requirements };
 }
 
-export async function createTesdaCourse({ course, competencies, jobOpportunities, actor }) {
+export async function createTesdaCourse({ course, competencies, jobOpportunities, requirements, actor }) {
   const required = ['title', 'accreditation_no', 'date_accredited', 'expiration_date', 'hours', 'certification_id'];
   const missing = required.filter((field) => !course?.[field]);
 
@@ -150,8 +150,19 @@ export async function createTesdaCourse({ course, competencies, jobOpportunities
     throw error;
   }
 
+  // => At least one requirement row with a filled-in label is required,
+  // => mirrors the competency check above and the modal's own validation -
+  // => without this, the model would silently skip every incomplete row
+  // => and the course could end up with zero enrollment requirements
+  const hasCompleteRequirement = (requirements || []).some((row) => row.document_type?.trim());
+  if (!hasCompleteRequirement) {
+    const error = new Error('At least one enrollment requirement is required.');
+    error.statusCode = 400;
+    throw error;
+  }
+
   const newCourse = await TesdaCourseModel.insertTesdaCourseWithCompetencies({
-    course, competencies, jobOpportunities, adminId: actor?.admin_id,
+    course, competencies, jobOpportunities, requirements, adminId: actor?.admin_id,
   });
 
   await logActivity(pool, {
