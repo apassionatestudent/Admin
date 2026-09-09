@@ -84,16 +84,20 @@ const COMPETENCY_TABLES = {
 // => DEFAULT - not set here.
 // => competencies = { basic: [{code, competency}], common: [...], core: [...] }
 // => jobOpportunities = [{ job_title }]
-export async function insertTesdaCourseWithCompetencies({ course, competencies, jobOpportunities, adminId }) {
+export async function insertTesdaCourseWithCompetencies({ course, competencies, jobOpportunities, requirements, adminId }) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
     const courseResult = await client.query(
+      // => 11 columns need exactly 11 VALUES expressions - status is ONE
+      // => expression (COALESCE($10, 'active')), not two separate ones.
+      // => Previously had a stray extra $10 before the COALESCE, which
+      // => Postgres counted as a 12th expression against 11 target columns.
       `INSERT INTO tesda_courses
         (title, description, accreditation_no, date_accredited, expiration_date,
          sector_id, certification_id, amount, hours, status, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'active'), $12)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10, 'active'), $11)
        RETURNING *`,
       [
         course.title,
@@ -130,6 +134,23 @@ export async function insertTesdaCourseWithCompetencies({ course, competencies, 
       await client.query(
         `INSERT INTO tesda_job_opportunities (course_id, job_title) VALUES ($1, $2)`,
         [newCourse.course_id, job.job_title]
+      );
+    }
+
+    // => Enrollment requirement rows, inserted in the same transaction as
+    // => the course so a failure here rolls the whole course creation back
+    // => instead of leaving a course with no upload requirements attached
+    for (const requirement of requirements || []) {
+      if (!requirement.document_type?.trim()) continue; // => skip incomplete rows silently
+      await client.query(
+        `INSERT INTO tesda_course_requirements (course_id, document_type, is_required, max_files)
+         VALUES ($1, $2, $3, $4)`,
+        [
+          newCourse.course_id,
+          requirement.document_type,
+          requirement.is_required ?? true,
+          requirement.max_files ?? 1,
+        ]
       );
     }
 

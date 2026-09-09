@@ -38,11 +38,13 @@ export async function getTesdaCourseById(req, res) {
 
 export async function createTesdaCourse(req, res) {
   try {
-    const { course, competencies, jobOpportunities } = req.body;
+    // => requirements added here - the modal already sends it, but it was
+    // => being silently dropped since this destructure never picked it up
+    const { course, competencies, jobOpportunities, requirements } = req.body;
     // => req.admin is attached by the protectAdmin middleware (decoded JWT payload)
     const actor = { admin_id: req.admin?.admin_id, full_name: req.admin?.full_name };
 
-    const newCourse = await TesdaCourseService.createTesdaCourse({ course, competencies, jobOpportunities, actor });
+    const newCourse = await TesdaCourseService.createTesdaCourse({ course, competencies, jobOpportunities, requirements, actor });
     res.status(201).json({ success: true, data: newCourse });
   } catch (error) {
     console.error('createTesdaCourse error:', error);
