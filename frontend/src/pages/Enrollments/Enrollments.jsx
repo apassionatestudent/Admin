@@ -454,7 +454,12 @@ export default function Enrollments() {
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
           >
-            <option value="ALL">All</option>
+            {/* => Label renamed from "All" to reflect actual default-view
+                   behavior - selecting this never browses every status,
+                   it stays on Pending + Needs Clarification only. Value
+                   stays 'ALL' internally so applyFilters/isStatusBrowseMode
+                   logic elsewhere doesn't need to change. */}
+            <option value="ALL">Pending &amp; Needs Clarification</option>
             {Object.keys(statusClass).map(s => (
               <option key={s} value={s}>{s}</option>
             ))}
@@ -576,7 +581,9 @@ export default function Enrollments() {
           {!loading && !error && enrollments.length === 0 && (
             <div className="adm-enroll-state">
               <span className="adm-state-icon">✓</span>
-              <p>All caught up - no pending enrollments.</p>
+              {/* => Message now covers both statuses this view actually
+                     shows, not just Pending */}
+              <p>All caught up - no pending or needs clarification enrollments.</p>
             </div>
           )}
 
