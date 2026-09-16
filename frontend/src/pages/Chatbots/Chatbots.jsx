@@ -68,7 +68,7 @@ export default function Chatbots() {
       <div className="chatbots-header">
         <div>
           <h2>Chatbots</h2>
-          <p className="chatbots-subtitle">Manage the AI assistants shown on the public site and student dashboard.</p>
+          <p className="chatbots-subtitle">Manage the AI assistants shown on the public site.</p>
         </div>
       </div>
 
