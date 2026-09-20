@@ -47,10 +47,29 @@ export const Admin = {
     incrementFailedAttempts: async (admin_id) => {
         const result = await sql`
             UPDATE admins
-            SET failed_login_attempts = failed_login_attempts + 1,
+            SET failed_login_attempts = CASE
+                    -- => FIX: if a previous lock has already expired, restart the count at 1
+                    -- => Before this, the counter stayed at 3 after a lockout ended, so the
+                    -- => next wrong password became attempt 4 and re-locked the account instantly
+                    WHEN locked_until IS NOT NULL AND locked_until <= NOW()
+                    THEN 1
+                    ELSE failed_login_attempts + 1
+                END,
                 locked_until = CASE
-                    WHEN failed_login_attempts + 1 >= ${MAX_FAILED_ATTEMPTS}
+                    -- => Every expression in an UPDATE reads the row's OLD values, so
+                    -- => locked_until can't see the new counter above. The count is
+                    -- => recomputed here to decide whether this attempt crosses the threshold
+                    WHEN (
+                        CASE
+                            WHEN locked_until IS NOT NULL AND locked_until <= NOW()
+                            THEN 1
+                            ELSE failed_login_attempts + 1
+                        END
+                    ) >= ${MAX_FAILED_ATTEMPTS}
                     THEN NOW() + INTERVAL '15 minutes'
+                    -- => Expired lock and not crossing the threshold: clear the stale timestamp
+                    WHEN locked_until IS NOT NULL AND locked_until <= NOW()
+                    THEN NULL
                     ELSE locked_until
                 END
             WHERE admin_id = ${admin_id}
