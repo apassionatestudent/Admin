@@ -219,11 +219,22 @@ export const getStudentEnrollmentHistory = async (pool, studentId) => {
         cl.start_date,
         cl.end_date,
         -- => Course info
-        c.title               AS course_name,
+        -- => Label is "Title NCLevel (TESDA)", e.g. Barista NCII (TESDA).
+        --    CONCAT_WS skips a NULL certification_type so no stray "null" appears,
+        --    and NULLIF keeps a row with no course blank instead of showing just " (TESDA)"
+        NULLIF(CONCAT_WS(' ', c.title, nct.certification_type), '') || ' (TESDA)' AS course_name,
         'TESDA'                AS program_type
       FROM tesda_enrollments e
-      JOIN  tesda_batches cl ON e.batch_id   = cl.batch_id
-      LEFT JOIN tesda_courses c  ON cl.course_id  = c.course_id
+      -- => Changed from JOIN to LEFT JOIN so Reserved enrollments (batch_id is NULL)
+      --    still show up, same reasoning as the SHS query below
+      LEFT JOIN tesda_batches cl ON e.batch_id   = cl.batch_id
+      -- => Course is now resolved from the enrollment's own course_id first, so Reserved
+      --    rows (batch_id is NULL) still show a course name. COALESCE falls back to the
+      --    batch's course_id for any older row where e.course_id happens to be empty
+      LEFT JOIN tesda_courses c  ON c.course_id = COALESCE(e.course_id, cl.course_id)
+      -- => NC level lives in its own lookup table, so it gets its own LEFT JOIN.
+      --    LEFT keeps courses with no certification type from dropping the row
+      LEFT JOIN national_certification_types nct ON nct.certification_id = c.certification_id
       WHERE e.student_id = $1`,
     [studentId]
   );
